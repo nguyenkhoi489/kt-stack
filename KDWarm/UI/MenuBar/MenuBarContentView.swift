@@ -16,6 +16,8 @@ struct MenuBarContentView: View {
             Divider().padding(.vertical, KDSpacing.space1)
             servicesSection
             Divider().padding(.vertical, KDSpacing.space1)
+            MenuBarVersionSwitcher()
+            Divider().padding(.vertical, KDSpacing.space1)
             footer
         }
         .padding(KDSpacing.space2)

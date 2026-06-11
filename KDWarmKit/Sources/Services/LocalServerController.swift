@@ -36,7 +36,9 @@ public final class LocalServerController: ObservableObject {
     public init(bundleBinDir: URL, paths: AppSupportPaths = AppSupportPaths()) {
         self.paths = paths
         self.agents = LaunchAgentManager(paths: paths)
-        self.registry = SiteRegistry(storeURL: paths.sitesRegistryFile)
+        self.registry = SiteRegistry(
+            storeURL: paths.sitesRegistryFile,
+            installedPHP: { BundledPHP.availableVersions(php: paths.phpRuntimesRoot) })
         self.nginx = NginxController(paths: paths, agents: agents)
         self.pools = PHPFPMPoolManager(paths: paths, agents: agents)
         self.generator = SiteConfigGenerator(paths: paths)
@@ -98,7 +100,7 @@ public final class LocalServerController: ObservableObject {
 
     /// PHP versions whose binary is actually bundled (the per-site picker offers only these).
     public var availableVersions: [String] {
-        let v = BundledPHP.availableVersions(in: paths.bin)
+        let v = BundledPHP.availableVersions(php: paths.phpRuntimesRoot)
         return v.isEmpty ? [BundledPHP.defaultVersion] : v
     }
 

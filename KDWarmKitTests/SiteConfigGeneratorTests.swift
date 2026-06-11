@@ -70,21 +70,27 @@ final class SiteConfigGeneratorTests: XCTestCase {
 }
 
 final class BundledPHPTests: XCTestCase {
-    func testDefaultVersionMapsToUnversionedBinary() {
-        let bin = URL(fileURLWithPath: "/tmp/bin")
-        XCTAssertEqual(BundledPHP.fpmBinary(for: "8.4", in: bin).lastPathComponent, "php-fpm")
-        XCTAssertEqual(BundledPHP.fpmBinary(for: "8.1", in: bin).lastPathComponent, "php-fpm-8.1")
+    func testFpmBinaryResolvesPerVersionRuntimeLayout() {
+        let root = URL(fileURLWithPath: "/tmp/runtimes/php")
+        let fpm84 = BundledPHP.fpmBinary(for: "8.4", php: root)
+        XCTAssertEqual(fpm84.lastPathComponent, "php-fpm")
+        XCTAssertTrue(fpm84.path.hasSuffix("php/8.4/bin/php-fpm"))
+        XCTAssertTrue(BundledPHP.fpmBinary(for: "8.1", php: root).path.hasSuffix("php/8.1/bin/php-fpm"))
     }
 
-    func testAvailableVersionsReflectsBinariesOnDisk() throws {
-        let bin = URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("kd-bin-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: bin, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: bin) }
-        // Only the unversioned php-fpm exists → only 8.4 available.
-        let fpm = bin.appendingPathComponent("php-fpm")
-        FileManager.default.createFile(atPath: fpm.path, contents: Data(),
-                                       attributes: [.posixPermissions: 0o755])
-        XCTAssertEqual(BundledPHP.availableVersions(in: bin), ["8.4"])
+    func testAvailableVersionsReflectsRuntimesOnDisk() throws {
+        let root = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("kd-php-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        // Install only 8.4 + 8.1 (with executable php-fpm); 7.4 dir exists but has no binary.
+        for v in ["8.4", "8.1"] {
+            let bin = root.appendingPathComponent("\(v)/bin", isDirectory: true)
+            try FileManager.default.createDirectory(at: bin, withIntermediateDirectories: true)
+            FileManager.default.createFile(atPath: bin.appendingPathComponent("php-fpm").path,
+                                           contents: Data(), attributes: [.posixPermissions: 0o755])
+        }
+        try FileManager.default.createDirectory(
+            at: root.appendingPathComponent("7.4/bin", isDirectory: true), withIntermediateDirectories: true)
+        XCTAssertEqual(BundledPHP.availableVersions(php: root), ["8.1", "8.4"])
     }
 }

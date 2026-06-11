@@ -24,14 +24,14 @@ public struct BinaryStager {
         }
     }
 
-    /// The binaries this phase REQUIRES — a missing one aborts startup.
-    /// `dnsmasq` is bundled for DNS automation; the sudo-fallback / helper copies it to a
-    /// root-owned location, but it is staged into user app-support too for signature verification.
-    public static let binaryNames = ["nginx", "php", "php-fpm", "dnsmasq", "mkcert"]
+    /// Core binaries REQUIRED in `bin/` — a missing one aborts startup. `dnsmasq` is bundled for DNS
+    /// automation (the sudo-fallback / helper copies it to a root-owned location) and staged here too
+    /// for signature verification. PHP is NOT here — it is staged into the runtimes layout (below).
+    public static let binBinaries = ["nginx", "dnsmasq", "mkcert"]
 
-    /// Database / Mailpit binaries staged ONLY when present in the bundle. They are large relocatable
-    /// builds produced by a separate pipeline; until a build ships them the matching service reports
-    /// "Not installed" rather than failing. `initdb` accompanies `postgres`.
+    /// Database / Mailpit binaries staged into `bin/` ONLY when present in the bundle. They are large
+    /// relocatable builds produced by a separate pipeline; until a build ships them the matching
+    /// service reports "Not installed" rather than failing. `initdb` accompanies `postgres`.
     public static let optionalBinaryNames = ["mysqld", "postgres", "initdb", "redis-server", "mailpit"]
 
     private let bundleBinDir: URL
@@ -44,23 +44,52 @@ public struct BinaryStager {
         self.fileManager = fileManager
     }
 
-    /// Stage any binary that is missing or out of date. Verifies signatures on both ends.
-    /// Required binaries must be present; optional DB/Mailpit binaries are staged only if bundled.
+    /// Stage any binary that is missing or out of date. Verifies signatures on both ends. Required
+    /// `bin/` binaries must be present; PHP runtimes + optional DB/Mailpit binaries stage if bundled.
     public func stageIfNeeded() throws {
         try paths.ensureDirectoryTree(fileManager: fileManager)
-        for name in Self.binaryNames {
-            try stage(name)
+        for name in Self.binBinaries {
+            try stage(from: bundleBinDir.appendingPathComponent(name),
+                      to: paths.bin.appendingPathComponent(name), displayName: name)
         }
+        try stagePHPRuntimes()
         for name in Self.optionalBinaryNames where fileManager.isReadableFile(
             atPath: bundleBinDir.appendingPathComponent(name).path) {
-            try stage(name)
+            try stage(from: bundleBinDir.appendingPathComponent(name),
+                      to: paths.bin.appendingPathComponent(name), displayName: name)
         }
     }
 
-    private func stage(_ name: String) throws {
-        let source = bundleBinDir.appendingPathComponent(name)
-        let dest = paths.bin.appendingPathComponent(name)
+    /// Stage bundled PHP into the runtimes layout (`runtimes/php/<version>/bin/{php,php-fpm}`).
+    /// The flat `php`/`php-fpm` in the bundle is the default version; additional versions ship as
+    /// `php-<version>` / `php-fpm-<version>` and stage into their own version dir when present.
+    private func stagePHPRuntimes() throws {
+        // Default version from the flat php/php-fpm (required — at least one PHP must be bundled).
+        if fileManager.isReadableFile(atPath: bundleBinDir.appendingPathComponent("php-fpm").path) {
+            try stagePHPVersion(BundledPHP.defaultVersion, fpmSource: "php-fpm", cliSource: "php")
+        }
+        // Optional extra versions from the build pipeline (e.g. php-fpm-8.1 → runtimes/php/8.1/bin).
+        for version in BundledPHP.plannedVersions where version != BundledPHP.defaultVersion {
+            let fpm = "php-fpm-\(version)"
+            guard fileManager.isReadableFile(atPath: bundleBinDir.appendingPathComponent(fpm).path) else { continue }
+            try stagePHPVersion(version, fpmSource: fpm, cliSource: "php-\(version)")
+        }
+    }
 
+    private func stagePHPVersion(_ version: String, fpmSource: String, cliSource: String) throws {
+        let binDir = paths.runtimeBin("php", version)
+        try fileManager.createDirectory(at: binDir, withIntermediateDirectories: true,
+                                        attributes: [.posixPermissions: 0o700])
+        try stage(from: bundleBinDir.appendingPathComponent(fpmSource),
+                  to: binDir.appendingPathComponent("php-fpm"), displayName: fpmSource)
+        // The matching CLI is best-effort (a pool only needs php-fpm); stage it if bundled.
+        let cli = bundleBinDir.appendingPathComponent(cliSource)
+        if fileManager.isReadableFile(atPath: cli.path) {
+            try stage(from: cli, to: binDir.appendingPathComponent("php"), displayName: cliSource)
+        }
+    }
+
+    private func stage(from source: URL, to dest: URL, displayName name: String) throws {
         guard fileManager.isReadableFile(atPath: source.path) else {
             throw StageError.missingSource(source.path)
         }

@@ -42,7 +42,7 @@ public final class PHPFPMPoolManager: @unchecked Sendable {
 
         var missing: [String] = []
         for version in required.sorted() where pool(for: version) == nil {
-            let binary = BundledPHP.fpmBinary(for: version, in: paths.bin)
+            let binary = BundledPHP.fpmBinary(for: version, php: paths.phpRuntimesRoot)
             guard FileManager.default.isExecutableFile(atPath: binary.path) else {
                 missing.append(version); continue
             }

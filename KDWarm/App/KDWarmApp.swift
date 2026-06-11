@@ -14,6 +14,7 @@ struct KDWarmApp: App {
             MenuBarContentView()
                 .environmentObject(appDelegate.server)
                 .environmentObject(appDelegate.services)
+                .environmentObject(appDelegate.runtimes)
         }
         .menuBarExtraStyle(.window)
 
@@ -23,6 +24,7 @@ struct KDWarmApp: App {
                 .environmentObject(appDelegate.server)
                 .environmentObject(appDelegate.dns)
                 .environmentObject(appDelegate.services)
+                .environmentObject(appDelegate.runtimes)
         }
         .defaultSize(width: 920, height: 600)
         .windowResizability(.contentMinSize)
@@ -53,6 +55,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         manager.startPolling()
         return manager
     }()
+
+    /// Runtime versions: bundled PHP (staged into runtimes/) + on-demand Node/Python/Go downloads.
+    @MainActor lazy var runtimes = RuntimeManager()
 
     /// Local root CA trust (mkcert) for HTTPS `*.test`.
     @MainActor lazy var caTrust = CATrustService(

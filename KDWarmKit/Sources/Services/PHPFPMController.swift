@@ -25,7 +25,7 @@ public final class PHPFPMController: @unchecked Sendable {
         self.paths = paths
         self.agents = agents
         self.poolName = poolName
-        self.executable = executable ?? paths.phpFpmBinary
+        self.executable = executable ?? paths.phpFpmBinary(version: poolName)
         self.poolWriter = poolWriter
     }
 

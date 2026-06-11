@@ -87,9 +87,32 @@ public struct AppSupportPaths: Sendable {
     // MARK: Binaries (staged copies)
 
     public var nginxBinary: URL  { bin.appendingPathComponent("nginx") }
-    public var phpBinary: URL    { bin.appendingPathComponent("php") }
-    public var phpFpmBinary: URL { bin.appendingPathComponent("php-fpm") }
     public var mkcertBinary: URL { bin.appendingPathComponent("mkcert") }
+
+    // MARK: Runtimes layout (runtimes/<lang>/<version>/bin/…)
+
+    /// Root for a language's installed versions (`runtimes/<lang>`).
+    public func runtimeLangRoot(_ lang: String) -> URL {
+        runtimes.appendingPathComponent(lang, isDirectory: true)
+    }
+    /// A specific installed runtime version dir (`runtimes/<lang>/<version>`).
+    public func runtimeDir(_ lang: String, _ version: String) -> URL {
+        runtimeLangRoot(lang).appendingPathComponent(version, isDirectory: true)
+    }
+    /// Executable dir for an installed runtime version (`runtimes/<lang>/<version>/bin`).
+    public func runtimeBin(_ lang: String, _ version: String) -> URL {
+        runtimeDir(lang, version).appendingPathComponent("bin", isDirectory: true)
+    }
+
+    /// PHP runtimes live under `runtimes/php/<version>/bin/{php,php-fpm}` — each version is a
+    /// self-contained static build (no shared lib tree), so pools execute the per-version binary.
+    public var phpRuntimesRoot: URL { runtimeLangRoot("php") }
+    public func phpFpmBinary(version: String) -> URL {
+        runtimeBin("php", version).appendingPathComponent("php-fpm")
+    }
+    public func phpBinary(version: String) -> URL {
+        runtimeBin("php", version).appendingPathComponent("php")
+    }
 
     // MARK: TLS material
 

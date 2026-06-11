@@ -19,9 +19,17 @@ public final class SiteRegistry: ObservableObject {
 
     private let storeURL: URL
     private let inspector = SiteInspector()
+    private let versionResolver = VersionResolver()
+    /// Supplies the PHP versions actually installed (runnable). The registry clamps every site's
+    /// version to this set so a project marker or disk edit can't point a site at a phantom pool
+    /// (which nginx would `fastcgi_pass` to a socket that never appears → 502). Defaults to the
+    /// planned set for tests; the app injects the live installed set from the runtimes layout.
+    private let installedPHP: @Sendable () -> [String]
 
-    public init(storeURL: URL) {
+    public init(storeURL: URL,
+                installedPHP: @escaping @Sendable () -> [String] = { BundledPHP.plannedVersions }) {
         self.storeURL = storeURL
+        self.installedPHP = installedPHP
         load()
     }
 
@@ -53,11 +61,15 @@ public final class SiteRegistry: ObservableObject {
         }
         let info = inspector.inspect(folder: folder, tld: tld)
         let domain = uniqueDomain(info.defaultDomain)
+        // Source the PHP version from a project marker (.kdwarmrc / .php-version) when present, so a
+        // repo that pins its version is honored on add — but clamp to an INSTALLED version (markers
+        // are untrusted; an uninstalled pin would route to a pool that never starts).
+        let resolvedPHP = resolveInitialPHP(folder: folder, fallback: phpVersion)
         let site = Site(name: folder.lastPathComponent,
                         path: folder.path,
                         docroot: info.docroot.path,
                         domain: domain,
-                        phpVersion: phpVersion,
+                        phpVersion: resolvedPHP,
                         type: info.type)
         sites.append(site)
         persist()
@@ -77,10 +89,25 @@ public final class SiteRegistry: ObservableObject {
     }
 
     /// Set a site's PHP version. The registry is the trust boundary (sites.json is editable on
-    /// disk), so reject anything outside the bundled set rather than routing to a phantom pool.
+    /// disk), so reject anything outside the INSTALLED set rather than routing to a phantom pool.
     public func setPHPVersion(_ site: Site, to version: String) {
-        guard BundledPHP.plannedVersions.contains(version) else { return }
+        guard knownPHPVersions().contains(version) else { return }
         update(site.id) { $0.phpVersion = version }
+    }
+
+    /// The PHP versions a site may use: the installed set, or the bundled default before staging.
+    private func knownPHPVersions() -> [String] {
+        let installed = installedPHP()
+        return installed.isEmpty ? [BundledPHP.defaultVersion] : installed
+    }
+
+    /// Marker version (clamped to installed) → caller fallback (clamped) → first installed/default.
+    private func resolveInitialPHP(folder: URL, fallback: String) -> String {
+        let known = knownPHPVersions()
+        if let marker = versionResolver.version(.php, forProjectAt: folder), known.contains(marker) {
+            return marker
+        }
+        return known.contains(fallback) ? fallback : (known.first ?? BundledPHP.defaultVersion)
     }
 
     /// Flip a site's secure (HTTPS) flag. Cert minting + trust is handled by the orchestrator

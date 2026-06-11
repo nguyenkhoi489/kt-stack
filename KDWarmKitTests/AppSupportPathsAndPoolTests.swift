@@ -7,7 +7,7 @@ final class AppSupportPathsAndPoolTests: XCTestCase {
     func testDirectoryTreeIsRootedUnderAppSupport() {
         XCTAssertTrue(paths.bin.path.hasPrefix(paths.root.path))
         XCTAssertEqual(paths.nginxBinary.lastPathComponent, "nginx")
-        XCTAssertEqual(paths.phpFpmBinary.lastPathComponent, "php-fpm")
+        XCTAssertTrue(paths.phpFpmBinary(version: "8.4").path.hasSuffix("runtimes/php/8.4/bin/php-fpm"))
         XCTAssertEqual(paths.phpFpmSocket("demo").lastPathComponent, "php-fpm-demo.sock")
     }
 
@@ -42,6 +42,7 @@ final class AppSupportPathsAndPoolTests: XCTestCase {
     }
 
     func testBinaryStagerListsExpectedBinaries() {
-        XCTAssertEqual(Set(BinaryStager.binaryNames), ["nginx", "php", "php-fpm", "dnsmasq", "mkcert"])
+        // PHP is staged into the runtimes layout, not bin/ — bin/ holds only nginx/dnsmasq/mkcert.
+        XCTAssertEqual(Set(BinaryStager.binBinaries), ["nginx", "dnsmasq", "mkcert"])
     }
 }
