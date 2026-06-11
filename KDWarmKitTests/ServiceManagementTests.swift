@@ -54,6 +54,28 @@ final class ServiceManagementTests: XCTestCase {
         XCTAssertEqual(LaunchAgentManager.guiDomain, "gui/\(getuid())")
     }
 
+    func testParseLoadedLabelsExtractsKDWarmJobsFromServicesBlock() {
+        // Mirrors real `launchctl print gui/<uid>` shape: only the services block counts, and only
+        // com.kdwarm.* labels are returned (apple jobs + other sections ignored).
+        let fixture = """
+        gui/501 = {
+            services = {
+                637      -    com.apple.Finder
+                1234     0    com.kdwarm.redis
+                1240     0    com.kdwarm.php-fpm.8.4
+                0        -    com.kdwarm.nginx
+            }
+            endpoints = {
+                "com.kdwarm.ignored.endpoint" = { active = 1 }
+            }
+        }
+        """
+        let labels = LaunchAgentManager.parseLoadedLabels(from: fixture)
+        XCTAssertEqual(labels, ["com.kdwarm.redis", "com.kdwarm.php-fpm.8.4", "com.kdwarm.nginx"])
+        XCTAssertFalse(labels.contains("com.apple.Finder"))
+        XCTAssertFalse(labels.contains("com.kdwarm.ignored.endpoint"))   // outside services block
+    }
+
     // MARK: - RestartPolicy
 
     func testRestartPolicyStaysStartingThroughLaunchdThrottleThenErrors() {

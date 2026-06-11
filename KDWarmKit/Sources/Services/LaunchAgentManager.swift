@@ -52,6 +52,12 @@ public struct LaunchAgentManager: Sendable {
     private let paths: AppSupportPaths
     public init(paths: AppSupportPaths) { self.paths = paths }
 
+    /// Process-wide, short-TTL cache of the loaded job set in the user GUI domain. The health poll
+    /// would otherwise spawn one `launchctl print <label>` per service every tick; instead all
+    /// `isLoaded` reads share a single `launchctl print gui/<uid>` snapshot, refreshed at most once
+    /// per `ttl`. Mutations (bootstrap/bootout) invalidate it so a state change reflects immediately.
+    private static let loadedCache = LoadedLabelsCache()
+
     /// The per-user GUI launchd domain target (`gui/501`).
     public static var guiDomain: String { "gui/\(getuid())" }
 
@@ -90,6 +96,7 @@ public struct LaunchAgentManager: Sendable {
         let plist = try writePlist(for: spec)
         if isLoaded(spec.label) { return }
         try run("bootstrap", [Self.guiDomain, plist.path])
+        Self.loadedCache.invalidate()
     }
 
     /// Restart a loaded job in place (used for an explicit "Restart").
@@ -101,11 +108,13 @@ public struct LaunchAgentManager: Sendable {
     public func bootout(_ label: String) throws {
         guard isLoaded(label) else { return }
         try run("bootout", ["\(Self.guiDomain)/\(label)"])
+        Self.loadedCache.invalidate()
     }
 
-    /// Whether launchd currently has the job loaded in the user domain.
+    /// Whether launchd currently has the job loaded in the user domain. Backed by the shared,
+    /// short-TTL snapshot so a poll loop checking many labels costs a single `launchctl print`.
     public func isLoaded(_ label: String) -> Bool {
-        Self.launchctl(["print", "\(Self.guiDomain)/\(label)"]).code == 0
+        Self.loadedCache.contains(label)
     }
 
     private func run(_ op: String, _ args: [String]) throws {
@@ -114,6 +123,35 @@ public struct LaunchAgentManager: Sendable {
         guard res.code == 0 || res.code == 5 else {
             throw LaunchError.commandFailed(op, res.code, res.out)
         }
+    }
+
+    /// Snapshot of currently-loaded KDWarm jobs in the user GUI domain (one `launchctl print`).
+    static func loadedLabels() -> Set<String> {
+        parseLoadedLabels(from: launchctl(["print", guiDomain]).out)
+    }
+
+    /// Extract `com.kdwarm.*` labels from the `services = { … }` block of `launchctl print` output.
+    /// Pure (no I/O) so it is unit-tested against captured fixtures. Each service line ends in its
+    /// label, e.g. `\t\t   637   -   com.kdwarm.redis`.
+    static func parseLoadedLabels(from output: String) -> Set<String> {
+        var labels = Set<String>()
+        var inServices = false
+        var depth = 0
+        for raw in output.split(separator: "\n", omittingEmptySubsequences: false) {
+            let line = raw.trimmingCharacters(in: .whitespaces)
+            if !inServices {
+                if line.hasPrefix("services = {") { inServices = true; depth = 1 }
+                continue
+            }
+            depth += line.filter { $0 == "{" }.count
+            depth -= line.filter { $0 == "}" }.count
+            if depth <= 0 { break }
+            if let token = line.split(whereSeparator: { $0 == " " || $0 == "\t" }).last,
+               token.hasPrefix("com.kdwarm.") {
+                labels.insert(String(token))
+            }
+        }
+        return labels
     }
 
     /// Run `/bin/launchctl` and capture combined output + exit code.
@@ -128,5 +166,30 @@ public struct LaunchAgentManager: Sendable {
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         proc.waitUntilExit()
         return (proc.terminationStatus, String(data: data, encoding: .utf8) ?? "")
+    }
+}
+
+/// Process-wide cache of the loaded KDWarm job set with a short TTL. Shared by every
+/// `LaunchAgentManager` instance so a health-poll tick checking N labels triggers at most one
+/// `launchctl print` per TTL window. Thread-safe; explicitly invalidated on bootstrap/bootout.
+final class LoadedLabelsCache: @unchecked Sendable {
+    private let lock = NSLock()
+    private let ttl: TimeInterval
+    private var labels = Set<String>()
+    private var fetchedAt = Date.distantPast
+
+    init(ttl: TimeInterval = 0.5) { self.ttl = ttl }
+
+    func contains(_ label: String) -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        if Date().timeIntervalSince(fetchedAt) > ttl {
+            labels = LaunchAgentManager.loadedLabels()
+            fetchedAt = Date()
+        }
+        return labels.contains(label)
+    }
+
+    func invalidate() {
+        lock.lock(); fetchedAt = .distantPast; lock.unlock()
     }
 }
