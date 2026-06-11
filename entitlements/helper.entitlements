@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Privileged helper (root daemon) under Hardened Runtime. Minimal surface: it exposes only
+	     the DNS + Keychain-CA XPC mach service (client signature pinned via HelperIdentityConstants);
+	     no JIT, no library-validation relaxation. -->
+	<key>com.apple.security.app-sandbox</key>
+	<false/>
+</dict>
+</plist>

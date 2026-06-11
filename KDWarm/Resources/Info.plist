@@ -28,10 +28,14 @@
 	<string>NSApplication</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 KDWarm — free / open-source.</string>
-	<!-- Sparkle auto-update — placeholders; real values set in Phase 9. -->
+	<!-- Sparkle auto-update. SUPublicEDKey is the EdDSA public key; its private counterpart lives
+	     in the Keychain / CI secret and signs the appcast (see scripts/release/update-appcast.sh).
+	     SUFeedURL is the HTTPS appcast host. -->
 	<key>SUFeedURL</key>
 	<string>https://updates.kdwarm.app/appcast.xml</string>
 	<key>SUPublicEDKey</key>
-	<string>REPLACE_WITH_SPARKLE_ED25519_PUBLIC_KEY</string>
+	<string>EmKrNuitg8lKyGvic9leg86bVixRBwmdMuXGZ7yFnjs=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
 </dict>
 </plist>

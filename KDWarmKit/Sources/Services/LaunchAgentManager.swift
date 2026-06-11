@@ -117,6 +117,16 @@ public struct LaunchAgentManager: Sendable {
         Self.loadedCache.contains(label)
     }
 
+    /// Boot out every loaded `com.kdwarm.*` job in the user GUI domain (used by Uninstall/Reset).
+    /// Best-effort. The root-owned helper daemon is unregistered separately via SMAppService;
+    /// all KDWarm services run in `gui/<uid>`, so nothing is left in a system domain.
+    public func bootoutAll() {
+        for label in Self.loadedLabels() {
+            try? run("bootout", ["\(Self.guiDomain)/\(label)"])
+        }
+        Self.loadedCache.invalidate()
+    }
+
     private func run(_ op: String, _ args: [String]) throws {
         let res = Self.launchctl([op] + args)
         // bootstrap/bootout return code 5 (EIP) when already in the target state — benign.

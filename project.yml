@@ -6,6 +6,13 @@ options:
   createIntermediateGroups: true
   groupSortPosition: top
 
+packages:
+  # Sparkle auto-update framework (EdDSA-signed appcast). Private key stays offline / in CI;
+  # the public key is set as SUPublicEDKey in Info.plist.
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: "2.6.0"
+
 settings:
   base:
     ARCHS: "arm64 x86_64"
@@ -65,6 +72,7 @@ targets:
     dependencies:
       - target: KDWarmKit
         embed: true
+      - package: Sparkle
       # Build-order + copy only (no linking); lands in Contents/MacOS so Phase 4's
       # SMAppService daemon plist can reference it. Empty stub for now.
       - target: KDWarmHelper
@@ -76,7 +84,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.kdwarm.app
         INFOPLIST_FILE: KDWarm/Resources/Info.plist
         GENERATE_INFOPLIST_FILE: "NO"
-        CODE_SIGN_ENTITLEMENTS: KDWarm/KDWarm.entitlements
+        CODE_SIGN_ENTITLEMENTS: entitlements/app.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_HARDENED_RUNTIME: "YES"
         COMBINE_HIDPI_IMAGES: "YES"
@@ -99,7 +107,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.kdwarm.helper
-        CODE_SIGN_ENTITLEMENTS: KDWarmHelper/KDWarmHelper.entitlements
+        CODE_SIGN_ENTITLEMENTS: entitlements/helper.entitlements
         ENABLE_HARDENED_RUNTIME: "YES"
 
   # Logic tests for the framework (config writers, paths, pool/preflight). Runs without an

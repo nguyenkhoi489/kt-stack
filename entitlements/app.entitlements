@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Non-sandboxed DMG app under Hardened Runtime (least privilege). The app itself does not
+	     JIT — the JIT runtimes (PHP/Node) run as separate launchd processes signed with
+	     jit-runtime.entitlements. A non-sandboxed app needs no network entitlement for URLSession
+	     or Sparkle. -->
+	<key>com.apple.security.app-sandbox</key>
+	<false/>
+</dict>
+</plist>

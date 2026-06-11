@@ -15,6 +15,7 @@ struct KDWarmApp: App {
                 .environmentObject(appDelegate.server)
                 .environmentObject(appDelegate.services)
                 .environmentObject(appDelegate.runtimes)
+                .environmentObject(appDelegate.updater)
         }
         .menuBarExtraStyle(.window)
 
@@ -33,6 +34,8 @@ struct KDWarmApp: App {
         Settings {
             SettingsView()
                 .environmentObject(appDelegate.caTrust)
+                .environmentObject(appDelegate.updater)
+                .environmentObject(appDelegate.uninstaller)
         }
     }
 }
@@ -62,6 +65,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Mailpit message store for the Mail catcher view (polls the local Mailpit REST API).
     @MainActor lazy var mail = MailStore()
+
+    /// Sparkle auto-updater (background appcast checks + manual "Check for Updates…").
+    @MainActor lazy var updater = UpdaterController()
+
+    /// Full uninstall / reset orchestrator (Settings → Uninstall).
+    @MainActor lazy var uninstaller = UninstallService(
+        paths: AppSupportPaths(), dns: dns,
+        mkcertBinary: Self.bundleBinDir.appendingPathComponent("mkcert"))
 
     /// Local root CA trust (mkcert) for HTTPS `*.test`.
     @MainActor lazy var caTrust = CATrustService(

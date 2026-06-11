@@ -5,6 +5,9 @@ import KDWarmKit
 /// preference bindings land alongside the subsystems they configure in later phases.
 struct SettingsView: View {
     @EnvironmentObject private var caTrust: CATrustService
+    @EnvironmentObject private var updater: UpdaterController
+    @EnvironmentObject private var uninstaller: UninstallService
+    @State private var confirmUninstall = false
 
     var body: some View {
         TabView {
@@ -14,8 +17,47 @@ struct SettingsView: View {
                 .tabItem { Label("Services", systemImage: "server.rack") }
             TLSSettingsView(caTrust: caTrust)
                 .tabItem { Label("TLS", systemImage: "lock.shield") }
+            advancedTab
+                .tabItem { Label("Advanced", systemImage: "wrench.and.screwdriver") }
         }
         .frame(width: 480, height: 360)
+    }
+
+    /// Distinct status glyph: done = check, failed = warning, in-progress = dotted.
+    private var uninstallGlyph: String {
+        switch uninstaller.state {
+        case .done:        return "checkmark.circle"
+        case .failed:      return "exclamationmark.triangle.fill"
+        default:           return "circle.dotted"
+        }
+    }
+
+    private var advancedTab: some View {
+        Form {
+            Section("Software Update") {
+                Button("Check for Updates…") { updater.checkForUpdates() }
+                    .disabled(!updater.canCheckForUpdates)
+            }
+            Section("Uninstall") {
+                Text("Removes all KDWarm services, the .test DNS resolver, the local CA trust, and all app data, runtimes and databases.")
+                    .font(KDFont.footnote).foregroundStyle(.secondary)
+                Button("Uninstall / Reset KDWarm…", role: .destructive) { confirmUninstall = true }
+                    .disabled(uninstaller.state == .running)
+                if !uninstaller.log.isEmpty {
+                    ForEach(uninstaller.log, id: \.self) { line in
+                        Label(line, systemImage: uninstallGlyph).font(KDFont.footnote)
+                    }
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .padding(KDSpacing.space4)
+        .confirmationDialog("Uninstall KDWarm and remove all data?", isPresented: $confirmUninstall) {
+            Button("Uninstall / Reset", role: .destructive) { uninstaller.uninstall() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This stops all services and permanently deletes app data, runtimes and databases. This cannot be undone.")
+        }
     }
 
     private var generalTab: some View {

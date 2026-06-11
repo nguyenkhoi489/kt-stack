@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Applied at sign time to the JIT runtimes only (PHP-with-opcache.jit ×4, Node/V8, Java,
+	     Ruby-YJIT). Hardened Runtime forbids writable-executable memory unless allow-jit is granted.
+	     We deliberately do NOT grant allow-unsigned-executable-memory or
+	     disable-executable-page-protection — allow-jit (MAP_JIT) is the least-privilege option and is
+	     sufficient for these runtimes. nginx/dnsmasq/redis/mailpit/db get the BASE entitlements (none
+	     of these). -->
+	<key>com.apple.security.cs.allow-jit</key>
+	<true/>
+</dict>
+</plist>

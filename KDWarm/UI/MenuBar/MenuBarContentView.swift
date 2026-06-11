@@ -9,6 +9,7 @@ struct MenuBarContentView: View {
     @Environment(\.openWindow) private var openWindow
     @EnvironmentObject private var server: LocalServerController
     @EnvironmentObject private var services: ServiceManager
+    @EnvironmentObject private var updater: UpdaterController
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -107,6 +108,10 @@ struct MenuBarContentView: View {
                 openWindow(id: DashboardWindow.windowID)
             }
             settingsFooterItem
+            footerButton("Check for Updates…", systemImage: "arrow.down.circle", shortcut: "") {
+                AppActivationPolicy.activateRegular()
+                updater.checkForUpdates()
+            }
             footerButton("Quit KDWarm", systemImage: "power", shortcut: "⌘Q") {
                 NSApp.terminate(nil)
             }
