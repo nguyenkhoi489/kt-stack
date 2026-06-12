@@ -97,10 +97,10 @@ public struct RuntimeCatalog: Sendable {
         // intentionally NOT in this download manifest — never double-source a version (bundle + manifest).
         RuntimeRelease(language: .php, version: "8.3",
                        url: "https://github.com/nguyenkhoi489/kd-warm/releases/download/binaries-v1/php-8.3-arm64.tar.gz",
-                       sha256: "192f2a48516b38394e8a5e071e2609b53ca8863b4336b0b32801738c355a3958"),
+                       sha256: "6df25fee653c6f76a33f6f2c9c5cc6dda457b416c1b5542bc26a9fec403c6734"),
         RuntimeRelease(language: .php, version: "8.1",
                        url: "https://github.com/nguyenkhoi489/kd-warm/releases/download/binaries-v1/php-8.1-arm64.tar.gz",
-                       sha256: "d8fcc9ad4a8637e5c33bebae4d1ee18042439b3fe7c2bd4a21dc7c0315029e2a"),
+                       sha256: "2ac560a63a85503ea651ad6ee25a21e939c4388332208e0f85887210b091d668"),
         RuntimeRelease(language: .go, version: "1.26.4",
                        url: "https://go.dev/dl/go1.26.4.darwin-arm64.tar.gz",
                        sha256: "b62ad2b6d7d2464f12a5bcad7ff47f19d08325773b5efd21610e445a05a9bf53"),
