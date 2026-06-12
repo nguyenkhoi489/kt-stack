@@ -210,10 +210,13 @@ final class ServiceManagementTests: XCTestCase {
         XCTAssertTrue(redis.isInstalled, "redis-server under bin/ must mark the controller installed")
     }
 
-    func testCatalogHasNoMySQLReleaseUntilBuilt() {
-        // MySQL build artifact isn't published yet → no on-demand release (shows Not installed only).
+    func testCatalogOffersMySQLRelease() {
+        // MySQL is published + notarized → installable on demand (nothing installed yet, so it shows).
         let catalog = ServiceBinaryCatalog(paths: paths)
-        XCTAssertNil(catalog.availableRelease(.mysql))
+        let release = catalog.availableRelease(.mysql)
+        XCTAssertNotNil(release)
+        XCTAssertEqual(release?.url.host, "github.com")
+        XCTAssertEqual(release?.url.lastPathComponent, "mysql-9.6.0-arm64.tar.gz")
         XCTAssertNotNil(ServiceBinaryCatalog.marker(.mysql))
     }
 }

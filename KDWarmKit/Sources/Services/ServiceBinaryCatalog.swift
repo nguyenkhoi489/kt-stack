@@ -16,8 +16,8 @@ public struct ServiceBinaryRelease: Sendable, Hashable, Identifiable {
 
 /// Installed-engine discovery + the on-demand download manifest for database services. Installed
 /// engines are found by scanning `runtimes/<kind>/<version>/` for the kind's marker executable; the
-/// manifest lists verified builds (real checksums from the build pipeline). MySQL has no entry until
-/// its (heavy) build artifact is published.
+/// manifest lists verified builds (real checksums from the build pipeline) — MySQL, Redis, Postgres,
+/// each Developer-ID signed + notarized.
 public struct ServiceBinaryCatalog: Sendable {
     /// Where engine artifacts are hosted: the project's GitHub Releases download path (self-built,
     /// relocatable Redis/Postgres — no upstream macOS drop-in exists). `appendingPathComponent(fileName)`
@@ -36,6 +36,8 @@ public struct ServiceBinaryCatalog: Sendable {
 
     /// Verified engine builds (checksums emitted by `scripts/build-*-relocatable.sh`).
     public static let manifest: [ServiceBinaryRelease] = [
+        ServiceBinaryRelease(kind: .mysql, version: "9.6.0",
+                             sha256: "ad3bfd82be733ff51d6bd10fb61555ecab39bcace15292d280d2be3f5a37cddd"),
         ServiceBinaryRelease(kind: .redis, version: "7.4.2",
                              sha256: "b9e086c252492561e4a53820589cb893ad07bbd4b1c08f38fcf87836ad1cb6e9"),
         ServiceBinaryRelease(kind: .postgres, version: "17.10",

@@ -35,20 +35,29 @@ cd "$BUILD"
 
 SRC="mysql-$MYSQL_VER"
 if [[ ! -d "$SRC" ]]; then
-    echo "=== fetch mysql-boost source ==="
-    curl -fsSL "https://cdn.mysql.com/Downloads/MySQL-${MYSQL_SERIES}/mysql-boost-${MYSQL_VER}.tar.gz" -o mysql.tgz
+    echo "=== fetch mysql source ($MYSQL_VER) ==="
+    BASE="https://cdn.mysql.com/Downloads/MySQL-${MYSQL_SERIES}"
+    # MySQL 8.x ships a bundled-boost source tarball; 9.x dropped it — fall back to the plain source
+    # (cmake then downloads the matching boost itself, see DOWNLOAD_BOOST below).
+    curl -fsSL "$BASE/mysql-boost-${MYSQL_VER}.tar.gz" -o mysql.tgz \
+        || curl -fsSL "$BASE/mysql-${MYSQL_VER}.tar.gz" -o mysql.tgz
     tar -xf mysql.tgz
 fi
 
 if [[ ! -x "$PREFIX/bin/mysqld" ]]; then
     echo "=== cmake configure (minimal: no tests/router/mysqlx) ==="
+    # Use the boost bundled in the source when present (8.x); otherwise let cmake fetch it (9.x).
+    if [[ -d "$SRC/boost" ]]; then
+        BOOST_FLAGS=(-DWITH_BOOST="$SRC/boost" -DDOWNLOAD_BOOST=0)
+    else
+        BOOST_FLAGS=(-DWITH_BOOST="$BUILD/boost-dl" -DDOWNLOAD_BOOST=1)
+    fi
     cmake -S "$SRC" -B "$BUILD/cmbuild" \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="$PREFIX" \
-        -DWITH_BOOST="$SRC/boost" \
+        "${BOOST_FLAGS[@]}" \
         -DWITH_SSL="$OPENSSL_PREFIX" \
-        -DWITH_UNIT_TESTS=OFF -DWITH_ROUTER=OFF -DWITH_MYSQLX=OFF \
-        -DDOWNLOAD_BOOST=0 >/dev/null
+        -DWITH_UNIT_TESTS=OFF -DWITH_ROUTER=OFF -DWITH_MYSQLX=OFF >/dev/null
     echo "=== make + install (this is the long part) ==="
     cmake --build "$BUILD/cmbuild" -j"$(sysctl -n hw.ncpu)" >/dev/null
     cmake --install "$BUILD/cmbuild" >/dev/null

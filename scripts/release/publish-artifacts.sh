@@ -25,6 +25,7 @@ DEFAULT_ARTIFACTS=(
   "php-8.4-arm64.tar.gz"
   "php-8.3-arm64.tar.gz"
   "php-8.1-arm64.tar.gz"
+  "mysql-9.6.0-arm64.tar.gz"
   "redis-7.4.2-arm64.tar.gz"
   "postgres-17.10-arm64.tar.gz"
 )
