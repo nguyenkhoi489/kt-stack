@@ -2,11 +2,14 @@ import SwiftUI
 import AppKit
 import KDWarmKit
 
-/// "Add Site" sheet: choose a folder (defaults to ~/Sites/WWW), confirm the editable domain
-/// (default `<dirname>.test`, TLD-validated) and PHP version, then register it.
+/// "Add Site" sheet: choose a folder (defaults to the configured sites root), confirm the editable
+/// domain (default `<dirname>.<tld>`, TLD-validated) and PHP version, then register it. Sites may live
+/// anywhere — the managed root is only the picker's starting point, not a containment requirement.
 struct AddSiteSheet: View {
     @ObservedObject var registry: SiteRegistry
     let availableVersions: [String]
+    /// The managed sites root (`AppPreferences.sitesRootURL`) the folder picker opens at.
+    let sitesRoot: URL
     @Environment(\.dismiss) private var dismiss
 
     @State private var folder: URL?
@@ -17,6 +20,9 @@ struct AddSiteSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: KDSpacing.space3) {
             Text("Add Site").font(KDFont.title)
+            Text("Sites root: \(sitesRoot.path)")
+                .font(KDFont.footnote).foregroundStyle(.secondary)
+                .lineLimit(1).truncationMode(.middle)
 
             HStack {
                 Text(folder?.path ?? "No folder selected")
@@ -30,7 +36,7 @@ struct AddSiteSheet: View {
                 Grid(alignment: .leading, verticalSpacing: KDSpacing.space2) {
                     GridRow {
                         Text("Domain").foregroundStyle(.secondary)
-                        TextField("name.test", text: $domain).font(KDFont.mono).frame(width: 240)
+                        TextField("name.\(registry.tld)", text: $domain).font(KDFont.mono).frame(width: 240)
                     }
                     GridRow {
                         Text("PHP").foregroundStyle(.secondary)
@@ -60,11 +66,15 @@ struct AddSiteSheet: View {
     }
 
     private func chooseFolder() {
+        // Create the managed root on first use so the picker actually opens there (NSOpenPanel falls
+        // back to a default dir if directoryURL doesn't exist). Best-effort: 0700, owner-only.
+        try? FileManager.default.createDirectory(at: sitesRoot, withIntermediateDirectories: true,
+                                                 attributes: [.posixPermissions: 0o700])
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
-        panel.directoryURL = AppSupportPaths.defaultSitesRoot
+        panel.directoryURL = sitesRoot
         panel.prompt = "Choose"
         if panel.runModal() == .OK, let url = panel.url {
             folder = url

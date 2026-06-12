@@ -10,9 +10,11 @@ struct SitesSectionView: View {
 
     @EnvironmentObject private var server: LocalServerController
     @EnvironmentObject private var dns: DNSAutomationService
+    @EnvironmentObject private var preferences: AppPreferences
 
     var body: some View {
-        SitesContent(server: server, registry: server.registry, dns: dns, onOpenLogs: onOpenLogs)
+        SitesContent(server: server, registry: server.registry, dns: dns,
+                     preferences: preferences, onOpenLogs: onOpenLogs)
     }
 }
 
@@ -20,6 +22,7 @@ private struct SitesContent: View {
     @ObservedObject var server: LocalServerController
     @ObservedObject var registry: SiteRegistry
     @ObservedObject var dns: DNSAutomationService
+    @ObservedObject var preferences: AppPreferences
     var onOpenLogs: (String?) -> Void
     @State private var showAddSheet = false
 
@@ -31,7 +34,7 @@ private struct SitesContent: View {
                 EmptyStateView(
                     symbol: "globe",
                     title: "No sites yet",
-                    message: "Add a folder under ~/Sites/WWW to serve it at <name>.test.",
+                    message: "Add a folder under \(preferences.sitesRootPath) to serve it at <name>.\(registry.tld).",
                     actionTitle: "Add Site…"
                 ) { showAddSheet = true }
             } else {
@@ -48,7 +51,8 @@ private struct SitesContent: View {
         }
         .navigationTitle("Sites")
         .sheet(isPresented: $showAddSheet) {
-            AddSiteSheet(registry: registry, availableVersions: server.availableVersions)
+            AddSiteSheet(registry: registry, availableVersions: server.availableVersions,
+                         sitesRoot: preferences.sitesRootURL)
         }
     }
 
