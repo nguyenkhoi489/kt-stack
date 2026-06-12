@@ -6,6 +6,11 @@ import KDWarmKit
 struct DashboardWindow: View {
     static let windowID = "dashboard"
 
+    // Forwarded into the in-dashboard Settings pane (env-object lookup is reliable in a Window scene).
+    @EnvironmentObject private var caTrust: CATrustService
+    @EnvironmentObject private var updater: UpdaterController
+    @EnvironmentObject private var uninstaller: UninstallService
+
     @State private var selection: SidebarItem? = .sites
     /// Deep-link target for the Logs view (a `LogSource.id`) set by a Services/Sites "Logs" action.
     @State private var logTarget: String?
@@ -36,7 +41,7 @@ struct DashboardWindow: View {
         case .runtimes: RuntimesSectionView()
         case .logs:     LogsSectionView(targetSourceID: logTarget)
         case .mail:     MailSectionView()
-        case .settings: SettingsView()
+        case .settings: SettingsView(caTrust: caTrust, updater: updater, uninstaller: uninstaller)
         }
     }
 }

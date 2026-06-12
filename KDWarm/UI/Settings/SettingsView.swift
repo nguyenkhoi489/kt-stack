@@ -4,10 +4,19 @@ import KDWarmKit
 /// Settings scene placeholder (design-guidelines §10): `TabView` of `Form`s. Real
 /// preference bindings land alongside the subsystems they configure in later phases.
 struct SettingsView: View {
-    @EnvironmentObject private var caTrust: CATrustService
-    @EnvironmentObject private var updater: UpdaterController
-    @EnvironmentObject private var uninstaller: UninstallService
+    // Injected via init, NOT @EnvironmentObject: SwiftUI's `Settings` scene evaluates its body during
+    // app/menu setup before scene-level .environmentObject modifiers are in scope, which traps an
+    // @EnvironmentObject lookup. Init-injection (like TLSSettingsView) is reliable here.
+    @ObservedObject var caTrust: CATrustService
+    @ObservedObject var updater: UpdaterController
+    @ObservedObject var uninstaller: UninstallService
     @State private var confirmUninstall = false
+
+    init(caTrust: CATrustService, updater: UpdaterController, uninstaller: UninstallService) {
+        self.caTrust = caTrust
+        self.updater = updater
+        self.uninstaller = uninstaller
+    }
 
     var body: some View {
         TabView {

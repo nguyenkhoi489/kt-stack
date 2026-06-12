@@ -7,6 +7,13 @@ import KDWarmKit
 struct KDWarmApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
+    init() {
+        // Don't let macOS restore the Settings/Dashboard windows at launch: a restored window's
+        // body can evaluate before the AppDelegate's @EnvironmentObjects are attached, which traps
+        // SwiftUI's @EnvironmentObject lookup. This menu-bar utility has no need to reopen windows.
+        UserDefaults.standard.register(defaults: ["NSQuitAlwaysKeepsWindows": false])
+    }
+
     var body: some Scene {
         // Menu-bar entry. `.window` style gives a real SwiftUI canvas so status pills
         // and toggles render per the design (a plain `.menu` cannot host them).
@@ -27,15 +34,17 @@ struct KDWarmApp: App {
                 .environmentObject(appDelegate.services)
                 .environmentObject(appDelegate.runtimes)
                 .environmentObject(appDelegate.mail)
+                .environmentObject(appDelegate.caTrust)
+                .environmentObject(appDelegate.updater)
+                .environmentObject(appDelegate.uninstaller)
         }
         .defaultSize(width: 920, height: 600)
         .windowResizability(.contentMinSize)
 
         Settings {
-            SettingsView()
-                .environmentObject(appDelegate.caTrust)
-                .environmentObject(appDelegate.updater)
-                .environmentObject(appDelegate.uninstaller)
+            SettingsView(caTrust: appDelegate.caTrust,
+                         updater: appDelegate.updater,
+                         uninstaller: appDelegate.uninstaller)
         }
     }
 }
