@@ -94,7 +94,7 @@ public struct LaunchAgentManager: Sendable {
     /// Load + start the job. Idempotent: if it is already loaded this is a no-op (reattach).
     public func bootstrap(_ spec: LaunchAgentSpec) throws {
         let plist = try writePlist(for: spec)
-        if isLoaded(spec.label) { return }
+        if Self.loadedCache.containsNow(spec.label) { return }   // fresh check — don't double-bootstrap
         try run("bootstrap", [Self.guiDomain, plist.path])
         Self.loadedCache.invalidate()
     }
@@ -106,7 +106,7 @@ public struct LaunchAgentManager: Sendable {
 
     /// Stop + unload the job. Idempotent: a not-loaded job is treated as already stopped.
     public func bootout(_ label: String) throws {
-        guard isLoaded(label) else { return }
+        guard Self.loadedCache.containsNow(label) else { return }   // fresh check — don't skip a real stop
         try run("bootout", ["\(Self.guiDomain)/\(label)"])
         Self.loadedCache.invalidate()
     }
@@ -187,16 +187,36 @@ final class LoadedLabelsCache: @unchecked Sendable {
     private let ttl: TimeInterval
     private var labels = Set<String>()
     private var fetchedAt = Date.distantPast
+    private var refreshing = false
 
     init(ttl: TimeInterval = 0.5) { self.ttl = ttl }
 
+    /// NON-BLOCKING status read (the hot path — the sub-second health poll). Returns the last
+    /// snapshot immediately and, when stale, kicks the `launchctl print` refresh onto a background
+    /// queue. Crucial: this runs on the main actor during the poll, so it must NEVER fork+exec inline
+    /// — that was a ~1s UI hitch on every tick. Eventual consistency (one tick stale) is fine here.
     func contains(_ label: String) -> Bool {
-        lock.lock(); defer { lock.unlock() }
-        if Date().timeIntervalSince(fetchedAt) > ttl {
-            labels = LaunchAgentManager.loadedLabels()
-            fetchedAt = Date()
+        lock.lock()
+        let stale = Date().timeIntervalSince(fetchedAt) > ttl
+        let shouldRefresh = stale && !refreshing
+        if shouldRefresh { refreshing = true }
+        let snapshot = labels
+        lock.unlock()
+        if shouldRefresh {
+            DispatchQueue.global(qos: .utility).async { [self] in
+                let fresh = LaunchAgentManager.loadedLabels()
+                lock.lock(); labels = fresh; fetchedAt = Date(); refreshing = false; lock.unlock()
+            }
         }
-        return labels.contains(label)
+        return snapshot.contains(label)
+    }
+
+    /// BLOCKING fresh read — used only by the rare, user-initiated bootstrap/bootout lifecycle, where
+    /// the guard must reflect reality right now (a stale snapshot could skip a real stop/start).
+    func containsNow(_ label: String) -> Bool {
+        let fresh = LaunchAgentManager.loadedLabels()
+        lock.lock(); labels = fresh; fetchedAt = Date(); refreshing = false; lock.unlock()
+        return fresh.contains(label)
     }
 
     func invalidate() {
