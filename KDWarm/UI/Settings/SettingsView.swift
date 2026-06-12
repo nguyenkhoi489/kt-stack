@@ -2,9 +2,17 @@ import SwiftUI
 import AppKit
 import KDWarmKit
 
-/// Settings scene (design-guidelines §10): `TabView` of `Form`s. The General tab edits the persisted
-/// preferences (sites root + dev TLD); changing the TLD reconciles root DNS then prompts a relaunch.
+/// Settings scene (design-guidelines §10): a segmented sub-nav over `Form`s. The General tab edits the
+/// persisted preferences (sites root + dev TLD); changing the TLD reconciles root DNS then prompts a
+/// relaunch. A segmented Picker (not a `TabView`) is used so the header lines up with the other
+/// dashboard sections — a `TabView` hoists its tabs into the window toolbar and hides the title.
 struct SettingsView: View {
+    private enum SettingsTab: String, CaseIterable, Identifiable {
+        case general = "General", services = "Services", tls = "TLS", advanced = "Advanced"
+        var id: String { rawValue }
+    }
+    @State private var tab: SettingsTab = .general
+
     // Injected via init, NOT @EnvironmentObject: SwiftUI's `Settings` scene evaluates its body during
     // app/menu setup before scene-level .environmentObject modifiers are in scope, which traps an
     // @EnvironmentObject lookup. Init-injection (like TLSSettingsView) is reliable here.
@@ -42,17 +50,32 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        TabView {
-            generalTab
-                .tabItem { Label("General", systemImage: "gearshape") }
-            servicesTab
-                .tabItem { Label("Services", systemImage: "server.rack") }
-            TLSSettingsView(caTrust: caTrust)
-                .tabItem { Label("TLS", systemImage: "lock.shield") }
-            advancedTab
-                .tabItem { Label("Advanced", systemImage: "wrench.and.screwdriver") }
+        VStack(spacing: 0) {
+            // Same toolbar-row + Divider shape as the Sites/Services sections so the header aligns.
+            // Full-width segmented control → the 4 tabs split the row evenly and stay centered.
+            Picker("", selection: $tab) {
+                ForEach(SettingsTab.allCases) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(maxWidth: .infinity)
+            .padding(KDSpacing.space2)
+            Divider()
+            tabContent
         }
-        .frame(width: 480, height: 360)
+        // No fixed frame here: the standalone Settings scene sizes it (see KDWarmApp); inside the
+        // Dashboard it fills the detail pane so its header lines up with the other sections.
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    @ViewBuilder
+    private var tabContent: some View {
+        switch tab {
+        case .general:  generalTab
+        case .services: servicesTab
+        case .tls:      TLSSettingsView(caTrust: caTrust)
+        case .advanced: advancedTab
+        }
     }
 
     /// Distinct status glyph: done = check, failed = warning, in-progress = dotted.

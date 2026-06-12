@@ -49,6 +49,7 @@ struct KDWarmApp: App {
                          caTrust: appDelegate.caTrust,
                          updater: appDelegate.updater,
                          uninstaller: appDelegate.uninstaller)
+                .frame(width: 480, height: 360)   // the standalone Settings window's fixed size
         }
     }
 }

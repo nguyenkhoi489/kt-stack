@@ -46,6 +46,7 @@ struct DashboardWindow: View {
         case .mail:     MailSectionView()
         case .settings: SettingsView(preferences: preferences, dns: dns, server: server,
                                      caTrust: caTrust, updater: updater, uninstaller: uninstaller)
+                            .navigationTitle("Settings")
         }
     }
 }
