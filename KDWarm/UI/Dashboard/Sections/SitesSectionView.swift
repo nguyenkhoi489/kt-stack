@@ -25,6 +25,7 @@ private struct SitesContent: View {
     @ObservedObject var preferences: AppPreferences
     var onOpenLogs: (String?) -> Void
     @State private var showAddSheet = false
+    @State private var showScanSheet = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -54,6 +55,9 @@ private struct SitesContent: View {
             AddSiteSheet(registry: registry, availableVersions: server.availableVersions,
                          sitesRoot: preferences.sitesRootURL)
         }
+        .sheet(isPresented: $showScanSheet) {
+            ScanImportSheet(registry: registry, sitesRoot: preferences.sitesRootURL)
+        }
     }
 
     private var toolbar: some View {
@@ -62,6 +66,7 @@ private struct SitesContent: View {
                 .disabled(server.isBusy)
             StatusPill(server.nginxStatus, text: server.isRunning ? "nginx" : "offline")
             Spacer()
+            Button { showScanSheet = true } label: { Label("Scan…", systemImage: "folder.badge.gearshape") }
             Button { showAddSheet = true } label: { Label("Add Site", systemImage: "plus") }
         }
         .padding(KDSpacing.space2)
