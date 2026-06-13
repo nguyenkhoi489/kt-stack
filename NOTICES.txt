@@ -1,0 +1,55 @@
+KDWarm — Third-Party Notices
+Generated: 2026-06-13T04:15:29Z
+KDWarm is distributed free of charge as open-source software.
+
+== Redistributed components ==
+- nginx
+    License: BSD-2-Clause
+    Source:  https://nginx.org/en/download.html
+- PHP (7.4/8.1/8.3/8.4, php-fpm)
+    License: PHP-3.01
+    Source:  https://www.php.net/downloads
+- dnsmasq
+    License: GPL-2.0-or-later
+    Source:  https://thekelleys.org.uk/dnsmasq/
+- mkcert
+    License: BSD-3-Clause
+    Source:  https://github.com/FiloSottile/mkcert
+- Mailpit
+    License: MIT
+    Source:  https://github.com/axllent/mailpit
+- MySQL (mysqld)
+    License: GPL-2.0-only
+    Source:  https://dev.mysql.com/downloads/mysql/
+- PostgreSQL
+    License: PostgreSQL
+    Source:  https://www.postgresql.org/ftp/source/
+- Redis (>=7)
+    License: SSPL-1.0 / RSALv2
+    Source:  https://github.com/redis/redis
+- MongoDB Community Server (7.0)
+    License:   SSPL-1.0
+    Copyright: MongoDB, Inc.
+    Source:    https://fastdl.mongodb.org/osx/  (downloaded directly from MongoDB; not redistributed)
+- Node.js
+    License: MIT (+deps)
+    Source:  https://nodejs.org/dist/
+- Go (on-demand)
+    License: BSD-3-Clause
+    Source:  https://go.dev/dl/
+- Sparkle
+    License: MIT
+    Source:  https://github.com/sparkle-project/Sparkle
+
+== Written offer of source (GPL / SSPL components) ==
+For the following components, KDWarm provides the complete corresponding source code.
+The exact upstream version + build recipe for each is in scripts/build-*-relocatable.sh and
+scripts/build-php-versions.sh; request a copy at the project repository or the contact below.
+  - dnsmasq
+  - MySQL (mysqld)
+  - Redis (>=7)
+
+Contact: <set release contact / repository URL here>
+
+Full license texts for each component are available at the Source URLs above and are included
+with the corresponding upstream distributions.

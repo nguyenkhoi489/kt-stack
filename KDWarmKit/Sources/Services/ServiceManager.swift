@@ -11,7 +11,7 @@ import Combine
 @MainActor
 public final class ServiceManager: ObservableObject {
     /// Fixed display order (design §5.2 / wireframe).
-    public static let order: [ServiceKind] = [.nginx, .phpFpm, .dnsmasq, .mysql, .postgres, .redis, .mailpit]
+    public static let order: [ServiceKind] = [.nginx, .phpFpm, .dnsmasq, .mysql, .postgres, .redis, .mongodb, .mailpit]
 
     @Published public private(set) var snapshots: [ServiceSnapshot] = []
 
@@ -46,6 +46,7 @@ public final class ServiceManager: ObservableObject {
             .mysql:    MySQLController(paths: paths, agents: agents),
             .postgres: PostgreSQLController(paths: paths, agents: agents),
             .redis:    RedisController(paths: paths, agents: agents),
+            .mongodb:  MongoDBController(paths: paths, agents: agents),
             .mailpit:  MailpitController(paths: paths, agents: agents),
         ]
         snapshots = Self.order.map { ServiceSnapshot(kind: $0, status: .stopped, detail: "", isInstalled: true) }
@@ -122,8 +123,10 @@ public final class ServiceManager: ObservableObject {
     /// it is helper-owned and toggled explicitly in Sites (so "Start all" never triggers a sudo prompt).
     public func startAll() {
         if !server.isRunning { server.start() }
-        for kind in [ServiceKind.mysql, .postgres, .redis, .mailpit] {
-            guard let svc = services[kind], svc.isInstalled else { continue }
+        for kind in [ServiceKind.mysql, .postgres, .redis, .mongodb, .mailpit] {
+            // Skip a kind whose tree is mid-install: the downloader moves the dir before verifying its
+            // marker, so a concurrent start could launch from a half-moved tree.
+            guard let svc = services[kind], svc.isInstalled, installTasks[kind] == nil else { continue }
             perform(kind) { try await svc.start() }
         }
     }
@@ -132,8 +135,8 @@ public final class ServiceManager: ObservableObject {
     /// dnsmasq is left running (infrastructure, helper-owned).
     public func stopAll() {
         if server.isRunning { server.stop() }
-        for kind in [ServiceKind.mysql, .postgres, .redis, .mailpit] {
-            guard let svc = services[kind] else { continue }
+        for kind in [ServiceKind.mysql, .postgres, .redis, .mongodb, .mailpit] {
+            guard let svc = services[kind], installTasks[kind] == nil else { continue }
             perform(kind) { try await svc.stop() }
         }
     }
@@ -179,6 +182,27 @@ public final class ServiceManager: ObservableObject {
         downloadFraction[kind] = nil
         if let error { installError[kind] = error }
         // The next poll recomputes the snapshot; the engine now resolves as installed on success.
+    }
+
+    // MARK: - Reset data (unclean-shutdown escape hatch)
+
+    /// Stop a service and delete its on-disk data dir — the recovery path when a wedged datastore
+    /// (e.g. a stale `mongod.lock` after an unclean shutdown) keeps the job crash-looping. The data
+    /// is destroyed, so the caller must confirm first. Generic over kind; only surfaced in the UI for
+    /// MongoDB today. Stops BEFORE deleting so the dir isn't pulled out from under a live process.
+    public func resetData(_ kind: ServiceKind) {
+        guard let svc = services[kind] else { return }
+        let paths = self.paths
+        perform(kind) {
+            try? await svc.stop()
+            Self.removeServiceData(kind, paths: paths)
+        }
+    }
+
+    /// Pure deletion of a service's data dir (`data/<kind>`). Separated so it's testable without a
+    /// live `ServiceManager`/launchd. Best-effort: a missing dir is a no-op.
+    nonisolated public static func removeServiceData(_ kind: ServiceKind, paths: AppSupportPaths) {
+        try? FileManager.default.removeItem(at: paths.serviceData(kind.rawValue))
     }
 
     // MARK: - Polling

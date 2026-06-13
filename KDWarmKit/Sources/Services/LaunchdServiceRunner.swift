@@ -10,18 +10,23 @@ public struct LaunchdServiceRunner: Sendable {
     /// Ports to pre-flight before a *fresh* start (skipped when reattaching to our own job).
     public let preflightPorts: [Int]
     public let probe: HealthProbe
+    /// How long `start()` waits for the first healthy probe before surfacing a warning. Defaults to
+    /// 8s (sub-second for most engines); a heavier cold-start (e.g. mongod's WiredTiger journal
+    /// replay) passes a wider budget so a slow-but-fine boot isn't misreported as a failure.
+    public let startTimeout: TimeInterval
 
     private let agents: LaunchAgentManager
     private let health = HealthChecker()
     private let preflight = PortPreflight()
 
     public init(kind: ServiceKind, label: String, preflightPorts: [Int],
-                probe: HealthProbe, agents: LaunchAgentManager) {
+                probe: HealthProbe, agents: LaunchAgentManager, startTimeout: TimeInterval = 8) {
         self.kind = kind
         self.label = label
         self.preflightPorts = preflightPorts
         self.probe = probe
         self.agents = agents
+        self.startTimeout = startTimeout
     }
 
     /// Idempotent start. If the job is already loaded we reattach (kickstart only when unhealthy);
@@ -38,7 +43,7 @@ public struct LaunchdServiceRunner: Sendable {
             }
             try agents.bootstrap(spec)
         }
-        try await waitHealthy()
+        try await waitHealthy(timeout: startTimeout)
     }
 
     /// Graceful stop: boot the job out of launchd so `KeepAlive` won't relaunch it.
@@ -49,14 +54,14 @@ public struct LaunchdServiceRunner: Sendable {
         try agents.writePlist(for: spec)
         if agents.isLoaded(label) { try agents.kickstart(label) }
         else { try agents.bootstrap(spec) }
-        try await waitHealthy()
+        try await waitHealthy(timeout: startTimeout)
     }
 
     public func probe() async -> ServiceStatus { await health.check(probe) }
 
     private func isHealthy() async -> Bool { await health.check(probe) == .running }
 
-    private func waitHealthy(timeout: TimeInterval = 8) async throws {
+    private func waitHealthy(timeout: TimeInterval) async throws {
         let deadline = Date().addingTimeInterval(timeout)
         while Date() < deadline {
             if await isHealthy() { return }

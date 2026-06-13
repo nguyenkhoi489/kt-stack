@@ -46,7 +46,8 @@ struct ServicesSectionView: View {
                             onRestart: { services.restart(snapshot.kind) },
                             onOpenLogs: { onOpenLogs(Self.logSourceID(for: snapshot.kind)) },
                             onInstall: { services.install(snapshot.kind) },
-                            onCancelInstall: { services.cancelInstall(snapshot.kind) })
+                            onCancelInstall: { services.cancelInstall(snapshot.kind) },
+                            onResetData: { services.resetData(snapshot.kind) })
                         Divider()
                     }
                 }
@@ -98,6 +99,7 @@ struct ServicesSectionView: View {
         case .mysql:    return "mysql"
         case .postgres: return "postgres"
         case .redis:    return "redis"
+        case .mongodb:  return "mongodb"
         case .mailpit:  return "mailpit"
         case .phpFpm, .dnsmasq: return nil
         }

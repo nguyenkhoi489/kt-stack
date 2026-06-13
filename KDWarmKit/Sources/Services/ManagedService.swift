@@ -5,7 +5,7 @@ import Foundation
 /// PHP-FPM is one logical service here even though it runs one launchd job per active PHP version
 /// internally — the Services view shows a single aggregated PHP-FPM row.
 public enum ServiceKind: String, CaseIterable, Sendable, Hashable {
-    case nginx, phpFpm, dnsmasq, mysql, postgres, redis, mailpit
+    case nginx, phpFpm, dnsmasq, mysql, postgres, redis, mongodb, mailpit
 
     public var displayName: String {
         switch self {
@@ -15,6 +15,7 @@ public enum ServiceKind: String, CaseIterable, Sendable, Hashable {
         case .mysql:    return "MySQL"
         case .postgres: return "PostgreSQL"
         case .redis:    return "Redis"
+        case .mongodb:  return "MongoDB"
         case .mailpit:  return "Mailpit"
         }
     }
@@ -27,6 +28,7 @@ public enum ServiceKind: String, CaseIterable, Sendable, Hashable {
         case .mysql:    return "cylinder.split.1x2"
         case .postgres: return "cylinder.split.1x2.fill"
         case .redis:    return "bolt.fill"
+        case .mongodb:  return "leaf.fill"
         case .mailpit:  return "envelope"
         }
     }
@@ -40,6 +42,7 @@ public enum ServiceKind: String, CaseIterable, Sendable, Hashable {
         case .mysql:    return 3306
         case .postgres: return 5432
         case .redis:    return 6379
+        case .mongodb:  return 27017
         case .mailpit:  return 8025
         }
     }
@@ -53,6 +56,7 @@ public enum ServiceKind: String, CaseIterable, Sendable, Hashable {
         case .mysql:    return "mysqld"
         case .postgres: return "postgres"
         case .redis:    return "redis-server"
+        case .mongodb:  return "mongod"
         case .mailpit:  return "mailpit"
         }
     }

@@ -14,7 +14,10 @@ final class ServiceManagementTests: XCTestCase {
         XCTAssertEqual(ServiceKind.redis.launchdLabel, "com.kdwarm.redis")
         XCTAssertEqual(ServiceKind.mailpit.binaryName, "mailpit")
         XCTAssertNil(ServiceKind.phpFpm.defaultPort)            // socket-based, no single port
-        XCTAssertEqual(Set(ServiceKind.allCases).count, 7)
+        XCTAssertEqual(ServiceKind.mongodb.defaultPort, 27017)
+        XCTAssertEqual(ServiceKind.mongodb.launchdLabel, "com.kdwarm.mongodb")
+        XCTAssertEqual(ServiceKind.mongodb.binaryName, "mongod")
+        XCTAssertEqual(Set(ServiceKind.allCases).count, 8)
     }
 
     // MARK: - AppSupportPaths additions
@@ -160,13 +163,82 @@ final class ServiceManagementTests: XCTestCase {
         XCTAssertEqual(redis.detail, ":6379")
     }
 
+    func testMongoDBControllerReportsNotInstalledWithoutBinary() {
+        let mongo = MongoDBController(paths: paths, agents: LaunchAgentManager(paths: paths))
+        XCTAssertEqual(mongo.kind, .mongodb)
+        XCTAssertFalse(mongo.isInstalled)            // no on-demand install in the test tree
+        XCTAssertEqual(mongo.detail, ":27017")
+    }
+
+    func testMongoDBControllerIsInstalledOnlyWithBinUnderBinDir() throws {
+        let root = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("kd-mongoctl-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let p = AppSupportPaths(root: root)
+        let mongo = MongoDBController(paths: p, agents: LaunchAgentManager(paths: p))
+        XCTAssertFalse(mongo.isInstalled)
+        let bin = p.runtimeBin("mongodb", "7.0")
+        try FileManager.default.createDirectory(at: bin, withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: bin.appendingPathComponent("mongod").path,
+                                       contents: Data(), attributes: [.posixPermissions: 0o755])
+        XCTAssertTrue(mongo.isInstalled, "mongod under bin/ must mark the controller installed")
+    }
+
+    /// Security invariant: the launch args MUST bind loopback only (dev-insecure, no-auth) and never
+    /// expose mongod on all interfaces.
+    func testMongoDBSpecBindsLoopback() {
+        let mongo = MongoDBController(paths: paths, agents: LaunchAgentManager(paths: paths))
+        let args = mongo.mongoArgs(binary: URL(fileURLWithPath: "/x/bin/mongod"))
+        XCTAssertTrue(args.contains("--bind_ip"))
+        XCTAssertTrue(args.contains("127.0.0.1"))
+        XCTAssertFalse(args.contains("0.0.0.0"))
+        XCTAssertFalse(args.contains("--bindIpAll"))
+        XCTAssertTrue(args.contains("--dbpath"))
+        XCTAssertTrue(args.contains("--port"))
+        XCTAssertTrue(args.contains("27017"))
+    }
+
+    // MARK: - ServiceManager order + reset-data
+
+    @MainActor
+    func testServiceManagerOrderIncludesMongoDB() {
+        let order = ServiceManager.order
+        guard let redisIdx = order.firstIndex(of: .redis),
+              let mongoIdx = order.firstIndex(of: .mongodb),
+              let mailpitIdx = order.firstIndex(of: .mailpit) else {
+            return XCTFail("order missing an expected kind")
+        }
+        XCTAssertEqual(mongoIdx, redisIdx + 1, "MongoDB must sit right after Redis")
+        XCTAssertLessThan(mongoIdx, mailpitIdx, "MongoDB must precede Mailpit")
+    }
+
+    func testResetDataRemovesServiceDataDir() throws {
+        let root = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("kd-reset-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let paths = AppSupportPaths(root: root)
+        let dir = paths.serviceData("mongodb")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try Data().write(to: dir.appendingPathComponent("mongod.lock"))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: dir.path))
+
+        ServiceManager.removeServiceData(.mongodb, paths: paths)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: dir.path), "reset must delete the data dir")
+    }
+
     // MARK: - ServiceBinaryCatalog (on-demand DB install)
 
     func testServiceManifestWellFormed() {
         XCTAssertFalse(ServiceBinaryCatalog.manifest.isEmpty)
         for r in ServiceBinaryCatalog.manifest {
             XCTAssertEqual(r.sha256.count, 64, "\(r.id) sha256 must be 64 hex chars")
-            XCTAssertTrue(r.url.absoluteString.hasSuffix("\(r.kind.rawValue)-\(r.version)-\(ServiceBinaryCatalog.arch).tar.gz"))
+            XCTAssertTrue(r.url.absoluteString.hasPrefix("https://"), "\(r.id) must download over https")
+            // Self-built engines follow the `<kind>-<version>-<arch>.tar.gz` name; an engine with a
+            // direct-upstream URL (e.g. MongoDB's fastdl tarball) carries its own naming, so the
+            // suffix check applies only to the self-host entries.
+            if r.urlOverride == nil {
+                XCTAssertTrue(r.url.absoluteString.hasSuffix("\(r.kind.rawValue)-\(r.version)-\(ServiceBinaryCatalog.arch).tar.gz"))
+            }
         }
     }
 
@@ -192,6 +264,30 @@ final class ServiceManagementTests: XCTestCase {
         XCTAssertEqual(catalog.installedVersion(.redis), "7.4.2")
         XCTAssertEqual(catalog.binary(.redis, "bin/redis-server")?.lastPathComponent, "redis-server")
         XCTAssertNil(catalog.availableRelease(.redis), "installed engine is not offered for install")
+    }
+
+    func testCatalogResolvesInstalledMongoDB() throws {
+        let root = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("kd-mongo-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let paths = AppSupportPaths(root: root)
+        let catalog = ServiceBinaryCatalog(paths: paths)
+
+        // Not installed → no binary, but the direct-fetch catalog release is offered.
+        XCTAssertFalse(catalog.isInstalled(.mongodb))
+        XCTAssertNil(catalog.binary(.mongodb, "bin/mongod"))
+        XCTAssertEqual(catalog.availableRelease(.mongodb)?.version, "7.0")
+
+        // Simulate an on-demand install: runtimes/mongodb/7.0/bin/mongod.
+        let bin = paths.runtimeBin("mongodb", "7.0")
+        try FileManager.default.createDirectory(at: bin, withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: bin.appendingPathComponent("mongod").path,
+                                       contents: Data(), attributes: [.posixPermissions: 0o755])
+
+        XCTAssertTrue(catalog.isInstalled(.mongodb))
+        XCTAssertEqual(catalog.installedVersion(.mongodb), "7.0")
+        XCTAssertEqual(catalog.binary(.mongodb, "bin/mongod")?.lastPathComponent, "mongod")
+        XCTAssertNil(catalog.availableRelease(.mongodb), "installed engine is not offered for install")
     }
 
     func testRedisControllerIsInstalledOnlyWithBinUnderBinDir() throws {

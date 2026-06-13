@@ -79,6 +79,9 @@ public struct PortPreflight {
         case "redis-server":
             return "Another Redis is using port \(port) (often a Homebrew install). "
                 + "Stop it (`brew services stop redis`) or change KDWarm's port in Settings."
+        case "mongod":
+            return "Another MongoDB is using port \(port) (often a Homebrew install). "
+                + "Stop it (`brew services stop mongodb-community`)."
         case .some(let name):
             return "Port \(port) is already in use by “\(name)”. Stop that process or change KDWarm's port."
         case .none:

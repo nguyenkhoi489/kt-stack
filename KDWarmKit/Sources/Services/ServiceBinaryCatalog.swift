@@ -8,10 +8,21 @@ public struct ServiceBinaryRelease: Sendable, Hashable, Identifiable {
     public let kind: ServiceKind
     public let version: String
     public let sha256: String
+    /// A direct upstream artifact URL, used when the engine is fetched straight from the vendor
+    /// (e.g. MongoDB's `fastdl.mongodb.org` tarball) instead of the project's self-host. When nil the
+    /// URL is derived from the self-host base + the `<kind>-<version>-<arch>.tar.gz` name.
+    public let urlOverride: URL?
+
+    public init(kind: ServiceKind, version: String, sha256: String, urlOverride: URL? = nil) {
+        self.kind = kind
+        self.version = version
+        self.sha256 = sha256
+        self.urlOverride = urlOverride
+    }
 
     public var id: String { "\(kind.rawValue)-\(version)" }
     public var fileName: String { "\(kind.rawValue)-\(version)-\(ServiceBinaryCatalog.arch).tar.gz" }
-    public var url: URL { ServiceBinaryCatalog.releaseBaseURL.appendingPathComponent(fileName) }
+    public var url: URL { urlOverride ?? ServiceBinaryCatalog.releaseBaseURL.appendingPathComponent(fileName) }
 }
 
 /// Installed-engine discovery + the on-demand download manifest for database services. Installed
@@ -42,6 +53,13 @@ public struct ServiceBinaryCatalog: Sendable {
                              sha256: "b9e086c252492561e4a53820589cb893ad07bbd4b1c08f38fcf87836ad1cb6e9"),
         ServiceBinaryRelease(kind: .postgres, version: "17.10",
                              sha256: "2fc58f9f78376b79f5007bfbbd6f724f5f34d81cd429ef6b0c9696ad8617d698"),
+        // MongoDB Community Server, fetched directly from MongoDB's CDN (SSPL-1.0 — not re-hosted).
+        // The tarball is Developer-ID-signed + notarized by MongoDB; sha256 is the vendor-published
+        // hash for this exact patch (chains trust back to MongoDB). Version dir is "7.0"; the URL pins
+        // the exact patch — refresh both together when MongoDB rolls the 7.0.x line.
+        ServiceBinaryRelease(kind: .mongodb, version: "7.0",
+                             sha256: "097af3e0486422fc5a3e2e3365d5f23ac53867a408d8eecfa1103c374a8c96de",
+                             urlOverride: URL(string: "https://fastdl.mongodb.org/osx/mongodb-macos-arm64-7.0.37.tgz")!),
     ]
 
     private let paths: AppSupportPaths
@@ -53,6 +71,7 @@ public struct ServiceBinaryCatalog: Sendable {
         case .redis:    return "bin/redis-server"
         case .postgres: return "bin/postgres"
         case .mysql:    return "bin/mysqld"
+        case .mongodb:  return "bin/mongod"
         default:        return nil
         }
     }

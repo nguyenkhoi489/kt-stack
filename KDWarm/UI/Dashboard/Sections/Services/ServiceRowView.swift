@@ -13,6 +13,14 @@ struct ServiceRowView: View {
     let onOpenLogs: () -> Void
     var onInstall: () -> Void = {}
     var onCancelInstall: () -> Void = {}
+    /// Destroy the service's on-disk data (unclean-shutdown recovery). Only surfaced for engines that
+    /// can wedge on a stale lock (MongoDB today).
+    var onResetData: () -> Void = {}
+
+    @State private var showResetConfirm = false
+
+    /// A crash-looping datastore that a data reset can recover (stale lock after unclean shutdown).
+    private var canResetData: Bool { snapshot.kind == .mongodb && snapshot.status == .error }
 
     var body: some View {
         HStack(spacing: KDSpacing.space2) {
@@ -37,6 +45,13 @@ struct ServiceRowView: View {
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(snapshot.displayName), \(snapshot.status.label), \(pillText)")
+        .confirmationDialog("Reset \(snapshot.displayName) data?", isPresented: $showResetConfirm) {
+            Button("Reset \(snapshot.displayName) data", role: .destructive, action: onResetData)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This permanently deletes \(snapshot.displayName)'s stored data, then restarts it from "
+                + "an empty datastore. Use this only to recover a service stuck after an unclean shutdown.")
+        }
     }
 
     /// Right-edge control: download progress, an Install button (on-demand engine), a transition
@@ -83,6 +98,10 @@ struct ServiceRowView: View {
                 .disabled(!canToggle || !snapshot.isInstalled || snapshot.status != .running)
             Button("Open Logs", systemImage: "text.alignleft", action: onOpenLogs)
                 .disabled(snapshot.kind == .dnsmasq)
+            if canResetData {
+                Divider()
+                Button("Reset Data…", systemImage: "trash", role: .destructive) { showResetConfirm = true }
+            }
         } label: {
             Image(systemName: "ellipsis.circle")
         }
@@ -102,6 +121,7 @@ private extension ServiceKind {
         case .mysql:    return "Database · 127.0.0.1"
         case .postgres: return "Database · 127.0.0.1"
         case .redis:    return "Cache · 127.0.0.1"
+        case .mongodb:  return "Document DB · 127.0.0.1"
         case .mailpit:  return "Mail catcher · SMTP :1025"
         }
     }

@@ -26,7 +26,7 @@ public struct LogCatalog: Sendable {
         for v in phpVersions.sorted() {
             out.append(LogSource(id: "php-\(v)", displayName: "PHP-FPM \(v)", kind: .service, url: paths.phpFpmLog(v)))
         }
-        for svc in ["mysql", "postgres", "redis", "mailpit"] {
+        for svc in ["mysql", "postgres", "redis", "mongodb", "mailpit"] {
             let url = paths.serviceLog(svc)
             if fm.fileExists(atPath: url.path) {
                 out.append(LogSource(id: svc, displayName: svc.capitalized, kind: .service, url: url))
