@@ -56,7 +56,7 @@ public final class PHPFPMController: @unchecked Sendable {
         try? FileManager.default.removeItem(at: paths.phpFpmSocket(poolName))
     }
 
-    private func spec(poolConf: URL) -> LaunchAgentSpec {
+    func spec(poolConf: URL) -> LaunchAgentSpec {
         var args = [executable.path, "-p", paths.root.path, "-y", poolConf.path, "-F"]
         // Point php-fpm at the managed per-version php.ini, but only if it exists — `-c` on a missing
         // file makes php-fpm fail to start, so a failed seed safely degrades to compiled defaults.
@@ -64,10 +64,14 @@ public final class PHPFPMController: @unchecked Sendable {
         if FileManager.default.fileExists(atPath: ini.path) {
             args += ["-c", ini.path]
         }
+        // Load optional extensions: PHP_INI_SCAN_DIR makes php-fpm parse runtimes/php/<v>/conf.d/*.ini
+        // (the extension_dir + per-extension inis the installer writes). It overrides the compiled
+        // scan dir and coexists with the `-c` php.ini above (scan-dir inis are parsed in addition).
         return LaunchAgentSpec(
             label: label,
             programArguments: args,
             workingDirectory: paths.root.path,
+            environment: ["PHP_INI_SCAN_DIR": paths.phpExtConfDir(version: poolName).path],
             stdoutPath: paths.phpFpmLog(poolName).path,
             stderrPath: paths.phpFpmLog(poolName).path)
     }

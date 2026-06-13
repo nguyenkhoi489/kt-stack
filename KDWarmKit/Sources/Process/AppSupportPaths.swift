@@ -117,6 +117,17 @@ public struct AppSupportPaths: Sendable {
         runtimeBin("php", version).appendingPathComponent("php")
     }
 
+    /// Managed optional-extension `.so` dir for a PHP version (`runtimes/php/<version>/modules`). Lives
+    /// inside the version's runtime tree so a version-uninstall (removing the tree) tears it down too.
+    public func phpModulesDir(version: String) -> URL {
+        runtimeDir("php", version).appendingPathComponent("modules", isDirectory: true)
+    }
+    /// Scan-dir of per-extension inis for a PHP version (`runtimes/php/<version>/conf.d`). php-fpm/php
+    /// is pointed here via `PHP_INI_SCAN_DIR`; files load in ascending name order (00- before 20-).
+    public func phpExtConfDir(version: String) -> URL {
+        runtimeDir("php", version).appendingPathComponent("conf.d", isDirectory: true)
+    }
+
     // MARK: TLS material
 
     public var caRootCert: URL { caDir.appendingPathComponent("rootCA.pem") }

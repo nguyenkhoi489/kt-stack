@@ -34,7 +34,7 @@ Trimming the base into shared is a later optimization, out of scope.
 |-------|------|--------|
 | 1 | [Build pipeline — shared-ext artifacts](./phase-01-build-shared-ext-pipeline.md) | Done (14 artifacts published) |
 | 2 | [Extension catalog model (Kit)](./phase-02-extension-catalog-model.md) | Done (148 tests green) |
-| 3 | [ExtensionInstaller + php-fpm wiring (Kit)](./phase-03-extension-installer.md) | Pending |
+| 3 | [ExtensionInstaller + php-fpm wiring (Kit)](./phase-03-extension-installer.md) | Done (H1 proven, 153 tests) |
 | 4 | [Extension Manager UI](./phase-04-extension-manager-ui.md) | Pending |
 | 5 | [Signing / notarization + docs](./phase-05-signing-notarization-docs.md) | Pending |
 
