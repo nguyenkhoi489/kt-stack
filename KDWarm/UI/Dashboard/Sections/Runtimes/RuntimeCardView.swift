@@ -13,6 +13,8 @@ struct RuntimeCardView: View {
     let onSetDefault: (String) -> Void
     let onInstall: (RuntimeRelease) -> Void
     let onCancel: () -> Void
+    /// Remove an installed version (the parent guards against versions still in use, then confirms).
+    let onUninstall: (String) -> Void
     /// Per-version "Edit php.ini" action. Non-nil only for PHP (the only stack with a managed ini).
     var onEditIni: ((String) -> Void)? = nil
     /// Compiled-in extensions per installed version (`php -m`), shown read-only. PHP only; empty
@@ -76,6 +78,9 @@ struct RuntimeCardView: View {
                     Button("Set default") { onSetDefault(version) }
                         .buttonStyle(.link).font(KDFont.footnote)
                 }
+                Button { onUninstall(version) } label: { Image(systemName: "trash") }
+                    .buttonStyle(.borderless).font(KDFont.footnote).foregroundStyle(.secondary)
+                    .help("Remove this version")
             }
             if let mods = extensions[version], !mods.isEmpty {
                 Text("Extensions: \(mods.joined(separator: ", "))")

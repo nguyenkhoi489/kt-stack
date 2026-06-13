@@ -102,6 +102,40 @@ public final class RuntimeManager: ObservableObject {
         persistDefaults()
     }
 
+    /// Remove an installed runtime version. Stops any (possibly stale) php-fpm pool for the version,
+    /// deletes its binary tree + per-version config/launchd artifacts, reassigns the global default
+    /// to another installed version if it pointed here, then refreshes. Best-effort on the auxiliary
+    /// files (own, 0700) — the marker is the version dir, whose removal flips `isInstalled` to false.
+    /// The caller must guard against versions still referenced by sites; this only deletes files.
+    public func uninstall(_ lang: RuntimeLanguage, _ version: String) {
+        // A mid-flight download is writing into this version's tree — cancel it before deleting.
+        if downloads[lang]?.version == version, downloads[lang]?.error == nil { cancel(lang) }
+
+        let fm = FileManager.default
+        if lang == .php {
+            let label = "com.kdwarm.php-fpm.\(version)"
+            try? LaunchAgentManager(paths: paths).bootout(label)
+            try? fm.removeItem(at: paths.launchAgentPlist(label))
+            try? fm.removeItem(at: paths.phpFpmSocket(version))
+            try? fm.removeItem(at: paths.phpFpmPid(version))
+            try? fm.removeItem(at: paths.phpFpmLog(version))
+            try? fm.removeItem(at: paths.phpFpmPool(version))
+            try? fm.removeItem(at: paths.phpIniDir(version: version))
+            PHPModules.invalidate(version: version)
+        }
+
+        // Removing the version dir drops its marker binary → the catalog stops listing it.
+        do { try fm.removeItem(at: paths.runtimeDir(lang.rawValue, version)) }
+        catch { NSLog("KDWarm: uninstall \(lang.rawValue) \(version) failed: \(error.localizedDescription)") }
+
+        // Hand the global default to another installed version (or drop it if none remain).
+        if globalDefaults[lang] == version {
+            globalDefaults[lang] = catalog.installedVersions(lang).first { $0 != version }
+            persistDefaults()
+        }
+        refreshInstalled()
+    }
+
     // MARK: - Private
 
     private func finish(_ lang: RuntimeLanguage, error: String?) {
