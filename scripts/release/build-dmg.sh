@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
-# Build a distributable DMG from a (stapled) KDWarm.app: a compressed image containing the app + an
+# Build a distributable DMG from a (stapled) .app: a compressed image containing the app + an
 # /Applications symlink for drag-install. Runnable on any Mac (no signing required to produce the
 # image); for release, run it on the notarized+stapled app and optionally notarize the DMG too.
 #
-# Usage: scripts/release/build-dmg.sh KDWarm.app [out.dmg]
+# Usage: scripts/release/build-dmg.sh <path-to-.app> [out.dmg]
 set -euo pipefail
 APP="${1:?usage: build-dmg.sh <path-to-.app> [out.dmg]}"
+# Product name follows the .app bundle (survives a rebrand — no hardcoded "KDWarm" to drift).
+NAME="$(basename "$APP" .app)"
 VER="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist")" \
     || { echo "could not read CFBundleShortVersionString from $APP" >&2; exit 1; }
-OUT="${2:-$(dirname "$APP")/KDWarm-$VER.dmg}"
-STAGE="$(mktemp -d)/KDWarm"
+OUT="${2:-$(dirname "$APP")/$NAME-$VER.dmg}"
+STAGE="$(mktemp -d)/$NAME"
 mkdir -p "$STAGE"
 
 echo "=== stage DMG contents ==="
@@ -20,7 +22,7 @@ ln -s /Applications "$STAGE/Applications"
 
 echo "=== create compressed DMG → $OUT ==="
 rm -f "$OUT"
-hdiutil create -volname "KDWarm $VER" -srcfolder "$STAGE" -ov -format UDZO "$OUT"
+hdiutil create -volname "$NAME $VER" -srcfolder "$STAGE" -ov -format UDZO "$OUT"
 rm -rf "$(dirname "$STAGE")"
 echo "DMG: $OUT"
 echo "(release: sign + notarize the .app first; optionally 'xcrun notarytool submit' + 'stapler staple' the DMG)"

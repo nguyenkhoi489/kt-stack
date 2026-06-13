@@ -126,3 +126,6 @@ spikes/**/*.pem
 spikes/**/*.tar.gz
 spikes/**/staging*/
 log/
+
+# Built distributable disk images (use scripts/release/build-dmg.sh)
+*.dmg
