@@ -35,6 +35,15 @@ final class AppSupportPathsAndPoolTests: XCTestCase {
         XCTAssertTrue(conf.contains("user = tester"))
     }
 
+    func testPoolConfigRoutesLocalhostMySQLToBundledSocket() {
+        let conf = PHPFPMPoolWriter().poolConfig(paths: paths, poolName: "8.4", user: "tester")
+        let sock = paths.serviceSocket("mysql").path
+        // localhost DB connections must reach the bundled MySQL socket (Laragon-style), for both
+        // mysqli (WordPress) and pdo_mysql (Laravel).
+        XCTAssertTrue(conf.contains("php_value[mysqli.default_socket] = \(sock)"))
+        XCTAssertTrue(conf.contains("php_value[pdo_mysql.default_socket] = \(sock)"))
+    }
+
     func testPortPreflightConflictMessageNamesApache() {
         let msg = PortPreflight.conflictMessage(port: 80, process: "httpd")
         XCTAssertTrue(msg.contains("Apache"))

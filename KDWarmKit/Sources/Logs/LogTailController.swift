@@ -13,6 +13,7 @@ public final class LogTailController: ObservableObject {
 
     private let store: LogLineStore
     private var reader: LogTailReader?
+    private var currentSourceURL: URL?
 
     public init(capacity: Int = 5_000) {
         self.store = LogLineStore(capacity: capacity)
@@ -25,6 +26,7 @@ public final class LogTailController: ObservableObject {
         store.clear()
         lines = []
         currentSourceID = source?.id
+        currentSourceURL = source?.url
         guard let source else { return }
         let r = LogTailReader(url: source.url)
         r.onLines = { [weak self] batch in
@@ -34,7 +36,18 @@ public final class LogTailController: ObservableObject {
         r.start()
     }
 
-    public func clear() { store.clear(); lines = [] }
+    /// Empty the view AND the on-disk log file. Truncates via a separate handle (ftruncate keeps the
+    /// inode) so a service writing in append mode keeps logging to the same file — never an atomic
+    /// replace, which would orphan the writer's open fd. The tail reader resets its offset on the
+    /// resulting shrink (see `LogTailReader`), so live tailing continues from the now-empty file.
+    public func clear() {
+        if let url = currentSourceURL, let fh = try? FileHandle(forWritingTo: url) {
+            try? fh.truncate(atOffset: 0)
+            try? fh.close()
+        }
+        store.clear()
+        lines = []
+    }
 
     private func ingest(_ batch: [String]) {
         store.append(batch)

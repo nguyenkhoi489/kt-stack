@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Build a relocatable, statically-linked PHP (cli + php-fpm) via static-php-cli (spc) and
-# vendor both into KDWarm/Resources/bin.
+# Build a relocatable, statically-linked PHP (cli + php-fpm) via static-php-cli (spc) and package it
+# as an on-demand artifact (tar.gz + sha256). No PHP is vendored into the app bundle — every version
+# installs on demand from the hosted GitHub Release.
 #
 # Why static-php-cli: it produces a self-contained PHP with no Cellar/Homebrew dylib
 # dependencies (otool shows only system /usr/lib + /System frameworks) — proven relocatable
@@ -20,7 +21,7 @@
 # Arch scope: builds for the HOST arch (arm64 on Apple Silicon). Universal is assembled in
 # Phase 9 by building each arch and `lipo -create`-ing the results.
 #
-# Output: KDWarm/Resources/bin/php, KDWarm/Resources/bin/php-fpm
+# Output: .build-cache/artifacts/php-<ver>-arm64.tar.gz (+ .sha256)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT="$PWD"
@@ -85,15 +86,9 @@ echo "=== health probe ==="
 "$PHP_BIN" -v | head -1
 echo "  php -r '6*7' => $("$PHP_BIN" -r 'echo 6*7;')"
 
-# The DEFAULT bundled version (8.4) ships flat in Resources/bin (baseline, works out of the box).
-# Extra versions install ON-DEMAND via the UI — produced only as a hosted artifact, never bundled.
-DEFAULT_VER="8.4"
-if [[ "$PHP_VER" == "$DEFAULT_VER" ]]; then
-    cp "$PHP_BIN" "$OUT/php"; cp "$FPM_BIN" "$OUT/php-fpm"
-    chmod +x "$OUT/php" "$OUT/php-fpm"
-    codesign --force --sign - "$OUT/php" "$OUT/php-fpm"
-    echo "=== bundled (default) → $OUT/php, $OUT/php-fpm ==="
-fi
+# Every PHP version (incl. the default 8.4) installs ON-DEMAND from the hosted GitHub Release — the
+# app ships NO PHP in Resources/bin, keeping the DMG lean. Each version is produced only as a hosted
+# artifact below; nothing is copied flat into the bundle.
 
 # On-demand artifact: php-<ver>/bin/{php,php-fpm} → tar.gz + sha256 (downloader extract layout).
 echo "=== package on-demand artifact ==="

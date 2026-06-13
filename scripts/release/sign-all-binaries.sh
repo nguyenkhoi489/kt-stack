@@ -43,16 +43,23 @@ if [[ -d "$APP/Contents/Resources/bin" ]]; then
     done < <(find "$APP/Contents/Resources/bin" -type f -print0)
 fi
 
-echo "=== 2. embedded frameworks (KDWarmKit, Sparkle + its nested bundles) ==="
+echo "=== 2. embedded frameworks (KDWarmKit, Sparkle + its nested code) ==="
 if [[ -d "$APP/Contents/Frameworks" ]]; then
-    # Sparkle ships NESTED BUNDLES that must each be sealed as a bundle, deepest-first, BEFORE the
-    # framework — signing only the inner Mach-O leaves the bundle unsealed and notarization rejects it.
-    # Order per Sparkle's docs: XPCServices/*.xpc → Updater.app → Autoupdate → the .framework.
-    while IFS= read -r -d '' xpc; do echo "  xpc  $(basename "$xpc")"; sign "$BASE_ENT" "$xpc"; done \
-        < <(find "$APP/Contents/Frameworks" -name "*.xpc" -type d -print0)
-    while IFS= read -r -d '' app; do echo "  app  $(basename "$app")"; sign "$BASE_ENT" "$app"; done \
-        < <(find "$APP/Contents/Frameworks" -name "*.app" -type d -print0)
-    # Remaining loose Mach-O executables/dylibs not inside an already-sealed nested bundle (Autoupdate).
+    # Sparkle ships signable nested code as siblings under Versions/B (XPCServices/*.xpc, the loose
+    # Autoupdate helper tool, Updater.app) — sign each explicitly BEFORE sealing the .framework. The
+    # generic loose-Mach-O sweep below can leave the Autoupdate helper ad-hoc, which notarization
+    # rejects with "not signed with a valid Developer ID certificate / no secure timestamp".
+    SP="$APP/Contents/Frameworks/Sparkle.framework"
+    if [[ -d "$SP" ]]; then
+        while IFS= read -r -d '' xpc; do echo "  xpc  $(basename "$xpc")"; sign "$BASE_ENT" "$xpc"; done \
+            < <(find "$SP" -name "*.xpc" -type d -print0)
+        while IFS= read -r -d '' au; do echo "  exe  $(basename "$au")"; sign "$BASE_ENT" "$au"; done \
+            < <(find "$SP" -name "Autoupdate" -type f -print0)
+        while IFS= read -r -d '' app; do echo "  app  $(basename "$app")"; sign "$BASE_ENT" "$app"; done \
+            < <(find "$SP" -name "*.app" -type d -print0)
+    fi
+    # Any other loose Mach-O / dylibs not inside an already-sealed nested bundle (idempotent re-sign of
+    # Sparkle's Autoupdate is harmless).
     while IFS= read -r -d '' f; do
         case "$f" in *.xpc/*|*.app/*) continue ;; esac
         is_macho "$f" && { echo "  exe  $(basename "$f")"; sign "$BASE_ENT" "$f"; }

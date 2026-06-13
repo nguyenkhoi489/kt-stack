@@ -35,20 +35,29 @@ cd "$BUILD"
 
 SRC="mysql-$MYSQL_VER"
 if [[ ! -d "$SRC" ]]; then
-    echo "=== fetch mysql-boost source ==="
-    curl -fsSL "https://cdn.mysql.com/Downloads/MySQL-${MYSQL_SERIES}/mysql-boost-${MYSQL_VER}.tar.gz" -o mysql.tgz
+    echo "=== fetch mysql source ($MYSQL_VER) ==="
+    BASE="https://cdn.mysql.com/Downloads/MySQL-${MYSQL_SERIES}"
+    # MySQL 8.x ships a bundled-boost source tarball; 9.x dropped it — fall back to the plain source
+    # (cmake then downloads the matching boost itself, see DOWNLOAD_BOOST below).
+    curl -fsSL "$BASE/mysql-boost-${MYSQL_VER}.tar.gz" -o mysql.tgz \
+        || curl -fsSL "$BASE/mysql-${MYSQL_VER}.tar.gz" -o mysql.tgz
     tar -xf mysql.tgz
 fi
 
 if [[ ! -x "$PREFIX/bin/mysqld" ]]; then
     echo "=== cmake configure (minimal: no tests/router/mysqlx) ==="
+    # Use the boost bundled in the source when present (8.x); otherwise let cmake fetch it (9.x).
+    if [[ -d "$SRC/boost" ]]; then
+        BOOST_FLAGS=(-DWITH_BOOST="$SRC/boost" -DDOWNLOAD_BOOST=0)
+    else
+        BOOST_FLAGS=(-DWITH_BOOST="$BUILD/boost-dl" -DDOWNLOAD_BOOST=1)
+    fi
     cmake -S "$SRC" -B "$BUILD/cmbuild" \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="$PREFIX" \
-        -DWITH_BOOST="$SRC/boost" \
+        "${BOOST_FLAGS[@]}" \
         -DWITH_SSL="$OPENSSL_PREFIX" \
-        -DWITH_UNIT_TESTS=OFF -DWITH_ROUTER=OFF -DWITH_MYSQLX=OFF \
-        -DDOWNLOAD_BOOST=0 >/dev/null
+        -DWITH_UNIT_TESTS=OFF -DWITH_ROUTER=OFF -DWITH_MYSQLX=OFF >/dev/null
     echo "=== make + install (this is the long part) ==="
     cmake --build "$BUILD/cmbuild" -j"$(sysctl -n hw.ncpu)" >/dev/null
     cmake --install "$BUILD/cmbuild" >/dev/null
@@ -61,11 +70,34 @@ cp -R "$PREFIX/bin" "$TOP/bin"
 cp -R "$PREFIX/lib" "$TOP/lib"
 cp -R "$PREFIX/share" "$TOP/share"
 
-echo "=== vendor OpenSSL + fix install names ==="
-vendor_nonsystem_dylibs "$TOP/bin/mysqld" "$TOP/lib"
+echo "=== vendor OpenSSL + fix install names (ALL bin tools, not just mysqld) ==="
+# The client tools (mysql, mysqldump, …) link OpenSSL by absolute Homebrew path too — vendor every
+# Mach-O so the whole tree is relocatable AND same-team-signable under Hardened Runtime (an external
+# Homebrew dylib is rejected by library validation once the tool is Developer-ID signed).
+for b in "$TOP"/bin/*; do
+    file -b "$b" | grep -q "Mach-O" || continue
+    vendor_nonsystem_dylibs "$b" "$TOP/lib"
+done
 
-echo "=== relocatability gate (mysqld) ==="
-relocatable_gate "$TOP/bin/mysqld"
+# Plugins live in lib/plugin/, so they reach the vendored OpenSSL in lib/ via @loader_path/.. (one
+# level up) — NOT ../lib (which from lib/plugin would resolve to lib/lib). Vendor + rewrite them here.
+for p in "$TOP"/lib/plugin/*.so; do
+    [[ -e "$p" ]] || continue
+    file -b "$p" | grep -q "Mach-O" || continue
+    while IFS= read -r ref; do
+        case "$ref" in /usr/lib/*|/System/*|@*) continue ;; esac
+        base="$(basename "$ref")"
+        [[ -f "$TOP/lib/$base" ]] || cp "$ref" "$TOP/lib/$base" 2>/dev/null || continue
+        install_name_tool -change "$ref" "@loader_path/../$base" "$p" 2>/dev/null || true
+    done < <(otool -L "$p" | tail -n +2 | awk '{print $1}')
+done
+
+echo "=== relocatability gate (every bin tool + plugin) ==="
+for b in "$TOP"/bin/* "$TOP"/lib/plugin/*.so; do
+    [[ -e "$b" ]] || continue
+    file -b "$b" | grep -q "Mach-O" || continue
+    relocatable_gate "$b"
+done
 ad_hoc_sign "$TOP/bin/mysqld" "$TOP"/lib/*.dylib 2>/dev/null || ad_hoc_sign "$TOP/bin/mysqld"
 
 echo "=== PROVE relocation: --initialize-insecure from a moved copy ==="

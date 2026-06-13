@@ -3,9 +3,9 @@ import Foundation
 /// Manages one php-fpm pool per ACTIVE PHP version (not per site) — the core of socket-per-pool
 /// isolation. Sites sharing a version share a pool + socket; a version with no sites has no pool.
 ///
-/// Only versions whose binary is bundled can start. Phase 2 ships PHP 8.4 only; `reconcile`
-/// returns the versions it could not start (missing binary) so the orchestrator can warn without
-/// aborting the others — the multi-version path goes fully live once Phase 7 adds the binaries.
+/// Only versions whose binary is installed can start. PHP installs on demand (nothing is bundled),
+/// so `reconcile` returns the versions it could not start (missing binary) and the orchestrator warns
+/// without aborting the others — those sites serve once the user downloads that version.
 public final class PHPFPMPoolManager: @unchecked Sendable {
     private let paths: AppSupportPaths
     private let agents: LaunchAgentManager
@@ -31,7 +31,7 @@ public final class PHPFPMPoolManager: @unchecked Sendable {
 
     /// Bring the running pool set in line with `required`: stop pools no longer needed, start
     /// pools for newly-required versions whose binary exists. Returns versions that were required
-    /// but could NOT start because their binary isn't bundled yet (Phase 7).
+    /// but could NOT start because their binary isn't installed (the user hasn't downloaded it yet).
     @discardableResult
     public func reconcile(required: Set<String>) throws -> [String] {
         // Stop + drop pools that are no longer required.

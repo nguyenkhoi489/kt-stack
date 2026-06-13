@@ -257,16 +257,29 @@ public final class ServiceManager: ObservableObject {
         guard !busy.contains(kind) else { return }
         busy.insert(kind)
         restart.reset(kind)
+        // Publish the spinner immediately. `busy` alone isn't observed — the UI reads `snapshots`, which
+        // otherwise only rebuilds on the next health poll, so a DB toggle wouldn't show "loading" the
+        // way nginx/php do (those flip the @Published `server.isBusy` synchronously). Flip it here too.
+        setSnapshotBusy(kind, true)
         Task { [weak self] in
             var message: String?
             do { try await action() } catch { message = error.localizedDescription }
             await MainActor.run {
                 guard let self else { return }
                 self.busy.remove(kind)
-                if let message, let idx = self.snapshots.firstIndex(where: { $0.kind == kind }) {
-                    self.snapshots[idx].errorMessage = message
-                }
+                self.setSnapshotBusy(kind, false, errorMessage: message)
             }
+            // Re-derive the real status NOW instead of waiting up to one ~0.9s poll cycle, so the
+            // button flips start↔stop the instant the action finishes (no laggy 2s gap after the spinner).
+            await self?.refresh()
         }
+    }
+
+    /// Reflect a kind's busy/error transition into the published `snapshots` right away (the row's
+    /// spinner binds to `snapshot.isBusy`). No-op if the kind isn't in the current snapshot list.
+    private func setSnapshotBusy(_ kind: ServiceKind, _ isBusy: Bool, errorMessage: String? = nil) {
+        guard let idx = snapshots.firstIndex(where: { $0.kind == kind }) else { return }
+        snapshots[idx].isBusy = isBusy
+        if let errorMessage { snapshots[idx].errorMessage = errorMessage }
     }
 }

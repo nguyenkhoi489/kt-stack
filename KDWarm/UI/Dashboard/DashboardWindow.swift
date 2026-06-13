@@ -47,13 +47,14 @@ struct DashboardWindow: View {
         case .settings: SettingsView(preferences: preferences, dns: dns, server: server,
                                      caTrust: caTrust, updater: updater, uninstaller: uninstaller)
                             .navigationTitle("Settings")
+        case .about:    AboutSettingsView().navigationTitle("About")
         }
     }
 }
 
 /// Top-level dashboard destinations (design-guidelines §5.6).
 enum SidebarItem: String, CaseIterable, Identifiable {
-    case sites, services, runtimes, logs, mail, settings
+    case sites, services, runtimes, logs, mail, settings, about
 
     var id: String { rawValue }
 
@@ -65,6 +66,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         case .logs:     return "Logs"
         case .mail:     return "Mail"
         case .settings: return "Settings"
+        case .about:    return "About"
         }
     }
 
@@ -76,6 +78,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         case .logs:     return "text.alignleft"
         case .mail:     return "envelope"
         case .settings: return "gearshape"
+        case .about:    return "info.circle"
         }
     }
 }

@@ -132,9 +132,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        // Services are launchd-managed and PERSIST across app quit (the app is a controller, not the
-        // process parent), so we deliberately do NOT stop nginx/php-fpm here — only the in-process
-        // folder watcher. Bringing everything down is the explicit "Stop all" action.
+        // Quit stops every KDWarm service (nginx, php-fpm, databases, Mailpit) + the folder watcher,
+        // so nothing keeps running after the app exits. `shutdownForQuit` boots out the launchd jobs
+        // synchronously, so the handler waits for a clean DB shutdown before the process dies.
         MainActor.assumeIsolated { server.shutdownForQuit() }
     }
 

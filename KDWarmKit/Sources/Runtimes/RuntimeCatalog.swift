@@ -25,8 +25,9 @@ public enum RuntimeLanguage: String, CaseIterable, Sendable, Identifiable, Hasha
         }
     }
 
-    /// PHP ships in the DMG; the rest are acquired on demand (Node included — downloaded here).
-    public var isBundled: Bool { self == .php }
+    /// No runtime ships in the DMG — every language (PHP included) installs on demand from the hosted
+    /// GitHub Release, keeping the app lean. Drives the card's "On-demand" badge.
+    public var isBundled: Bool { false }
 
     /// Relative path (within a `runtimes/<lang>/<version>/` dir) of the executable that proves the
     /// version is installed and runnable.
@@ -92,15 +93,18 @@ public struct RuntimeCatalog: Sendable {
     /// and refreshed as upstream releases move; a stale URL surfaces as a download failure (retryable).
     /// Ruby/Java have no entries yet (shown as on-demand with nothing to install until added).
     public static let manifest: [RuntimeRelease] = [
-        // Self-built, relocatable static PHP (php.net ships source only — no upstream macOS binary).
-        // Hosted on the project's GitHub Releases. PHP 8.4 is BUNDLED (staged from the DMG), so it is
-        // intentionally NOT in this download manifest — never double-source a version (bundle + manifest).
+        // Self-built, relocatable, Developer-ID-signed + notarized static PHP (php.net ships source
+        // only — no upstream macOS binary). Hosted on the project's GitHub Releases. Every version,
+        // incl. the default 8.4, installs on demand from here — nothing is bundled in the DMG.
+        RuntimeRelease(language: .php, version: "8.4",
+                       url: "https://github.com/nguyenkhoi489/kd-warm/releases/download/binaries-v1/php-8.4-arm64.tar.gz",
+                       sha256: "a1084e4008299242ab6cad63b4029a6622571b43664b9c840ad2ea2151f4484b"),
         RuntimeRelease(language: .php, version: "8.3",
                        url: "https://github.com/nguyenkhoi489/kd-warm/releases/download/binaries-v1/php-8.3-arm64.tar.gz",
-                       sha256: "192f2a48516b38394e8a5e071e2609b53ca8863b4336b0b32801738c355a3958"),
+                       sha256: "6df25fee653c6f76a33f6f2c9c5cc6dda457b416c1b5542bc26a9fec403c6734"),
         RuntimeRelease(language: .php, version: "8.1",
                        url: "https://github.com/nguyenkhoi489/kd-warm/releases/download/binaries-v1/php-8.1-arm64.tar.gz",
-                       sha256: "d8fcc9ad4a8637e5c33bebae4d1ee18042439b3fe7c2bd4a21dc7c0315029e2a"),
+                       sha256: "2ac560a63a85503ea651ad6ee25a21e939c4388332208e0f85887210b091d668"),
         RuntimeRelease(language: .go, version: "1.26.4",
                        url: "https://go.dev/dl/go1.26.4.darwin-arm64.tar.gz",
                        sha256: "b62ad2b6d7d2464f12a5bcad7ff47f19d08325773b5efd21610e445a05a9bf53"),

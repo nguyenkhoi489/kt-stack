@@ -41,11 +41,13 @@ public final class RedisController: ManagedService, @unchecked Sendable {
     public func probe() async -> ServiceStatus { isInstalled ? await runner.probe() : .stopped }
 
     private func writeConfig() throws {
+        // Quote paths: the app-support path contains a space ("Application Support"), and Redis splits
+        // an unquoted directive value on whitespace → "wrong number of arguments" on `dir`/`logfile`.
         let config = """
         bind 127.0.0.1
         port 6379
-        dir \(paths.serviceData("redis").path)
-        logfile \(paths.serviceLog("redis").path)
+        dir "\(paths.serviceData("redis").path)"
+        logfile "\(paths.serviceLog("redis").path)"
         daemonize no
         save 900 1
         """

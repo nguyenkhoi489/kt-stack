@@ -77,8 +77,8 @@ final class RuntimeManagementTests: XCTestCase {
     func testPHPManifestEntryHostedOnReleasesWithArchFilename() {
         let php = RuntimeCatalog.manifest.filter { $0.language == .php }
         XCTAssertFalse(php.isEmpty, "PHP must have at least one downloadable version")
-        // 8.4 is bundled, so it must NOT also be a download entry (no double source-of-truth).
-        XCTAssertFalse(php.contains { $0.version == "8.4" })
+        // Nothing is bundled — the default 8.4 is itself a download entry.
+        XCTAssertTrue(php.contains { $0.version == "8.4" }, "default PHP 8.4 must be downloadable")
         for r in php {
             XCTAssertEqual(r.url.host, "github.com")
             XCTAssertTrue(r.url.path.contains("/releases/download/"), "\(r.id) must resolve to a release asset")

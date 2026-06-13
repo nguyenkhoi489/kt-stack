@@ -1,8 +1,9 @@
 import Foundation
 
-/// Copies the bundled, relocatable binaries (nginx, php, php-fpm) out of the immutable
-/// signed app bundle into the writable app-support `bin/` directory on first run, and
-/// re-stages them when the bundle ships newer copies.
+/// Copies the bundled, relocatable service binaries (nginx, dnsmasq, mkcert, mailpit) out of the
+/// immutable signed app bundle into the writable app-support `bin/` directory on first run, and
+/// re-stages them when the bundle ships newer copies. PHP is NOT bundled — it installs on demand —
+/// so the PHP staging path here is a guarded no-op unless a build drops PHP into `Resources/bin`.
 ///
 /// The signed `.app` is read-only, so the runtime CANNOT execute binaries in place — they
 /// must live in a writable tree. Every binary's code signature is verified BEFORE it is
@@ -61,11 +62,11 @@ public struct BinaryStager {
         }
     }
 
-    /// Stage bundled PHP into the runtimes layout (`runtimes/php/<version>/bin/{php,php-fpm}`).
-    /// The flat `php`/`php-fpm` in the bundle is the default version; additional versions ship as
-    /// `php-<version>` / `php-fpm-<version>` and stage into their own version dir when present.
+    /// Stage any bundled PHP into the runtimes layout (`runtimes/php/<version>/bin/{php,php-fpm}`).
+    /// PHP now installs on demand (nothing ships in the bundle), so these are no-ops unless a build is
+    /// configured to drop PHP into `Resources/bin` — kept as a guarded, presence-checked fallback.
     private func stagePHPRuntimes() throws {
-        // Default version from the flat php/php-fpm (required — at least one PHP must be bundled).
+        // Default version from a flat php/php-fpm, only if a build placed one in the bundle.
         if fileManager.isReadableFile(atPath: bundleBinDir.appendingPathComponent("php-fpm").path) {
             try stagePHPVersion(BundledPHP.defaultVersion, fpmSource: "php-fpm", cliSource: "php")
         }

@@ -51,7 +51,7 @@ struct LogsSectionView: View {
             .toggleStyle(.button).controlSize(.small)
 
             Button { tail.clear() } label: { Image(systemName: "trash") }
-                .help("Clear the view (does not delete the log file)")
+                .help("Clear the log — empties both the view and the log file on disk")
         }
         .padding(KDSpacing.space2)
     }

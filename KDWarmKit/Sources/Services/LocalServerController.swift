@@ -104,7 +104,7 @@ public final class LocalServerController: ObservableObject {
 
     public var isRunning: Bool { nginxStatus == .running }
 
-    /// PHP versions whose binary is actually bundled (the per-site picker offers only these).
+    /// PHP versions whose binary is actually installed (the per-site picker offers only these).
     public var availableVersions: [String] {
         let v = BundledPHP.availableVersions(php: paths.phpRuntimesRoot)
         return v.isEmpty ? [BundledPHP.defaultVersion] : v
@@ -182,11 +182,14 @@ public final class LocalServerController: ObservableObject {
         }
     }
 
-    /// Called from `applicationWillTerminate`. Services are launchd-managed and PERSIST across app
-    /// quit (Herd's model) — so we do NOT stop nginx/php-fpm here; we only stop the in-process folder
-    /// watcher. Bringing everything down is the explicit "Stop all" action, not a side effect of quit.
+    /// Called from `applicationWillTerminate`. Stop EVERY KDWarm launchd service (nginx, php-fpm
+    /// pools, databases, Mailpit) so nothing is left running once the app quits, plus the in-process
+    /// folder watcher. `bootoutAll` is synchronous — one `launchctl bootout` per `com.kdwarm.*` job —
+    /// so it finishes inside the synchronous terminate handler; SIGTERM lets mysqld shut down cleanly.
+    /// (The root-owned dnsmasq/DNS helper is in a separate domain and intentionally persists.)
     public func shutdownForQuit() {
         watcher.stop()
+        agents.bootoutAll()
     }
 
     // MARK: - Reconcile
@@ -212,7 +215,7 @@ public final class LocalServerController: ObservableObject {
     }
 
     /// Generate vhosts → reconcile pools → wait for sockets → start or reload nginx. Returns the
-    /// required PHP versions whose binary isn't bundled yet (surfaced as a non-fatal warning).
+    /// required PHP versions whose binary isn't installed (surfaced as a non-fatal warning).
     private nonisolated func applyConfiguration(sites: [Site], port: Int, startNginx: Bool,
                                                 runPreflight: Bool = true) async throws -> [String] {
         let changed = try generator.generate(sites: sites, port: port)
@@ -242,7 +245,7 @@ public final class LocalServerController: ObservableObject {
         isBusy = false
         if let error { lastError = error }
         else if !missing.isEmpty {
-            lastError = "PHP \(missing.joined(separator: ", ")) not bundled yet (arrives in Phase 7); those sites won't serve."
+            lastError = "PHP \(missing.joined(separator: ", ")) not installed — install it from Runtimes; those sites won't serve until then."
         }
         recomputeStatus()
         refreshWatches()

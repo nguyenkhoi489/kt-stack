@@ -24,6 +24,11 @@ public struct PHPFPMPoolWriter {
         // The path is single-quoted: php-fpm runs sendmail_path via the shell and the app-support
         // path contains a space ("Application Support").
         let sendmail = "'\(paths.binary("mailpit").path)' sendmail -S 127.0.0.1:1025"
+        // Point a `localhost` MySQL connection at the bundled MySQL's UNIX socket (Laragon-style), so
+        // WordPress/Laravel apps using DB_HOST=localhost connect without editing every config — the
+        // compiled default socket (/tmp/mysql.sock) doesn't exist in KDWarm's layout. php_value (not
+        // admin) so a project can still override it. No quoting: FPM takes the rest of the line as-is.
+        let mysqlSocket = paths.serviceSocket("mysql").path
         return """
         [global]
         error_log = \(log)
@@ -47,6 +52,9 @@ public struct PHPFPMPoolWriter {
         php_admin_flag[log_errors] = on
         php_admin_value[error_log] = \(log)
         php_admin_value[sendmail_path] = \(sendmail)
+        php_value[mysqli.default_socket] = \(mysqlSocket)
+        php_value[pdo_mysql.default_socket] = \(mysqlSocket)
+        php_value[mysql.default_socket] = \(mysqlSocket)
         """
     }
 

@@ -22,8 +22,10 @@ ART_DIR="$ROOT/.build-cache/artifacts"
 # Default published set — keep in sync with the Swift manifests. Add php-7.4 here if/when it builds
 # (it is EOL and currently fails under static-php-cli).
 DEFAULT_ARTIFACTS=(
+  "php-8.4-arm64.tar.gz"
   "php-8.3-arm64.tar.gz"
   "php-8.1-arm64.tar.gz"
+  "mysql-9.6.0-arm64.tar.gz"
   "redis-7.4.2-arm64.tar.gz"
   "postgres-17.10-arm64.tar.gz"
 )
