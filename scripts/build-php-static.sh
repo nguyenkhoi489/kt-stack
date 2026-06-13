@@ -40,7 +40,10 @@ case "$ARCH" in
   *) echo "unsupported ARCH=$ARCH" >&2; exit 2 ;;
 esac
 
-EXTENSIONS="${EXTENSIONS:-bcmath,bz2,calendar,curl,dom,event,exif,fileinfo,filter,gd,gmp,igbinary,intl,ldap,mbstring,memcached,mysqli,opcache,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,protobuf,readline,redis,session,snmp,soap,sockets,sqlite3,ssh2,sysvmsg,sysvshm,tokenizer,xhprof,xlswriter,xml,xsl,zip,zlib,zstd}"
+# NOTE: `mbregex` is a SEPARATE static-php-cli extension from `mbstring` (it links oniguruma) and
+# provides the multibyte-regex functions — mb_split / mb_ereg* — that Laravel's Str helper calls.
+# Without it mbstring loads but mb_split is undefined (fatal). Keep it alongside mbstring.
+EXTENSIONS="${EXTENSIONS:-bcmath,bz2,calendar,curl,dom,event,exif,fileinfo,filter,gd,gmp,igbinary,intl,ldap,mbstring,mbregex,memcached,mysqli,opcache,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,protobuf,readline,redis,session,snmp,soap,sockets,sqlite3,ssh2,sysvmsg,sysvshm,tokenizer,xhprof,xlswriter,xml,xsl,zip,zlib,zstd}"
 
 echo "=== static-php-cli build — PHP ${PHP_VER} (${ARCH}) ==="
 echo "    extensions: $EXTENSIONS"
