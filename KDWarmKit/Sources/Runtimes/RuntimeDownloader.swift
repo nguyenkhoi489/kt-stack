@@ -18,6 +18,18 @@ public struct RuntimeDownloader: Sendable {
         public var errorDescription: String? { message }
     }
 
+    /// Enforce HTTPS on a download URL before a byte is fetched. Every pinned manifest URL is already
+    /// HTTPS; this hard-fails a plaintext URL so a downgrade can never reach the network (checksum
+    /// pinning is the integrity backstop, transport is the first line of defense).
+    static func requireHTTPS(_ url: URL) throws {
+        guard url.scheme?.lowercased() == "https" else {
+            throw ExtractError(message: "Refusing a non-HTTPS download URL (\(url.scheme ?? "none")).")
+        }
+    }
+
+    /// A redirect hop is allowed only if it stays HTTPS (used by the download delegate).
+    static func isRedirectAllowed(to url: URL) -> Bool { url.scheme?.lowercased() == "https" }
+
     private let paths: AppSupportPaths
     public init(paths: AppSupportPaths) { self.paths = paths }
 
@@ -122,7 +134,8 @@ private final class DownloadCoordinator: NSObject, URLSessionDownloadDelegate, @
     }
 
     func download(_ url: URL) async throws -> URL {
-        try await withTaskCancellationHandler {
+        try RuntimeDownloader.requireHTTPS(url)
+        return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { cont in
                 continuation = cont
                 let t = session.downloadTask(with: url)
@@ -136,6 +149,18 @@ private final class DownloadCoordinator: NSObject, URLSessionDownloadDelegate, @
                     didWriteData _: Int64, totalBytesWritten written: Int64,
                     totalBytesExpectedToWrite expected: Int64) {
         onProgress(written, expected)
+    }
+
+    /// Refuse any redirect that would downgrade the transport — the final hop must stay HTTPS
+    /// (GitHub/CDN/MongoDB redirects are HTTPS; a redirect to http:// is dropped).
+    func urlSession(_ session: URLSession, task: URLSessionTask,
+                    willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest,
+                    completionHandler: @escaping (URLRequest?) -> Void) {
+        if let url = request.url, RuntimeDownloader.isRedirectAllowed(to: url) {
+            completionHandler(request)
+        } else {
+            completionHandler(nil)
+        }
     }
 
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,

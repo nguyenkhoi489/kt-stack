@@ -72,4 +72,67 @@ final class SecurityHardeningTests: XCTestCase {
         XCTAssertThrowsError(try inst.runSetTLDWithAdminPrivileges(old: "test", new: "../../etc/x"))
         XCTAssertThrowsError(try inst.runSetTLDWithAdminPrivileges(old: "x\ninject", new: "test"))
     }
+
+    // MARK: - On-demand binary signature check at launch
+
+    func testSignatureVerifierPassesOnSignedSystemBinary() {
+        // /bin/ls is Apple-signed → a valid, strict signature.
+        XCTAssertTrue(BinaryStager.verifySignature(at: URL(fileURLWithPath: "/bin/ls")))
+    }
+
+    func testSignatureVerifierFailsOnUnsignedFile() throws {
+        let tmp = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("kd-unsigned-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: tmp) }
+        try Data("#!/bin/sh\necho hi\n".utf8).write(to: tmp)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: tmp.path)
+        XCTAssertFalse(BinaryStager.verifySignature(at: tmp), "an unsigned file must fail --verify --strict")
+    }
+
+    /// The launch path must refuse to bootstrap a launchd job whose binary fails its signature check
+    /// (on-demand binaries lost quarantine at install + live in a writable dir → re-verify at launch).
+    func testLaunchdRunnerRefusesUnsignedBinary() async throws {
+        let tmp = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("kd-badbin-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: tmp) }
+        try Data("not a real binary".utf8).write(to: tmp)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: tmp.path)
+
+        let paths = AppSupportPaths(root: URL(fileURLWithPath: "/tmp/kdwarm-sec-test"))
+        let runner = LaunchdServiceRunner(
+            kind: .redis, label: "com.kdwarm.sec-test",
+            preflightPorts: [], probe: .tcp(port: 1), agents: LaunchAgentManager(paths: paths))
+        let spec = LaunchAgentSpec(label: "com.kdwarm.sec-test", programArguments: [tmp.path],
+                                   workingDirectory: "/tmp", stdoutPath: "/tmp/x.log", stderrPath: "/tmp/x.log")
+        do {
+            try await runner.start(spec: spec)
+            XCTFail("start must throw before bootstrapping an unsigned binary")
+        } catch {
+            // expected — signature check throws before any launchd op
+        }
+    }
+
+    // MARK: - Download transport hardening (HTTPS-only + redirect)
+
+    func testRequireHTTPSRejectsNonHTTPS() {
+        XCTAssertThrowsError(try RuntimeDownloader.requireHTTPS(URL(string: "http://example.com/x.tgz")!))
+        XCTAssertThrowsError(try RuntimeDownloader.requireHTTPS(URL(fileURLWithPath: "/tmp/x.tgz")))
+        XCTAssertNoThrow(try RuntimeDownloader.requireHTTPS(URL(string: "https://example.com/x.tgz")!))
+    }
+
+    func testRedirectAllowedOnlyForHTTPS() {
+        XCTAssertTrue(RuntimeDownloader.isRedirectAllowed(to: URL(string: "https://cdn.example.com/x")!))
+        XCTAssertFalse(RuntimeDownloader.isRedirectAllowed(to: URL(string: "http://cdn.example.com/x")!))
+    }
+
+    /// Regression guard: the HTTPS-only download policy must not break real installs — every pinned
+    /// manifest URL (runtimes + DB engines) is already HTTPS.
+    func testAllManifestURLsAreHTTPS() {
+        for r in RuntimeCatalog.manifest {
+            XCTAssertEqual(r.url.scheme, "https", "\(r.id) must be HTTPS")
+        }
+        for r in ServiceBinaryCatalog.manifest {
+            XCTAssertEqual(r.url.scheme, "https", "\(r.id) must be HTTPS")
+        }
+    }
 }

@@ -5,8 +5,17 @@ import Foundation
 /// System Keychain — no caller-supplied paths or keychain targets.
 ///
 /// Deferred-live like the DNS surface: runs only inside the signed helper (Phase 9). On the dev
-/// build the live path is `mkcert -install` (self-elevating), so this is exercised once a Team ID
-/// exists.
+/// build the live path is `mkcert -install` (self-elevating, which itself raises the macOS admin
+/// prompt), so this is exercised once a Team ID exists.
+///
+/// Trust model: installing/removing a System trust root as root happens WITHOUT an OS prompt, so the
+/// only gate is the XPC peer's code signature (audit-token + Team-ID requirement). The confused-deputy
+/// risk (a signed-but-tampered app driving these ops) is mitigated by Hardened Runtime + Library
+/// Validation being enabled on the app target — a clean-signed app cannot be dylib-injected. A second
+/// human-consent factor (Authorization Services) for these ops is intentionally deferred: the surface
+/// is inert until a Team ID is set, and today's live path (mkcert) already prompts.
+/// REQUIREMENT before enabling helper signing for production: re-review these CA ops and decide
+/// whether to add an Authorization Services consent gate for system-trust changes.
 final class HelperCAManager {
     private static let systemKeychain = "/Library/Keychains/System.keychain"
 

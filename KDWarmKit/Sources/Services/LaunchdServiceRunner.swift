@@ -33,6 +33,7 @@ public struct LaunchdServiceRunner: Sendable {
     /// otherwise pre-flight the ports, then bootstrap. Returns once the probe reports healthy or the
     /// wait times out (the caller surfaces the timeout as a warning/error via the health poll).
     public func start(spec: LaunchAgentSpec) async throws {
+        try verifyBinarySignature(spec)
         if agents.isLoaded(label) {
             if await isHealthy() { return }          // already up — pure reattach
             try agents.kickstart(label)              // loaded but dead → restart in place
@@ -51,6 +52,7 @@ public struct LaunchdServiceRunner: Sendable {
 
     /// Explicit restart: ensure the plist is current, then kickstart (or bootstrap if not loaded).
     public func restart(spec: LaunchAgentSpec) async throws {
+        try verifyBinarySignature(spec)
         try agents.writePlist(for: spec)
         if agents.isLoaded(label) { try agents.kickstart(label) }
         else { try agents.bootstrap(spec) }
@@ -58,6 +60,19 @@ public struct LaunchdServiceRunner: Sendable {
     }
 
     public func probe() async -> ServiceStatus { await health.check(probe) }
+
+    /// Refuse to (re)launch a job whose executable fails a strict code-signature check. On-demand
+    /// engines are checksum-verified at install but then lose `com.apple.quarantine` and live in a
+    /// user-writable dir, so post-install tampering would otherwise exec with no Gatekeeper prompt.
+    /// Re-verifying the binary at launch closes that gap. Ad-hoc-but-valid signatures pass; only an
+    /// unsigned or tampered binary fails.
+    private func verifyBinarySignature(_ spec: LaunchAgentSpec) throws {
+        guard let path = spec.programArguments.first else { return }
+        guard BinaryStager.verifySignature(at: URL(fileURLWithPath: path)) else {
+            throw Self.error("\(kind.displayName) could not start: its program failed a code-signature "
+                + "check. The installed engine may be corrupt — reinstall it.")
+        }
+    }
 
     private func isHealthy() async -> Bool { await health.check(probe) == .running }
 

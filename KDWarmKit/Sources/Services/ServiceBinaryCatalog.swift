@@ -34,7 +34,9 @@ public struct ServiceBinaryCatalog: Sendable {
     /// relocatable Redis/Postgres — no upstream macOS drop-in exists). `appendingPathComponent(fileName)`
     /// resolves to `…/releases/download/<tag>/<kind>-<version>-<arch>.tar.gz`. Overridable for tests /
     /// a local mirror.
-    public nonisolated(unsafe) static var releaseBaseURL =
+    /// Immutable so no in-process code can repoint every engine download at an attacker URL (the
+    /// checksum is the integrity backstop, but the base URL should not be a writable global).
+    public static let releaseBaseURL =
         URL(string: "https://github.com/nguyenkhoi489/kd-warm/releases/download/binaries-v1")!
 
     public static var arch: String {
