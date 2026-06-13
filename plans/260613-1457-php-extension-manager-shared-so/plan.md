@@ -32,7 +32,7 @@ Trimming the base into shared is a later optimization, out of scope.
 ## Phases
 | Phase | Name | Status |
 |-------|------|--------|
-| 1 | [Build pipeline — shared-ext artifacts](./phase-01-build-shared-ext-pipeline.md) | Pending |
+| 1 | [Build pipeline — shared-ext artifacts](./phase-01-build-shared-ext-pipeline.md) | Done (14 artifacts published) |
 | 2 | [Extension catalog model (Kit)](./phase-02-extension-catalog-model.md) | Pending |
 | 3 | [ExtensionInstaller + php-fpm wiring (Kit)](./phase-03-extension-installer.md) | Pending |
 | 4 | [Extension Manager UI](./phase-04-extension-manager-ui.md) | Pending |

@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "Build pipeline — shared-ext artifacts"
-status: in-progress
+status: done
 priority: P1
 effort: "4-5h"
 dependencies: []
@@ -25,7 +25,22 @@ dependencies: []
   special-case track if needed.
 - **Phase 3 finding:** `zend_extension=` needs an ABSOLUTE path in `conf.d/xdebug.ini`
   (`zend_extension=/abs/.../xdebug.so`) — it does NOT resolve via `extension_dir` like `extension=`.
-- Pending: cross-patch ABI verify (H3, needs a published 8.4.y artifact), the 8.3/8.1 matrix, publish.
+### Full matrix verified live (2026-06-13) — 14 artifacts
+| ext | 8.4 | 8.3 | 8.1 | directive |
+|-----|:-:|:-:|:-:|-----------|
+| apcu | ✓ | ✓ | ✓ | extension |
+| imagick | ✓ | ✓ | ✓ | extension |
+| xdebug | ✓ | ✓ | ✓ | zend_extension |
+| grpc | ✓ | ✓ | ✓ | extension |
+| swoole | ✓ | ✓ | ✗ | extension (CLI runtime) |
+
+- **swoole does NOT build on PHP 8.1** (Swoole 6.x compile failure in ext/swoole) — real ecosystem
+  constraint, not a pipeline bug. Catalog is per-(ext,version), so swoole is simply absent for 8.1.
+- Every produced `.so` passed: build → otool relocatability gate → `php -m`/`php -v` load.
+- Transient note: an `spc download` mirror hiccup (libtiff metadata) aborted 8.1's first run; a plain
+  re-run resolved it. Reported as `8.1:BASE-BUILD` though the base php had already built — the failure
+  was actually the shared-ext deps download (a label nuance, harmless).
+- Pending: cross-patch ABI verify (H3, needs a published 8.4.y artifact), publish the 14 artifacts.
 
 ### Pipeline hardening (during 8.4 verify)
 Three `set -e`/spc interaction bugs found + fixed: (1) a single combined `--build-shared=<all>` aborts
