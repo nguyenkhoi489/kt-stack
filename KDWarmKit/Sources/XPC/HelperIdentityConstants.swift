@@ -12,6 +12,14 @@ public enum HelperIdentity {
     /// Apple Developer Team ID. EMPTY on the dev/ad-hoc build (no Developer ID configured yet);
     /// Phase 9 fills it when signing is set up. While empty, the live SMAppService daemon + the
     /// Team-ID-pinned XPC check cannot be exercised — that path is intentionally deferred.
+    ///
+    /// ⚠️ SECURITY GO-LIVE GATE: setting a non-empty Team ID activates the LIVE root helper (it then
+    /// writes /etc/resolver/*, installs a System-Keychain trust root, controls a root launchd daemon).
+    /// Some privileged-surface hardening was deliberately deferred while this is empty. BEFORE setting
+    /// it for production, complete the gate documented in `HelperCAManager` (class doc): constrain
+    /// `installRootCA` to KTStack's own CA, decide on an Authorization Services consent gate for
+    /// system-trust ops, enforce Developer-ID + notarization in CI, and re-verify the TLD-validation
+    /// invariants through a REAL XPC/sudo path (they are currently only Kit-layer tested).
     public static let teamID = ""
 
     /// True once a real signing identity (Team ID) exists — gates the live privileged path.
