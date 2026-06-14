@@ -60,6 +60,16 @@ public final class PHPFPMPoolManager: @unchecked Sendable {
         try ctl.reload()
     }
 
+    /// Fully restart one version's running pool: bootout + re-bootstrap so the LATEST launchd spec
+    /// applies (e.g. a newly-added `PHP_INI_SCAN_DIR`) and the master re-execs — required to load or
+    /// unload an extension `.so` (`kickstart` keeps the old job definition; `dlopen`'d modules only
+    /// (un)load on a master restart). No-op if that version has no live pool.
+    public func restart(version: String) throws {
+        guard let ctl = pool(for: version) else { return }
+        ctl.stop()
+        try ctl.start()
+    }
+
     public func stopAll(grace: TimeInterval = 3.0) {
         for (_, ctl) in snapshot() { ctl.stop(grace: grace) }
         lock.lock(); pools.removeAll(); lock.unlock()

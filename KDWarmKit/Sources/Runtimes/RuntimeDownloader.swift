@@ -80,6 +80,41 @@ public struct RuntimeDownloader: Sendable {
         return dest
     }
 
+    /// Install a single optional-extension `.so` into a SHARED modules dir. Distinct from
+    /// `installArchive`: that one requires an executable marker (a `.so` is not +x → rejected) and
+    /// replaces the whole `dest` dir (would WIPE sibling extensions). This downloads → checksum-verifies
+    /// → extracts the `php-ext-<ext>/<ext>.so` artifact, then places ONLY `<soName>` into `modulesDir`,
+    /// replacing just that one file and leaving every sibling `.so` intact.
+    @discardableResult
+    public func installSharedObject(url: URL, sha256: String, soName: String, into modulesDir: URL,
+                                    onProgress: @escaping @Sendable (Progress) -> Void) async throws -> URL {
+        try paths.ensureDirectoryTree()
+        let coordinator = DownloadCoordinator { received, total in
+            onProgress(Progress(received: received, total: total))
+        }
+        let archive = try await coordinator.download(url)
+        defer { try? FileManager.default.removeItem(at: archive) }
+
+        try Task.checkCancellation()
+        try ChecksumVerifier.verify(archive, expected: sha256)
+        let payload = try extract(archive)        // single top-level dir, e.g. imagick/
+        defer { try? FileManager.default.removeItem(at: payload.deletingLastPathComponent()) }
+
+        let fm = FileManager.default
+        let src = payload.appendingPathComponent(soName)
+        guard fm.fileExists(atPath: src.path) else {
+            throw ExtractError(message: "Archive did not contain \(soName).")
+        }
+        try Task.checkCancellation()
+        try fm.createDirectory(at: modulesDir, withIntermediateDirectories: true,
+                               attributes: [.posixPermissions: 0o700])
+        let dest = modulesDir.appendingPathComponent(soName)
+        if fm.fileExists(atPath: dest.path) { try fm.removeItem(at: dest) }   // replace THIS .so only
+        try fm.moveItem(at: src, to: dest)
+        Self.stripQuarantine(dest)                // ad-hoc-signed .so is quarantined by URLSession
+        return dest
+    }
+
     /// Strip `com.apple.quarantine` from a freshly-downloaded runtime tree. URLSession tags downloaded
     /// files with the quarantine xattr; for our self-built ad-hoc-signed binaries (php-fpm, redis,
     /// postgres) — unlike the notarized upstream Node/Go/Python — that attr makes Gatekeeper block the

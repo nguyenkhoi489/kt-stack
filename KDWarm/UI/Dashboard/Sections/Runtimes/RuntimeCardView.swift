@@ -17,6 +17,8 @@ struct RuntimeCardView: View {
     let onUninstall: (String) -> Void
     /// Per-version "Edit php.ini" action. Non-nil only for PHP (the only stack with a managed ini).
     var onEditIni: ((String) -> Void)? = nil
+    /// Per-version "Extensions…" action (the optional-extension manager). Non-nil only for PHP.
+    var onManageExtensions: ((String) -> Void)? = nil
     /// Compiled-in extensions per installed version (`php -m`), shown read-only. PHP only; empty
     /// while still loading or for non-PHP cards.
     var extensions: [String: [String]] = [:]
@@ -68,6 +70,10 @@ struct RuntimeCardView: View {
                 Spacer()
                 if let onEditIni {
                     Button("php.ini") { onEditIni(version) }
+                        .buttonStyle(.link).font(KDFont.footnote)
+                }
+                if let onManageExtensions {
+                    Button("Extensions…") { onManageExtensions(version) }
                         .buttonStyle(.link).font(KDFont.footnote)
                 }
                 if defaultVersion == version {

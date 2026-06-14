@@ -68,6 +68,9 @@ public struct NginxTLSVhostWriter {
                 fastcgi_param GATEWAY_INTERFACE CGI/1.1;
                 fastcgi_param SERVER_SOFTWARE  nginx;
                 fastcgi_param HTTPS            on;
+                fastcgi_param REMOTE_ADDR      $remote_addr;
+                fastcgi_param REMOTE_PORT      $remote_port;
+                fastcgi_param SERVER_ADDR      $server_addr;
                 fastcgi_param SERVER_PORT      $server_port;
                 fastcgi_param SERVER_NAME      $server_name;
             }

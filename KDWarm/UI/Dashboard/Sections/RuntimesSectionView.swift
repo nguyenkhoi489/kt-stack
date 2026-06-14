@@ -10,6 +10,7 @@ struct RuntimesSectionView: View {
     @EnvironmentObject private var server: LocalServerController
     @State private var showInstall = false
     @State private var editingIni: EditingIni?
+    @State private var managingExt: EditingIni?
     @State private var pendingUninstall: PendingUninstall?
     /// `php -m` per installed PHP version, loaded off-main (the probe runs the binary).
     @State private var phpExtensions: [String: [String]] = [:]
@@ -44,6 +45,7 @@ struct RuntimesSectionView: View {
         .navigationTitle("Runtimes")
         .sheet(isPresented: $showInstall) { RuntimeDownloadSheet() }
         .sheet(item: $editingIni) { PHPIniEditorSheet(version: $0.version) }
+        .sheet(item: $managingExt) { PHPExtensionsSheet(version: $0.version) }
         .alert(item: $pendingUninstall, content: uninstallAlert)
         .task(id: runtimes.installed[.php] ?? []) { await loadPHPExtensions() }
     }
@@ -114,6 +116,7 @@ struct RuntimesSectionView: View {
             onCancel: { runtimes.cancel(lang) },
             onUninstall: { requestUninstall(lang, $0) },
             onEditIni: lang == .php ? { editingIni = EditingIni(version: $0) } : nil,
+            onManageExtensions: lang == .php ? { managingExt = EditingIni(version: $0) } : nil,
             extensions: lang == .php ? phpExtensions : [:])
     }
 }

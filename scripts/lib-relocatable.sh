@@ -42,6 +42,28 @@ package_dir() {
     echo "  sha256:   $sha"
 }
 
+# Package one optional shared extension as the install/uninstall artifact:
+#   php-ext-<ext>-<phpver>-<arch>.tar.gz  with a single top-level <ext>/ dir holding <ext>.so.
+# The single-top-level-dir shape matches RuntimeDownloader's extract assumption (the dir name is
+# stripped on extract; the catalog keys off the inner <ext>.so name). Distinct from package_dir,
+# which derives the artifact name FROM the top dir — here the top dir is the bare <ext>.
+# $1=.so path  $2=ext name  $3=php minor (e.g. 8.4)  $4=artifacts dir.
+package_extension() {
+    local so="$1" ext="$2" phpver="$3" artifacts="$4"
+    local arch stage top out sha
+    arch="$(uname -m)"
+    mkdir -p "$artifacts"
+    stage="$(mktemp -d)"; top="$stage/$ext"; mkdir -p "$top"
+    cp "$so" "$top/$ext.so"
+    out="$artifacts/php-ext-${ext}-${phpver}-${arch}.tar.gz"
+    tar -czf "$out" -C "$stage" "$ext"
+    sha="$(sha256_of "$out")"
+    echo "$sha  $(basename "$out")" > "$out.sha256"
+    rm -rf "$stage"
+    echo "  artifact: $out"
+    echo "  sha256:   $sha"
+}
+
 # Vendor a binary's non-system dylib dependencies (e.g. Homebrew openssl) INTO <libdir> and rewrite
 # the references to @loader_path/../lib so the result is relocatable. Bounded to two levels (the
 # binary's deps + those deps' own non-system deps), which covers the openssl→nothing case. $1=binary

@@ -149,6 +149,16 @@ public final class LocalServerController: ObservableObject {
         }.value
     }
 
+    /// Fully restart one PHP version's pool (bootout + re-bootstrap) so a newly installed/uninstalled
+    /// extension `.so` is actually (un)loaded and the current launchd spec (incl. `PHP_INI_SCAN_DIR`)
+    /// applies. No-op if that version isn't running.
+    public func restartPHPPool(version: String) async throws {
+        let pools = self.pools
+        try await Task.detached(priority: .userInitiated) {
+            try pools.restart(version: version)
+        }.value
+    }
+
     public func start() {
         guard !isBusy, !isRunning else { return }
         isBusy = true; lastError = nil

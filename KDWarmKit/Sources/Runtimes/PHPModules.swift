@@ -30,6 +30,31 @@ public enum PHPModules {
         cache.lock.lock(); cache.byVersion[version] = nil; cache.lock.unlock()
     }
 
+    /// Modules an installed PHP loads with an explicit `PHP_INI_SCAN_DIR` — so optional extensions in
+    /// `runtimes/php/<v>/conf.d` are included. The cached `list` runs a BARE `php -m` (compiled scan
+    /// dir, which our relocatable build does not have), so it only ever sees compiled-in modules;
+    /// install-state for optional `.so`s MUST use this. Uncached: the set changes on install/uninstall.
+    public static func loadedModules(version: String, scanDir: URL,
+                                     paths: AppSupportPaths = AppSupportPaths()) -> [String] {
+        let php = paths.phpBinary(version: version)
+        guard FileManager.default.isExecutableFile(atPath: php.path) else { return [] }
+        let proc = Process()
+        proc.executableURL = php
+        proc.arguments = ["-m"]
+        var env = ProcessInfo.processInfo.environment
+        env["PHP_INI_SCAN_DIR"] = scanDir.path
+        proc.environment = env
+        let out = Pipe()
+        proc.standardOutput = out
+        proc.standardError = Pipe()
+        do { try proc.run() } catch { return [] }
+        let data = out.fileHandleForReading.readDataToEndOfFile()
+        proc.waitUntilExit()
+        guard proc.terminationStatus == 0,
+              let text = String(data: data, encoding: .utf8) else { return [] }
+        return parse(text)
+    }
+
     private static func probe(version: String, paths: AppSupportPaths) -> [String] {
         let php = paths.phpBinary(version: version)
         guard FileManager.default.isExecutableFile(atPath: php.path) else { return [] }

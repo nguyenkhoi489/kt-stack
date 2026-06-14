@@ -16,6 +16,11 @@ final class NginxTLSVhostWriterTests: XCTestCase {
         XCTAssertTrue(v.contains("ssl_certificate_key \"/ca/certs/app.test/key.pem\";"))
         XCTAssertTrue(v.contains("fastcgi_pass \"unix:/run/php-fpm-8.4.sock\";"))
         XCTAssertTrue(v.contains("fastcgi_param HTTPS            on;"))
+        // The HTTPS vhost must pass the client address like the :80 vhost, else PHP/Laravel sees an
+        // empty REMOTE_ADDR (request()->ip(), rate limiting, logging all break over https).
+        XCTAssertTrue(v.contains("fastcgi_param REMOTE_ADDR      $remote_addr;"))
+        XCTAssertTrue(v.contains("fastcgi_param REMOTE_PORT      $remote_port;"))
+        XCTAssertTrue(v.contains("fastcgi_param SERVER_ADDR      $server_addr;"))
     }
 
     func testSecureStaticVhostHasNoFastcgi() {
