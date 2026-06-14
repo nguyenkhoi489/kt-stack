@@ -51,7 +51,8 @@ EXTENSIONS="${EXTENSIONS:-bcmath,bz2,calendar,curl,dom,event,exif,fileinfo,filte
 # this step), so an ext that fails to build never blocks shipping the base runtime. Set empty to skip.
 # enchant is excluded: it is core-bundled in php-src (no standalone config.m4), so spc has no
 # build-shared recipe for it — it belongs to the deferred/special-case track (like yaf/ioncube).
-SHARED_EXTENSIONS="${SHARED_EXTENSIONS:-apcu,imagick,xdebug,grpc,swoole}"
+# mongodb provides the ext-mongodb driver (libmongoc/libbson, SSL) — needed for MongoDB from PHP/Laravel.
+SHARED_EXTENSIONS="${SHARED_EXTENSIONS:-apcu,imagick,xdebug,grpc,swoole,mongodb}"
 
 # Where the ext artifacts will be hosted — used only to bake a resolvable download URL into the
 # manifest fragment Phase 2's catalog consumes. Keep in sync with scripts/release/publish-artifacts.sh.

@@ -26,6 +26,8 @@ extension PHPExtensionCatalog {
                      summary: "gRPC client/server runtime for high-performance RPC."),
         PHPExtension(id: "swoole", displayName: "Swoole", type: .runtime,
                      summary: "Async coroutine runtime — used via CLI (php server.php), not under php-fpm."),
+        PHPExtension(id: "mongodb", displayName: "MongoDB", type: .database,
+                     summary: "MongoDB driver (ext-mongodb, libmongoc/libbson) — for MongoDB from PHP/Laravel."),
     ]
 
     /// Compiled into the static base — shown read-only in the manager. Mirrors the base build's
@@ -61,6 +63,9 @@ extension PHPExtensionCatalog {
         ext("grpc", "8.1", "76c332ff6a5206978d4b0c015be90b08a6bbc1165eb552f638d50c19ed9401d1"),
         ext("swoole", "8.4", "6a53e17961a77832699397f31c02d7ec21e9b59dd952a05510e68770693469ee"),
         ext("swoole", "8.3", "9f244aa1b0cc5afb88fdd3bc2a75b2de39572de99e801d31ad2005da59a73686"),
+        ext("mongodb", "8.4", "c401a4a2247c1d9c098a05013e20e8971a072242c9433dd9d48776ba6a4e5d89"),
+        ext("mongodb", "8.3", "2c170e3bd34c14c203c5187c56629d8cfa4b09666ecd90b954018e6b1efc4e26"),
+        ext("mongodb", "8.1", "795037d3ddc8a77dea1149dc19a89278dbbff2cfcec83d689e683c48bdde9a04"),
     ]
 
     /// Build a release whose URL follows the published artifact convention
