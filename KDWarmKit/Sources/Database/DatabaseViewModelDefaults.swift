@@ -4,8 +4,10 @@ public extension DatabaseViewModel {
 
     static let defaultDriver: DriverFactory = { profile, password in
         switch profile.kind {
-        case .mysql: return MySQLDriver(profile: profile, password: password)
-        default:     return nil
+        case .mysql:    return MySQLDriver(profile: profile, password: password)
+        case .postgres: return PostgresDriver(profile: profile, password: password)
+        case .sqlite:   return SQLiteDriver(profile: profile)
+        case .mongodb:  return nil
         }
     }
 

@@ -5,8 +5,10 @@ import Foundation
 /// `dumpStatus`, and refresh the schema after a successful import.
 public extension DatabaseViewModel {
 
-    /// True when the on-demand dump tools are installed; the sheet disables actions otherwise.
-    var canDump: Bool { dumpService.isEngineInstalled }
+    /// True when import/export is available: the `mysqldump`/`mysql` clients drive it, so it's offered
+    /// only for MySQL connections (PostgreSQL/SQLite dump support is a separate follow-up) and only when
+    /// those on-demand tools are installed.
+    var canDump: Bool { selectedProfile?.kind == .mysql && dumpService.isEngineInstalled }
 
     func clearDumpStatus() { dumpStatus = .idle }
 

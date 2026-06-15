@@ -19,6 +19,17 @@ packages:
   mysql-nio:
     url: https://github.com/vapor/mysql-nio
     from: "1.9.0"
+  # Pure-Swift PostgreSQL driver (NIO). Like mysql-nio it links statically (no libpq C dylib) and
+  # rides swift-nio-ssl's vendored BoringSSL for TLS, so the bundle stays notarize-clean.
+  postgres-nio:
+    url: https://github.com/vapor/postgres-nio
+    from: "1.21.0"
+  # SQLite toolkit. GRDB vendors its own SQLite (no system libsqlite3 link surprise) and exposes a
+  # synchronous DatabaseQueue we wrap behind the async RelationalDriver. Pure-Swift + C SQLite that
+  # GRDB compiles in-tree — links statically, no external dylib.
+  GRDB.swift:
+    url: https://github.com/groue/GRDB.swift
+    from: "7.0.0"
 
 settings:
   base:
@@ -57,6 +68,10 @@ targets:
     dependencies:
       - package: mysql-nio
         product: MySQLNIO
+      - package: postgres-nio
+        product: PostgresNIO
+      - package: GRDB.swift
+        product: GRDB
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.kdwarm.kit

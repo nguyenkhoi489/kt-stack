@@ -122,8 +122,13 @@ struct ImportExportSheet: View {
     }
 
     private var engineMissing: some View {
-        EmptyStateView(symbol: "shippingbox", title: "Dump tools unavailable",
-                       message: "Install the MySQL engine to enable dump tools.")
+        let isMySQL = vm.selectedProfile?.kind == .mysql
+        return EmptyStateView(
+            symbol: "shippingbox",
+            title: isMySQL ? "Dump tools unavailable" : "Import/Export not supported yet",
+            message: isMySQL
+                ? "Install the MySQL engine to enable dump tools."
+                : "Import/Export is currently available only for MySQL connections.")
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 

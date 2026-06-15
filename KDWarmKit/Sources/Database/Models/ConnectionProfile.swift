@@ -97,5 +97,19 @@ public struct ConnectionProfile: Codable, Sendable, Identifiable, Equatable {
         tlsMode: .prefer,
         readOnly: false)
 
-    public var isManaged: Bool { id == Self.managedMySQL.id }
+    /// The managed PostgreSQL instance: loopback, trust auth (`initdb -U postgres --auth=trust`), so no
+    /// password and no TLS. Like the managed MySQL row it always appears in the sidebar; connecting
+    /// fails cleanly when the engine isn't installed/running.
+    public static let managedPostgres = ConnectionProfile(
+        id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
+        name: "PostgreSQL (managed)",
+        kind: .postgres,
+        host: "127.0.0.1",
+        port: 5432,
+        user: "postgres",
+        database: "postgres",
+        tlsMode: .disable,
+        readOnly: false)
+
+    public var isManaged: Bool { id == Self.managedMySQL.id || id == Self.managedPostgres.id }
 }

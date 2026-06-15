@@ -21,7 +21,7 @@ public final class ConnectionStore: ObservableObject {
 
    
     public var allProfiles: [ConnectionProfile] {
-        [.managedMySQL] + profiles
+        [.managedMySQL, .managedPostgres] + profiles
     }
 
     // MARK: - Mutators

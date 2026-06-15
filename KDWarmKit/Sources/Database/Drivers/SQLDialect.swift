@@ -1,13 +1,30 @@
 import Foundation
 
+/// How a dialect spells a bound-parameter placeholder. MySQL and SQLite (GRDB) use positional `?`;
+/// PostgreSQL numbers them `$1, $2, …`. The number is the parameter's 1-based position in the bind
+/// array, so a single running index across an UPDATE's SET + WHERE clauses lines up with `binds`.
+public enum PlaceholderStyle: Sendable {
+    case question
+    case dollar
+
+    func placeholder(_ oneBasedIndex: Int) -> String {
+        switch self {
+        case .question: return "?"
+        case .dollar:   return "$\(oneBasedIndex)"
+        }
+    }
+}
+
 public struct SQLDialect: Sendable {
-   
+
     public let quote: Character
+    public let placeholderStyle: PlaceholderStyle
 
     public static func forKind(_ kind: DatabaseKind) -> SQLDialect {
         switch kind {
-        case .mysql:                       return SQLDialect(quote: "`")
-        case .postgres, .sqlite, .mongodb: return SQLDialect(quote: "\"")
+        case .mysql:            return SQLDialect(quote: "`",  placeholderStyle: .question)
+        case .postgres:         return SQLDialect(quote: "\"", placeholderStyle: .dollar)
+        case .sqlite, .mongodb: return SQLDialect(quote: "\"", placeholderStyle: .question)
         }
     }
 
@@ -43,7 +60,8 @@ public struct SQLDialect: Sendable {
         }
         let qualified = try qualifiedTable(schema: schema, table: table)
         let columns = try values.map { try quoteIdent($0.column) }.joined(separator: ", ")
-        let placeholders = Array(repeating: "?", count: values.count).joined(separator: ", ")
+        let placeholders = (1...values.count)
+            .map { placeholderStyle.placeholder($0) }.joined(separator: ", ")
         return DMLStatement(sql: "INSERT INTO \(qualified) (\(columns)) VALUES (\(placeholders))",
                             binds: values.map(\.value))
     }
@@ -56,8 +74,15 @@ public struct SQLDialect: Sendable {
         }
         try requireUsableKey(key)
         let qualified = try qualifiedTable(schema: schema, table: table)
-        let setClause = try values.map { "\(try quoteIdent($0.column)) = ?" }.joined(separator: ", ")
-        let whereClause = try key.map { "\(try quoteIdent($0.column)) = ?" }.joined(separator: " AND ")
+        var index = 0
+        let setClause = try values.map { col -> String in
+            index += 1
+            return "\(try quoteIdent(col.column)) = \(placeholderStyle.placeholder(index))"
+        }.joined(separator: ", ")
+        let whereClause = try key.map { col -> String in
+            index += 1
+            return "\(try quoteIdent(col.column)) = \(placeholderStyle.placeholder(index))"
+        }.joined(separator: " AND ")
         return DMLStatement(sql: "UPDATE \(qualified) SET \(setClause) WHERE \(whereClause)",
                             binds: values.map(\.value) + key.map(\.value))
     }
@@ -66,7 +91,11 @@ public struct SQLDialect: Sendable {
     public func delete(schema: String, table: String, key: [ColumnValue]) throws -> DMLStatement {
         try requireUsableKey(key)
         let qualified = try qualifiedTable(schema: schema, table: table)
-        let whereClause = try key.map { "\(try quoteIdent($0.column)) = ?" }.joined(separator: " AND ")
+        var index = 0
+        let whereClause = try key.map { col -> String in
+            index += 1
+            return "\(try quoteIdent(col.column)) = \(placeholderStyle.placeholder(index))"
+        }.joined(separator: " AND ")
         return DMLStatement(sql: "DELETE FROM \(qualified) WHERE \(whereClause)",
                             binds: key.map(\.value))
     }
