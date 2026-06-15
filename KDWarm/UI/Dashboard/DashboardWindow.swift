@@ -25,8 +25,14 @@ struct DashboardWindow: View {
 
     var body: some View {
         NavigationSplitView {
-            List(SidebarItem.allCases, selection: $selection) { item in
-                Label(item.title, systemImage: item.symbol).tag(item)
+            List(selection: $selection) {
+                ForEach(SidebarSection.allCases) { section in
+                    Section(section.title) {
+                        ForEach(section.items) { item in
+                            Label(item.title, systemImage: item.symbol).tag(item)
+                        }
+                    }
+                }
             }
             .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 280)
         } detail: {
@@ -48,6 +54,28 @@ struct DashboardWindow: View {
                             .navigationTitle("Settings")
         case .about:    AboutSettingsView().navigationTitle("About")
         case .database: DatabaseSectionView()
+        }
+    }
+}
+
+enum SidebarSection: String, CaseIterable, Identifiable {
+    case manage, inspect, app
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .manage:  return "Manage"
+        case .inspect: return "Inspect"
+        case .app:     return "App"
+        }
+    }
+
+    var items: [SidebarItem] {
+        switch self {
+        case .manage:  return [.sites, .services, .runtimes, .database]
+        case .inspect: return [.logs, .mail]
+        case .app:     return [.settings, .about]
         }
     }
 }
