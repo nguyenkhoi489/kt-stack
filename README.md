@@ -1,289 +1,146 @@
 # KTStack
 
-> Native macOS local development environment for PHP, Node.js, Python and Go.
->
-> Run local websites with trusted HTTPS at `https://your-site.test` — no Docker required.
+Native macOS local development stack for PHP sites, databases, mail testing, logs, and on-demand language runtimes.
 
-![KTStack Screenshot](docs/images/dashboard.png)
+KTStack is the public product name. The source tree and bundle identifiers still use `KDWarm` internally so existing installs, application-support data, and launchd jobs keep working.
 
-KTStack is a modern alternative to Laravel Herd, Valet and Laragon for macOS.
+<p align="center">
+  <img src="KDWarm/Resources/Assets.xcassets/AppIcon.appiconset/icon_256.png" alt="KTStack app icon" width="128">
+</p>
 
-* 🔒 Trusted local HTTPS with automatic TLS certificates
-* 🌐 Automatic `.test` domains (`myapp.test`)
-* ⚡ Nginx + PHP-FPM + MySQL + PostgreSQL + Redis
-* 📦 On-demand runtime installation
-* 🧩 Multiple PHP versions
-* 📬 Built-in Mailpit
-* 📄 Live log viewer
-* 🔄 Sparkle auto updates
-* 🍎 Native SwiftUI app
+![KTStack Sites dashboard](assets/readme/dashboard-sites.png)
 
----
+## What It Does
 
-## Why KTStack?
+KTStack runs a local development environment directly on macOS, without Docker as the default runtime path. It manages the services and config needed to open projects at local `.test` domains, use trusted local HTTPS, inspect logs, catch outgoing mail, and browse local databases from a native SwiftUI app.
 
-Most local development tools force developers to choose between:
+Current release: `0.5.2` (`CURRENT_PROJECT_VERSION` `11`).
 
-| Tool          | Limitation           |
-| ------------- | -------------------- |
-| Laravel Valet | PHP-focused          |
-| Laravel Herd  | Closed-source        |
-| Docker        | Heavy resource usage |
-| Laragon       | Windows only         |
+## Current Feature Set
 
-KTStack combines the best parts of all of them:
+| Area | Status |
+| --- | --- |
+| Native app | Menu-bar SwiftUI app named `KTStack.app` |
+| Local sites | Park/import sites under a configurable sites root, default `.test` domains |
+| HTTPS | Local TLS vhosts and certificates via the app-managed TLS flow |
+| Web server | Nginx vhost generation and PHP-FPM pool generation |
+| PHP | On-demand PHP `8.1`, `8.3`, `8.4` runtime releases |
+| Other runtimes | On-demand Node.js `22.22.3`, Python `3.12.13`, Go `1.26.4` |
+| Services | Nginx, PHP-FPM, dnsmasq, MySQL, PostgreSQL, Redis, MongoDB, Mailpit |
+| Database UI | MySQL, PostgreSQL, SQLite, and MongoDB connection flows |
+| Mail | Mailpit-backed message list and message preview inside the app |
+| Logs | Per-service and per-site log viewer |
+| Public sharing | Per-site Cloudflare Tunnel share links through `trycloudflare.com` |
+| Updates | Sparkle integration is wired in; release signing/notarization scripts live under `scripts/release/` |
 
-* Native macOS experience
-* Open source
-* Multi-language runtime support
-* Automatic HTTPS
-* Lightweight (no containers)
-* One-click service management
+## Screenshots
 
----
+The images below are real project UI captures stored in this repository under `assets/readme/`.
 
-## Features
+### Sites
 
-### Automatic Local Domains
+![Sites dashboard](assets/readme/dashboard-sites.png)
 
-Register a project and instantly access:
+### Services
 
-```text
-https://my-project.test
-```
+![Services dashboard](assets/readme/dashboard-services.png)
 
-No hosts-file editing required.
+### Runtimes
 
-KTStack automatically configures:
+![Runtimes dashboard](assets/readme/dashboard-runtimes.png)
 
-* dnsmasq
-* resolver
-* Nginx virtual hosts
-* TLS certificates
+### Menu Bar
 
----
+![Menu bar dropdown](assets/readme/menubar-dropdown.png)
 
-### Trusted HTTPS
+## How It Works
 
-Powered by mkcert.
-
-Every site receives a trusted local certificate:
-
-```text
-https://shop.test
-https://api.test
-https://admin.test
-```
-
-Works with:
-
-* Chrome
-* Safari
-* Firefox
-
----
-
-### Runtime Manager
-
-Install runtimes only when needed.
-
-Supported:
-
-* PHP 8.1
-* PHP 8.3
-* PHP 8.4
-* Node.js
-* Python
-* Go
-
-Per-project version switching:
-
-```bash
-.php-version
-.nvmrc
-.kdwarmrc
-```
-
----
-
-### Service Manager
-
-Control all services from one dashboard.
-
-Supported:
-
-* Nginx
-* PHP-FPM
-* MySQL
-* PostgreSQL
-* Redis
-* Mailpit
-* dnsmasq
-
-Features:
-
-* Start / Stop / Restart
-* Live status indicators
-* Automatic shutdown when KTStack exits
-
----
-
-### Built-in Database Support
-
-Install databases on demand:
-
-* MySQL
-* PostgreSQL
-* Redis
-
-No manual configuration required.
-
----
-
-### Mail Testing
-
-Mailpit is included.
-
-PHP mail is automatically captured and displayed inside KTStack.
-
-Perfect for:
-
-* Laravel
-* Symfony
-* WordPress
-* Custom PHP applications
-
----
-
-### Live Logs
-
-Monitor logs directly inside the application.
-
-Features:
-
-* Real-time updates
-* Filtering
-* Per-site logs
-* Per-service logs
-* Clear log files
-
----
-
-## Architecture
-
-KTStack is built using Swift and SwiftUI.
-
-### Components
-
-| Component    | Purpose                   |
-| ------------ | ------------------------- |
-| KTStack.app  | Main menu-bar application |
-| KDWarmKit    | Core framework            |
-| KDWarmHelper | Privileged helper         |
-
-Data is stored under:
+KTStack keeps application data under:
 
 ```text
 ~/Library/Application Support/KDWarm/
 ```
 
----
+The main pieces are:
 
-## Screenshots
+| Component | Purpose |
+| --- | --- |
+| `KTStack.app` | Native macOS menu-bar application |
+| `KDWarmKit` | Shared framework for service, runtime, site, tunnel, database, mail, and log logic |
+| `KDWarmHelper` | Privileged helper target used by the DNS automation path |
+| `project.yml` | XcodeGen source of truth for the generated Xcode project |
 
-### Dashboard
+The generated `KDWarm.xcodeproj` is intentionally ignored. Regenerate it from `project.yml`.
 
-![Dashboard](docs/images/dashboard.png)
-
-### Sites
-
-![Sites](docs/images/sites.png)
-
-### Runtimes
-
-![Runtimes](docs/images/runtimes.png)
-
-### Logs
-
-![Logs](docs/images/logs.png)
-
----
-
-## Installation
-
-Download the latest release:
-
-```text
-GitHub Releases → KTStack.dmg
-```
-
-1. Open the DMG
-2. Drag KTStack into Applications
-3. Launch KTStack
-4. Grant permissions when prompted
-5. Start building
-
----
-
-## Build From Source
+## Local Development
 
 Requirements:
 
-* macOS 13+
-* Xcode 15+
-* XcodeGen
+- macOS 13 or newer
+- Xcode
+- XcodeGen
+
+Install XcodeGen if needed:
 
 ```bash
 brew install xcodegen
+```
 
-git clone https://github.com/your-org/ktstack.git
-cd ktstack
+Generate the project:
 
+```bash
 xcodegen generate
+```
 
+Run the framework tests:
+
+```bash
+xcodebuild \
+  -project KDWarm.xcodeproj \
+  -scheme KDWarmKit-Tests \
+  -destination 'platform=macOS' \
+  test
+```
+
+Build the app:
+
+```bash
 xcodebuild \
   -project KDWarm.xcodeproj \
   -scheme KDWarm \
   -destination 'platform=macOS' \
+  -configuration Release \
   build
 ```
 
----
+## Build A DMG
 
-## Roadmap
+After a Release build, pass the built `.app` to the release script:
 
-* [ ] Docker integration
-* [ ] Linux support
-* [ ] Automatic project detection
-* [ ] GUI database browser
-* [ ] Team project sharing
-
----
-
-## Contributing
-
-Issues and pull requests are welcome.
-
-If KTStack helps your workflow, consider giving the project a ⭐ on GitHub.
-
----
-
-## License
-
-Open source.
-
-Third-party components retain their original licenses.
-
-See:
-
-```text
-NOTICES.txt
+```bash
+scripts/release/build-dmg.sh \
+  ~/Library/Developer/Xcode/DerivedData/KDWarm-*/Build/Products/Release/KTStack.app \
+  ./KTStack-0.5.2.dmg
 ```
 
-for complete license information.
+The script creates a compressed DMG with `KTStack.app` and an `/Applications` symlink. Developer ID signing and notarization are separate release steps; helper scripts are in `scripts/release/`.
 
----
+## Repository Layout
 
-Built with ❤️ by Nguyên Khôi
+```text
+KDWarm/                 Native app target and app resources
+KDWarmKit/Sources/      Core framework code
+KDWarmHelper/           Privileged helper target
+KDWarmKitTests/         XCTest suite for framework logic
+scripts/                Build, runtime, release, and utility scripts
+spikes/                 Local experiments and feasibility probes
+assets/readme/          Tracked images used by this README
+```
 
-https://nguyenkhoi.dev
+## Notes
+
+- The app is currently macOS-only.
+- Runtime downloads are checksum-verified through the manifest in `RuntimeCatalog`.
+- MongoDB is fetched on demand and not redistributed inside the app bundle.
+- DMG files, generated Xcode projects, plans, docs scratch output, and local agent state are ignored by default.
+

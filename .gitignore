@@ -87,6 +87,9 @@ claude/skills/ai-multimodal/assets/demo-*.claude/session-state/*.tmp
 .gemini/settings.json
 # Showoff/marketing assets (images, showcases)
 assets/
+!assets/
+!assets/readme/
+!assets/readme/**
 # Exception: use-mcp ships a persistent tool catalog at assets/tools.json
 !claude/skills/use-mcp/assets/
 !claude/skills/use-mcp/assets/**
