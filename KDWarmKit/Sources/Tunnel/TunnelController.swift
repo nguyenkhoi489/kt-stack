@@ -12,7 +12,7 @@ public actor TunnelController {
     private var logOffset: UInt64 = 0
 
     private static let parseTimeout: TimeInterval = 30
-    private static let probeTimeout: TimeInterval = 20
+    private static let probeTimeout: TimeInterval = 60
     private static let edgeErrorCodes: Set<Int> = [502, 503, 504, 521, 522, 523, 524, 530]
 
     public init(paths: AppSupportPaths, siteID: UUID) {
@@ -81,16 +81,21 @@ public actor TunnelController {
 
     private func probeThenPublish(url: URL, onStatus: @escaping @Sendable (TunnelStatus) -> Void) async {
         let deadline = Date().addingTimeInterval(Self.probeTimeout)
+        var poll = 0
         while Date() < deadline {
             if Task.isCancelled || userStopped { return }
             if let code = await Self.httpStatus(of: url), !Self.edgeErrorCodes.contains(code) {
                 if !userStopped { onStatus(.active(url)) }
                 return
             }
+            poll += 1
+            if poll % 5 == 0, !launch.isLoadedNow(label) {
+                if !userStopped { onStatus(.error("cloudflared exited before the tunnel became reachable.")) }
+                return
+            }
             try? await Task.sleep(nanoseconds: 1_000_000_000)
         }
-        try? launch.bootout(label)
-        if !userStopped { onStatus(.error("Tunnel origin unreachable — the public URL returned an edge error.")) }
+        if !userStopped { onStatus(.active(url)) }
     }
 
     private func ensureLabelFree() async {

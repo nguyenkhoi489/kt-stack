@@ -24,6 +24,10 @@ sign() { # <entitlements> <path>
     codesign --force --options runtime --timestamp --sign "$DEV_ID" --entitlements "$1" "$2"
 }
 
+sign_lib() { # <path> — shared libraries carry no app entitlements
+    codesign --force --options runtime --timestamp --sign "$DEV_ID" "$1"
+}
+
 # JIT runtimes (PHP-with-opcache.jit, Node/V8, Java, Ruby) need allow-jit; everything else base.
 needs_jit() {
     case "$(basename "$1")" in
@@ -33,6 +37,14 @@ needs_jit() {
 }
 
 is_macho() { file -b "$1" | grep -q "Mach-O"; }
+is_library() { case "$(basename "$1")" in *.dylib|*.so) return 0 ;; *) return 1 ;; esac; }
+
+sign_by_kind() { # <path> — JIT → jit ent, library → no ent, else → base ent
+    local b; b="$(basename "$1")"
+    if needs_jit "$1"; then echo "  jit  $b"; sign "$JIT_ENT" "$1"
+    elif is_library "$1"; then echo "  lib  $b"; sign_lib "$1"
+    else echo "  exe  $b"; sign "$BASE_ENT" "$1"; fi
+}
 
 echo "=== 1. bundled binaries (Resources/bin) — deepest first ==="
 if [[ -d "$APP/Contents/Resources/bin" ]]; then
@@ -58,11 +70,13 @@ if [[ -d "$APP/Contents/Frameworks" ]]; then
         while IFS= read -r -d '' app; do echo "  app  $(basename "$app")"; sign "$BASE_ENT" "$app"; done \
             < <(find "$SP" -name "*.app" -type d -print0)
     fi
-    # Any other loose Mach-O / dylibs not inside an already-sealed nested bundle (idempotent re-sign of
-    # Sparkle's Autoupdate is harmless).
+    # Any other loose Mach-O / dylibs not inside an already-sealed nested bundle (xpc/app/framework).
+    # Match the path RELATIVE to Frameworks: the outer bundle is itself "<name>.app", so an absolute
+    # path matches *.app/* and would skip every file.
     while IFS= read -r -d '' f; do
-        case "$f" in *.xpc/*|*.app/*) continue ;; esac
-        is_macho "$f" && { echo "  exe  $(basename "$f")"; sign "$BASE_ENT" "$f"; }
+        rel="${f#"$APP/Contents/Frameworks/"}"
+        case "$rel" in *.xpc/*|*.app/*|*.framework/*) continue ;; esac
+        is_macho "$f" && sign_by_kind "$f"
     done < <(find "$APP/Contents/Frameworks" -type f \( -perm -111 -o -name "*.dylib" \) -print0)
     # Finally seal each framework bundle itself.
     for fw in "$APP"/Contents/Frameworks/*.framework; do
@@ -76,6 +90,36 @@ HELPER="$APP/Contents/MacOS/KDWarmHelper"
 
 echo "=== 4. the app bundle (last) ==="
 sign "$BASE_ENT" "$APP"
+
+# Final guard: no nested Mach-O may reach notarization ad-hoc or without a secure timestamp (Xcode's
+# "Sign to Run Locally" can re-adhoc-sign Swift runtime dylibs after a Release build). Re-sign any
+# offender with the correct entitlements, re-seal the app, then hard-fail if any remain.
+needs_resign() { # <path> — true if ad-hoc signed or lacking a secure timestamp
+    local d; d="$(codesign -dvv "$1" 2>&1)" || return 0
+    grep -q "Signature=adhoc" <<<"$d" && return 0
+    grep -q "^Timestamp=" <<<"$d" || return 0
+    return 1
+}
+
+echo "=== 5. guard: every nested Mach-O Developer-ID-signed with a secure timestamp ==="
+resigned=0
+while IFS= read -r -d '' f; do
+    is_macho "$f" || continue
+    needs_resign "$f" || continue
+    echo "  fix  ${f#"$APP/"}"; sign_by_kind "$f"; resigned=1
+done < <(find "$APP" -type f -print0)
+if [[ "$resigned" == 1 ]]; then echo "  re-seal app after late re-sign"; sign "$BASE_ENT" "$APP"; fi
+
+offenders=()
+while IFS= read -r -d '' f; do
+    is_macho "$f" || continue
+    needs_resign "$f" && offenders+=("${f#"$APP/"}")
+done < <(find "$APP" -type f -print0)
+if (( ${#offenders[@]} )); then
+    echo "FATAL: nested binaries still ad-hoc / missing secure timestamp:" >&2
+    printf '  %s\n' "${offenders[@]}" >&2
+    exit 1
+fi
 
 echo "=== verify ==="
 codesign --verify --deep --strict --verbose=2 "$APP"
