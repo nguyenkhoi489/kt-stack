@@ -25,6 +25,24 @@ final class SiteInspectorTests: XCTestCase {
         XCTAssertTrue(r.defaultDomain.hasSuffix(".test"))
     }
 
+    func testDetectsPHPWhenEntryIsInstallPHP() throws {
+        let folder = tempFolder("wp-install")
+        defer { try? fm.removeItem(at: folder) }
+        try "<?php".write(to: folder.appendingPathComponent("install.php"), atomically: true, encoding: .utf8)
+        XCTAssertEqual(inspector.inspect(folder: folder).type, .php)
+    }
+
+    func testDetectsPHPForWordPressInPublicDocroot() throws {
+        let folder = tempFolder("wordpress")
+        defer { try? fm.removeItem(at: folder) }
+        let pub = folder.appendingPathComponent("public", isDirectory: true)
+        try fm.createDirectory(at: pub, withIntermediateDirectories: true)
+        try "<?php".write(to: pub.appendingPathComponent("wp-load.php"), atomically: true, encoding: .utf8)
+        let r = inspector.inspect(folder: folder)
+        XCTAssertEqual(r.docroot.lastPathComponent, "public")
+        XCTAssertEqual(r.type, .php)
+    }
+
     func testStaticSiteWhenNoPHP() throws {
         let folder = tempFolder("staticsite")
         defer { try? fm.removeItem(at: folder) }

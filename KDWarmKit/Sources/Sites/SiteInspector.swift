@@ -34,13 +34,22 @@ public struct SiteInspector {
         func has(_ name: String, in dir: URL) -> Bool {
             fileManager.fileExists(atPath: dir.appendingPathComponent(name).path)
         }
-        if has("index.php", in: docroot) || has("index.php", in: folder) || has("artisan", in: folder) {
+        if has("artisan", in: folder)
+            || containsPHPFile(in: docroot, fileManager: fileManager)
+            || containsPHPFile(in: folder, fileManager: fileManager) {
             return .php
         }
         if has("package.json", in: folder) {
             return .node
         }
         return .staticSite
+    }
+
+    private func containsPHPFile(in dir: URL, fileManager: FileManager) -> Bool {
+        guard let entries = try? fileManager.contentsOfDirectory(
+            at: dir, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]
+        ) else { return false }
+        return entries.contains { $0.pathExtension.lowercased() == "php" }
     }
 
     public static func slug(_ raw: String) -> String {
