@@ -16,12 +16,18 @@ struct ServicesSectionView: View {
     @State private var caExists = false
     @State private var caTrusted = false
 
+    private static let groups: [(title: String, kinds: [ServiceKind])] = [
+        ("Core Proxy & DNS", [.nginx, .dnsmasq]),
+        ("Runtimes", [.phpFpm]),
+        ("Databases & Cache", [.mysql, .postgres, .redis, .mongodb, .mailpit]),
+    ]
+
     var body: some View {
         VStack(spacing: 0) {
-            toolbar
+            header
             Divider()
             ScrollView {
-                LazyVStack(spacing: 0) {
+                LazyVStack(alignment: .leading, spacing: 0) {
                     if !banners.isEmpty {
                         VStack(spacing: KDSpacing.space2) {
                             ForEach(banners) { banner in
@@ -30,25 +36,57 @@ struct ServicesSectionView: View {
                                                    action: banner.action)
                             }
                         }
-                        .padding(KDSpacing.space2)
+                        .padding(.bottom, KDSpacing.space2)
                     }
-                    ForEach(services.snapshots) { snapshot in
-                        ServiceRowView(
-                            snapshot: snapshot,
-                            canToggle: snapshot.kind != .phpFpm,
-                            onToggle: { services.toggle(snapshot.kind) },
-                            onRestart: { services.restart(snapshot.kind) },
-                            onOpenLogs: { onOpenLogs(Self.logSourceID(for: snapshot.kind)) },
-                            onInstall: { services.install(snapshot.kind) },
-                            onCancelInstall: { services.cancelInstall(snapshot.kind) },
-                            onResetData: { services.resetData(snapshot.kind) })
-                        Divider()
+                    ForEach(Self.groups, id: \.title) { group in
+                        let rows = services.snapshots.filter { group.kinds.contains($0.kind) }
+                        if !rows.isEmpty {
+                            groupHeader(group.title)
+                            groupCard(rows)
+                        }
                     }
                 }
+                .padding(KDSpacing.space4)
             }
         }
         .navigationTitle("Services")
         .task { await refreshCATrustLoop() }
+    }
+
+    private func groupHeader(_ title: String) -> some View {
+        Text(title.uppercased())
+            .font(.caption2.weight(.semibold))
+            .tracking(0.6)
+            .foregroundStyle(.tertiary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 2)
+            .padding(.top, KDSpacing.space4)
+            .padding(.bottom, KDSpacing.space2)
+    }
+
+    private func groupCard(_ rows: [ServiceSnapshot]) -> some View {
+        VStack(spacing: 0) {
+            ForEach(Array(rows.enumerated()), id: \.element.id) { index, snapshot in
+                serviceRow(snapshot)
+                if index < rows.count - 1 { Divider() }
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: KDRadius.card))
+        .overlay(
+            RoundedRectangle(cornerRadius: KDRadius.card)
+                .strokeBorder(Color(nsColor: .separatorColor), lineWidth: 0.5))
+    }
+
+    private func serviceRow(_ snapshot: ServiceSnapshot) -> some View {
+        ServiceRowView(
+            snapshot: snapshot,
+            canToggle: snapshot.kind != .phpFpm,
+            onToggle: { services.toggle(snapshot.kind) },
+            onRestart: { services.restart(snapshot.kind) },
+            onOpenLogs: { onOpenLogs(Self.logSourceID(for: snapshot.kind)) },
+            onInstall: { services.install(snapshot.kind) },
+            onCancelInstall: { services.cancelInstall(snapshot.kind) },
+            onResetData: { services.resetData(snapshot.kind) })
     }
 
 
@@ -68,20 +106,18 @@ struct ServicesSectionView: View {
         }
     }
 
-    private var toolbar: some View {
+    private var header: some View {
         HStack(spacing: KDSpacing.space2) {
-            Button("Start All", systemImage: "play.fill") { services.startAll() }
-            Button("Stop All", systemImage: "stop.fill") { services.stopAll() }
+            Text("Services").font(.largeTitle.weight(.bold))
             Spacer()
-            Text("\(runningCount) of \(services.snapshots.count) running")
-                .font(KDFont.footnote)
-                .foregroundStyle(.secondary)
+            Button("Restart All", systemImage: "arrow.clockwise") { services.restartAll() }
+                .buttonStyle(.bordered)
+            Button("Stop All", systemImage: "stop.fill") { services.stopAll() }
+                .buttonStyle(.borderedProminent)
         }
-        .padding(KDSpacing.space2)
-    }
-
-    private var runningCount: Int {
-        services.snapshots.filter { $0.status == .running }.count
+        .controlSize(.large)
+        .padding(.horizontal, KDSpacing.space4)
+        .padding(.vertical, KDSpacing.space3)
     }
 
 
