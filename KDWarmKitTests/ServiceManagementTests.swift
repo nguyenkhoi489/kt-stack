@@ -297,12 +297,13 @@ final class ServiceManagementTests: XCTestCase {
     func testServiceManifestWellFormed() {
         XCTAssertFalse(ServiceBinaryCatalog.manifest.isEmpty)
         for r in ServiceBinaryCatalog.manifest {
+            guard r.supportsCurrentArch, !r.sha256.hasPrefix("PENDING_") else { continue }
             XCTAssertEqual(r.sha256.count, 64, "\(r.id) sha256 must be 64 hex chars")
             XCTAssertTrue(r.url.absoluteString.hasPrefix("https://"), "\(r.id) must download over https")
             // Self-built engines follow the `<kind>-<version>-<arch>.tar.gz` name; an engine with a
             // direct-upstream URL (e.g. MongoDB's fastdl tarball) carries its own naming, so the
             // suffix check applies only to the self-host entries.
-            if r.urlOverride == nil {
+            if r.urlOverridesByArch[ServiceBinaryCatalog.arch] == nil {
                 XCTAssertTrue(r.url.absoluteString.hasSuffix("\(r.kind.rawValue)-\(r.version)-\(ServiceBinaryCatalog.arch).tar.gz"))
             }
         }

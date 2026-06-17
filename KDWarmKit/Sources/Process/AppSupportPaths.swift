@@ -34,8 +34,10 @@ public struct AppSupportPaths: Sendable {
     public var sites: URL            { dir("sites") }
   
     public var data: URL             { dir("data") }
-  
+
     public var launchAgents: URL     { dir("launchd") }
+
+    public var backups: URL          { dir("backups") }
 
     public var sitesRegistryFile: URL { sitesConfigDir.appendingPathComponent("sites.json") }
 
@@ -46,7 +48,7 @@ public struct AppSupportPaths: Sendable {
 
     public var allDirectories: [URL] {
         [root, bin, runtimes, tools, config, nginxConfigDir, sitesEnabled, phpFpmConfigDir, phpConfigDir,
-         sitesConfigDir, caDir, certsDir, run, logs, logsSites, sites, data, launchAgents]
+         sitesConfigDir, caDir, certsDir, run, logs, logsSites, sites, data, launchAgents, backups]
     }
 
     // MARK: Per-service data / config / logs (databases + Mailpit)
@@ -94,6 +96,12 @@ public struct AppSupportPaths: Sendable {
     
     public func runtimeBin(_ lang: String, _ version: String) -> URL {
         runtimeDir(lang, version).appendingPathComponent("bin", isDirectory: true)
+    }
+
+    public var backupManifest: URL { backups.appendingPathComponent("manifest.json") }
+
+    public func backupSetDir(_ id: UUID) -> URL {
+        backups.appendingPathComponent(id.uuidString, isDirectory: true)
     }
 
     public func toolsDir(_ name: String) -> URL {

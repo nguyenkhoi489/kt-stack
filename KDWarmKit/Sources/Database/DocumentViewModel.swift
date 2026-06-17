@@ -23,6 +23,7 @@ public final class DocumentViewModel: ObservableObject {
     @Published public private(set) var pageOffset = 0
     @Published public private(set) var hasMorePages = false
     @Published public internal(set) var editError: String?
+    @Published public internal(set) var backupStatus: DatabaseViewModel.BackupStatus = .idle
     @Published public var filterText = ""
 
     public var pageSize = 50

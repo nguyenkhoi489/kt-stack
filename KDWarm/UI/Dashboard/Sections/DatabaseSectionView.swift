@@ -10,6 +10,8 @@ struct DatabaseSectionView: View {
     @Environment(\.openWindow) private var openWindow
     @State private var rightTab: RightTab = .data
     @State private var showingImportExport = false
+    @State private var showingBackups = false
+    @State private var backupSession = BackupSession.managed()
 
     enum RightTab: String, CaseIterable, Identifiable {
         case data = "Data"
@@ -39,6 +41,66 @@ struct DatabaseSectionView: View {
         }
         .navigationTitle("Database")
         .sheet(isPresented: $showingImportExport) { ImportExportSheet() }
+        .sheet(isPresented: $showingBackups) { backupsSheet }
+    }
+
+    @ViewBuilder
+    private var backupsSheet: some View {
+        if isDocumentTrack {
+            BackupLibraryView<DocumentViewModel>(
+                title: "Backups",
+                canBackup: documentVM.canBackup,
+                unavailableReason: documentVM.backupUnavailableReason,
+                isReadOnlyConnection: documentVM.isReadOnlyConnection,
+                selectedDatabase: documentVM.selectedDatabase,
+                activeProfileKind: documentVM.selectedProfile?.kind,
+                session: backupSession,
+                viewModel: documentVM,
+                backupStatus: documentVM.backupStatus,
+                onBackupCurrent: {
+                    guard let db = documentVM.selectedDatabase else { return }
+                    Task { _ = await documentVM.backupDatabase(db, session: backupSession) }
+                },
+                onBackupAll: {
+                    Task { _ = await documentVM.backupAllDatabases(session: backupSession) }
+                },
+                onDelete: { documentVM.deleteBackup($0, session: backupSession) },
+                onExport: { documentVM.exportBackup($0, to: $1, session: backupSession) },
+                onImportFailed: { documentVM.failBackupStatus("Import failed: \($0)") },
+                restoreSheet: { set in
+                    AnyView(RestoreSheet(set: set, isReadOnly: documentVM.isReadOnlyConnection) { db, target in
+                        _ = await documentVM.restoreBackup(set, database: db, target: target,
+                                                            session: backupSession)
+                    })
+                })
+        } else {
+            BackupLibraryView<DatabaseViewModel>(
+                title: "Backups",
+                canBackup: vm.canBackup,
+                unavailableReason: vm.backupUnavailableReason,
+                isReadOnlyConnection: vm.isReadOnlyConnection,
+                selectedDatabase: vm.selectedDatabase,
+                activeProfileKind: vm.selectedProfile?.kind,
+                session: backupSession,
+                viewModel: vm,
+                backupStatus: vm.backupStatus,
+                onBackupCurrent: {
+                    guard let db = vm.selectedDatabase else { return }
+                    Task { _ = await vm.backupDatabase(db, session: backupSession) }
+                },
+                onBackupAll: {
+                    Task { _ = await vm.backupAllDatabases(session: backupSession) }
+                },
+                onDelete: { vm.deleteBackup($0, session: backupSession) },
+                onExport: { vm.exportBackup($0, to: $1, session: backupSession) },
+                onImportFailed: { vm.failBackupStatus("Import failed: \($0)") },
+                restoreSheet: { set in
+                    AnyView(RestoreSheet(set: set, isReadOnly: vm.isReadOnlyConnection) { db, target in
+                        _ = await vm.restoreBackup(set, database: db, target: target,
+                                                    session: backupSession)
+                    })
+                })
+        }
     }
 
     @ViewBuilder
@@ -85,6 +147,14 @@ struct DatabaseSectionView: View {
             Text(activeProfileName).font(KDFont.headline)
             connectionStatus
             Spacer()
+            if inWindow {
+                Button { showingBackups = true } label: {
+                    Image(systemName: "externaldrive.badge.timemachine")
+                }
+                .help("Backups…")
+                .disabled(!isDocumentTrack && vm.connection != .connected)
+                .disabled(isDocumentTrack && documentVM.connection != .connected)
+            }
             if inWindow && !isDocumentTrack {
                 Button { showingImportExport = true } label: {
                     Image(systemName: "square.and.arrow.up.on.square")

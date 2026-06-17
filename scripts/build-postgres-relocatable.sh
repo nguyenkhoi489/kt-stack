@@ -64,10 +64,14 @@ cp -R "$PREFIX/bin" "$TOP/bin"
 cp -R "$PREFIX/lib" "$TOP/lib"
 cp -R "$PREFIX/share" "$TOP/share"
 
-echo "=== relocatability gate (server + initdb) ==="
-relocatable_gate "$TOP/bin/postgres"
-relocatable_gate "$TOP/bin/initdb"
-ad_hoc_sign "$TOP/bin/postgres" "$TOP/bin/initdb" "$TOP"/lib/*.dylib
+echo "=== relocatability gate (server + initdb + backup client tools) ==="
+CLIENT_TOOLS=(postgres initdb pg_dump pg_restore createdb dropdb psql)
+SIGN_TARGETS=()
+for tool in "${CLIENT_TOOLS[@]}"; do
+    relocatable_gate "$TOP/bin/$tool"
+    SIGN_TARGETS+=("$TOP/bin/$tool")
+done
+ad_hoc_sign "${SIGN_TARGETS[@]}" "$TOP"/lib/*.dylib
 
 echo "=== PROVE relocation: run initdb + postgres from a moved copy ==="
 RELOC="$(mktemp -d)/moved"; mkdir -p "$RELOC"; cp -R "$TOP" "$RELOC/"
@@ -77,6 +81,10 @@ PGDIR="$RELOC/postgres-$PG_VER"; DATA="$(mktemp -d)/data"
 PGPID=$!; sleep 3
 if kill -0 "$PGPID" 2>/dev/null; then echo "  ✓ postgres started from moved path (pid $PGPID)"; kill "$PGPID"; wait "$PGPID" 2>/dev/null || true
 else echo "  ✗ postgres failed from moved path:"; tail -5 /tmp/pg-reloc.log; exit 1; fi
+for tool in pg_dump pg_restore createdb dropdb psql; do
+    if "$PGDIR/bin/$tool" --version >/dev/null 2>&1; then echo "  ✓ $tool runs from moved path"
+    else echo "  ✗ $tool failed from moved path"; exit 1; fi
+done
 rm -rf "$DATA" "$RELOC"
 
 package_dir "$TOP" "$ARTIFACTS"

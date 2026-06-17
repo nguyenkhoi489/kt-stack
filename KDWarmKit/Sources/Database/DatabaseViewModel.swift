@@ -47,6 +47,8 @@ public final class DatabaseViewModel: ObservableObject {
 
     @Published public internal(set) var dumpStatus: DumpStatus = .idle
 
+    @Published public internal(set) var backupStatus: BackupStatus = .idle
+
     @Published public internal(set) var editError: String?
 
   

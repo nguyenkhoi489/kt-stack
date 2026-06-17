@@ -35,9 +35,12 @@ struct SQLCodeEditor: NSViewRepresentable {
         textView.textContainer?.containerSize = NSSize(width: scroll.contentSize.width,
                                                        height: CGFloat.greatestFiniteMagnitude)
         textView.textContainer?.widthTracksTextView = true
-        textView.string = text
         textView.catalog = catalog
         textView.keywords = keywords
+        textView.highlighter.keywords = Set(keywords.map { $0.uppercased() })
+        textView.textStorage?.delegate = textView.highlighter
+        textView.string = text
+        textView.highlightNow()
         textView.completionController = SQLCompletionController(textView: textView)
 
         scroll.documentView = textView
@@ -49,11 +52,13 @@ struct SQLCodeEditor: NSViewRepresentable {
         guard let textView = scroll.documentView as? CompletingTextView else { return }
         textView.catalog = catalog
         textView.keywords = keywords
+        textView.highlighter.keywords = Set(keywords.map { $0.uppercased() })
         if textView.string != text {
             let selected = textView.selectedRange()
             textView.string = text
             let clamped = min(selected.location, (text as NSString).length)
             textView.setSelectedRange(NSRange(location: clamped, length: 0))
+            textView.highlightNow()
         }
     }
 
@@ -73,6 +78,12 @@ final class CompletingTextView: NSTextView {
     var catalog: SchemaCatalog = .empty
     var keywords: [String] = []
     var completionController: SQLCompletionController?
+    let highlighter = SQLSyntaxHighlighter()
+
+    func highlightNow() {
+        guard let textStorage else { return }
+        highlighter.highlight(textStorage)
+    }
 
     override func keyDown(with event: NSEvent) {
         if let controller = completionController, controller.isVisible {

@@ -3,20 +3,37 @@ import Foundation
 public struct ServiceBinaryRelease: Sendable, Hashable, Identifiable {
     public let kind: ServiceKind
     public let version: String
-    public let sha256: String
 
-    public let urlOverride: URL?
+    public let sha256ByArch: [String: String]
 
-    public init(kind: ServiceKind, version: String, sha256: String, urlOverride: URL? = nil) {
+    public let urlOverridesByArch: [String: URL]
+
+    public init(kind: ServiceKind, version: String,
+                sha256ByArch: [String: String],
+                urlOverridesByArch: [String: URL] = [:]) {
         self.kind = kind
         self.version = version
-        self.sha256 = sha256
-        self.urlOverride = urlOverride
+        self.sha256ByArch = sha256ByArch
+        self.urlOverridesByArch = urlOverridesByArch
+    }
+
+    /// Convenience for releases served from the in-house GitHub release with the canonical filename
+    /// (`<kind>-<ver>-<arch>.tar.gz`); supply the same sha for every supported arch.
+    public init(kind: ServiceKind, version: String, sha256: String, supports: [String] = ["arm64", "x86_64"]) {
+        self.init(kind: kind, version: version,
+                  sha256ByArch: Dictionary(uniqueKeysWithValues: supports.map { ($0, sha256) }))
     }
 
     public var id: String { "\(kind.rawValue)-\(version)" }
     public var fileName: String { "\(kind.rawValue)-\(version)-\(ServiceBinaryCatalog.arch).tar.gz" }
-    public var url: URL { urlOverride ?? ServiceBinaryCatalog.releaseBaseURL.appendingPathComponent(fileName) }
+
+    public var sha256: String { sha256ByArch[ServiceBinaryCatalog.arch] ?? "" }
+    public var url: URL {
+        urlOverridesByArch[ServiceBinaryCatalog.arch]
+            ?? ServiceBinaryCatalog.releaseBaseURL.appendingPathComponent(fileName)
+    }
+
+    public var supportsCurrentArch: Bool { sha256ByArch[ServiceBinaryCatalog.arch] != nil }
 }
 
 public struct ServiceBinaryCatalog: Sendable {
@@ -40,10 +57,17 @@ public struct ServiceBinaryCatalog: Sendable {
                              sha256: "b9e086c252492561e4a53820589cb893ad07bbd4b1c08f38fcf87836ad1cb6e9"),
         ServiceBinaryRelease(kind: .postgres, version: "17.10",
                              sha256: "2fc58f9f78376b79f5007bfbbd6f724f5f34d81cd429ef6b0c9696ad8617d698"),
-      
-        ServiceBinaryRelease(kind: .mongodb, version: "7.0",
-                             sha256: "097af3e0486422fc5a3e2e3365d5f23ac53867a408d8eecfa1103c374a8c96de",
-                             urlOverride: URL(string: "https://fastdl.mongodb.org/osx/mongodb-macos-arm64-7.0.37.tgz")!),
+
+        ServiceBinaryRelease(
+            kind: .mongodb, version: "7.0",
+            sha256ByArch: [
+                "arm64":  "097af3e0486422fc5a3e2e3365d5f23ac53867a408d8eecfa1103c374a8c96de",
+                "x86_64": "PENDING_x86_64_MONGOD_SHA256",
+            ],
+            urlOverridesByArch: [
+                "arm64":  URL(string: "https://fastdl.mongodb.org/osx/mongodb-macos-arm64-7.0.37.tgz")!,
+                "x86_64": URL(string: "https://fastdl.mongodb.org/osx/mongodb-macos-x86_64-7.0.37.tgz")!,
+            ]),
     ]
 
     private let paths: AppSupportPaths
@@ -80,7 +104,7 @@ public struct ServiceBinaryCatalog: Sendable {
   
     public func availableRelease(_ kind: ServiceKind) -> ServiceBinaryRelease? {
         guard !isInstalled(kind) else { return nil }
-        return Self.manifest.first { $0.kind == kind }
+        return Self.manifest.first { $0.kind == kind && $0.supportsCurrentArch }
     }
 
     public func installDir(_ release: ServiceBinaryRelease) -> URL {
