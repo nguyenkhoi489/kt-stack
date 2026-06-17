@@ -10,7 +10,12 @@ struct SQLCodeEditor: NSViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     func makeNSView(context: Context) -> NSScrollView {
-        let textView = NSTextView()
+        let scroll = NSScrollView()
+        scroll.hasVerticalScroller = true
+        scroll.drawsBackground = false
+        scroll.borderType = .noBorder
+
+        let textView = CompletingTextView(frame: NSRect(origin: .zero, size: scroll.contentSize))
         textView.delegate = context.coordinator
         textView.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
         textView.isRichText = false
@@ -20,21 +25,30 @@ struct SQLCodeEditor: NSViewRepresentable {
         textView.isAutomaticSpellingCorrectionEnabled = false
         textView.isContinuousSpellCheckingEnabled = false
         textView.allowsUndo = true
-        textView.string = text
         textView.textContainerInset = NSSize(width: 4, height: 6)
+        textView.minSize = NSSize(width: 0, height: 0)
+        textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude,
+                                  height: CGFloat.greatestFiniteMagnitude)
+        textView.isVerticallyResizable = true
+        textView.isHorizontallyResizable = false
         textView.autoresizingMask = [.width]
-        context.coordinator.textView = textView
+        textView.textContainer?.containerSize = NSSize(width: scroll.contentSize.width,
+                                                       height: CGFloat.greatestFiniteMagnitude)
+        textView.textContainer?.widthTracksTextView = true
+        textView.string = text
+        textView.catalog = catalog
+        textView.keywords = keywords
+        textView.completionController = SQLCompletionController(textView: textView)
 
-        let scroll = NSScrollView()
         scroll.documentView = textView
-        scroll.hasVerticalScroller = true
-        scroll.drawsBackground = false
         return scroll
     }
 
     func updateNSView(_ scroll: NSScrollView, context: Context) {
         context.coordinator.parent = self
-        guard let textView = scroll.documentView as? NSTextView else { return }
+        guard let textView = scroll.documentView as? CompletingTextView else { return }
+        textView.catalog = catalog
+        textView.keywords = keywords
         if textView.string != text {
             let selected = textView.selectedRange()
             textView.string = text
@@ -45,48 +59,72 @@ struct SQLCodeEditor: NSViewRepresentable {
 
     final class Coordinator: NSObject, NSTextViewDelegate {
         var parent: SQLCodeEditor
-        weak var textView: NSTextView?
-        private var pendingCompletion: DispatchWorkItem?
-
         init(_ parent: SQLCodeEditor) { self.parent = parent }
 
         func textDidChange(_ notification: Notification) {
             guard let textView = notification.object as? NSTextView else { return }
             parent.text = textView.string
-            scheduleCompletion(textView)
         }
+    }
+}
 
-        private func scheduleCompletion(_ textView: NSTextView) {
-            pendingCompletion?.cancel()
-            let work = DispatchWorkItem { [weak self, weak textView] in
-                guard let textView, self?.shouldAutocomplete(textView) == true else { return }
-                textView.complete(nil)
+final class CompletingTextView: NSTextView {
+
+    var catalog: SchemaCatalog = .empty
+    var keywords: [String] = []
+    var completionController: SQLCompletionController?
+
+    override func keyDown(with event: NSEvent) {
+        if let controller = completionController, controller.isVisible {
+            let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            if modifiers.isEmpty {
+                switch event.keyCode {
+                case 125: controller.moveDown(); return
+                case 126: controller.moveUp(); return
+                case 36, 76, 48: controller.acceptSelected(); return
+                case 53, 123, 124: controller.hide(); return
+                default: break
+                }
             }
-            pendingCompletion = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18, execute: work)
         }
+        super.keyDown(with: event)
+    }
 
-        private func shouldAutocomplete(_ textView: NSTextView) -> Bool {
-            let caret = textView.selectedRange().location
-            guard caret > 0 else { return false }
-            let nsString = textView.string as NSString
-            guard caret <= nsString.length else { return false }
-            let previous = nsString.substring(with: NSRange(location: caret - 1, length: 1))
-            guard let scalar = previous.unicodeScalars.first else { return false }
-            return scalar == "." || scalar == "_" || CharacterSet.alphanumerics.contains(scalar)
-        }
+    override func didChangeText() {
+        super.didChangeText()
+        refreshCompletions()
+    }
 
-        func textView(_ textView: NSTextView, completions words: [String],
-                      forPartialWordRange charRange: NSRange,
-                      indexOfSelectedItem index: UnsafeMutablePointer<Int>?) -> [String] {
-            let string = textView.string
-            let utf16Caret = NSMaxRange(charRange)
-            let swiftIndex = String.Index(utf16Offset: utf16Caret, in: string)
-            let caret = string.distance(from: string.startIndex, to: swiftIndex)
-            let items = SQLCompletionEngine.completions(
-                text: string, caret: caret, catalog: parent.catalog, keywords: parent.keywords)
-            index?.pointee = items.isEmpty ? -1 : 0
-            return items.map(\.text)
+    override func resignFirstResponder() -> Bool {
+        completionController?.hide()
+        return super.resignFirstResponder()
+    }
+
+    private func refreshCompletions() {
+        let string = self.string
+        let utf16Caret = selectedRange().location
+        let swiftIndex = String.Index(utf16Offset: utf16Caret, in: string)
+        let caret = string.distance(from: string.startIndex, to: swiftIndex)
+        let items = SQLCompletionEngine.completions(
+            text: string, caret: caret, catalog: catalog, keywords: keywords)
+
+        let partial = currentPartial(in: string, caret: utf16Caret)
+        if items.isEmpty
+            || (items.count == 1 && items[0].text.lowercased() == partial.lowercased()) {
+            completionController?.hide()
+        } else {
+            completionController?.update(items: items, partial: partial)
         }
+    }
+
+    private func currentPartial(in string: String, caret: Int) -> String {
+        let ns = string as NSString
+        var start = caret
+        while start > 0 {
+            guard let scalar = Unicode.Scalar(ns.character(at: start - 1)),
+                  scalar == "_" || CharacterSet.alphanumerics.contains(scalar) else { break }
+            start -= 1
+        }
+        return ns.substring(with: NSRange(location: start, length: caret - start))
     }
 }

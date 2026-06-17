@@ -110,13 +110,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @MainActor lazy var tunnels = TunnelManager()
 
+    private static func alreadyRunningInstance() -> NSRunningApplication? {
+        guard let bundleID = Bundle.main.bundleIdentifier else { return nil }
+        let current = NSRunningApplication.current
+        return NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
+            .first { $0.processIdentifier != current.processIdentifier }
+    }
+
     private static var bundleBinDir: URL {
         Bundle.main.resourceURL?.appendingPathComponent("bin", isDirectory: true)
             ?? Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/bin", isDirectory: true)
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-       
+        if let existing = Self.alreadyRunningInstance() {
+            existing.activate(options: [.activateAllWindows])
+            exit(0)
+        }
+
         NSApp.setActivationPolicy(.accessory)
         NotificationCenter.default.addObserver(
             self,
