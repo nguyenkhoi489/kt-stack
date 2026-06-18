@@ -172,6 +172,9 @@ scripts/release/build-dmg.sh \
   ./KTStack.dmg
 ```
 
+Release signing and notarization playbook:
+`docs/signing-and-notarization-guide.md`
+
 ---
 
 ## Repository Layout
