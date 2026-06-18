@@ -24,6 +24,7 @@ public final class LocalServerController: ObservableObject {
     nonisolated private let watcher = RegisteredSiteWatcher()
     nonisolated private let mkcert: MkcertRunner
     nonisolated private let certMinter: CertMinter
+    nonisolated private let httpsProvisioner: SiteHTTPSProvisioner
     private var didSeed = false
     private var pendingReconcile = false
 
@@ -42,6 +43,10 @@ public final class LocalServerController: ObservableObject {
         self.stager = BinaryStager(bundleBinDir: bundleBinDir, paths: paths)
         self.mkcert = MkcertRunner(mkcert: paths.mkcertBinary, caroot: paths.caDir)
         self.certMinter = CertMinter(paths: paths, runner: MkcertRunner(mkcert: paths.mkcertBinary, caroot: paths.caDir))
+        self.httpsProvisioner = SiteHTTPSProvisioner(paths: paths,
+                                                     tld: tld,
+                                                     mkcert: self.mkcert,
+                                                     certMinter: self.certMinter)
 
         registry.onChange = { [weak self] in self?.onRegistryChanged() }
         watcher.onChange = { [weak self] folder in
@@ -100,15 +105,11 @@ public final class LocalServerController: ObservableObject {
         guard secure else { registry.setSecure(site, false); return }
 
         isBusy = true; lastError = nil
-        let mkcert = self.mkcert, minter = self.certMinter, domain = site.domain
-        let caCert = self.paths.caRootCert, tld = self.tld
+        let provisioner = self.httpsProvisioner
         Task.detached(priority: .userInitiated) {
             var failure: String?
             do {
-                if !CATrustService.isTrustedInSystemKeychain(caCert: caCert) {
-                    try mkcert.install()        // generate + trust the CA (idempotent; prompts once)
-                }
-                try minter.mint(name: domain, domain: domain, tld: tld)
+                try provisioner.enableHTTPS(for: site)
             } catch {
                 failure = error.localizedDescription
             }

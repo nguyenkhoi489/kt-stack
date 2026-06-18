@@ -25,6 +25,12 @@ final class NewSiteModel: ObservableObject {
         let paths = AppSupportPaths()
         let php = paths.phpBinary(version: request.phpVersion)
         let phpIni = paths.phpIni(version: request.phpVersion)
+        let httpsProvisioner = SiteHTTPSProvisioner(paths: paths,
+                                                    tld: registry.tld,
+                                                    mkcert: MkcertRunner(mkcert: paths.mkcertBinary, caroot: paths.caDir),
+                                                    certMinter: CertMinter(paths: paths,
+                                                                           runner: MkcertRunner(mkcert: paths.mkcertBinary,
+                                                                                                caroot: paths.caDir)))
         let mysql = MySQLController(paths: paths, agents: LaunchAgentManager(paths: paths))
         let service = SiteInstallService(database: DatabaseProvisioner(ensureEngine: { try await mysql.start() }))
 
@@ -37,6 +43,11 @@ final class NewSiteModel: ObservableObject {
                 }, emit: { event in
                     Task { @MainActor in self.events.append(event) }
                 })
+                await MainActor.run {
+                    self.events.append(InstallEvent(phase: .finalizing, message: "Enabling HTTPS…"))
+                }
+                try httpsProvisioner.enableHTTPS(for: site)
+                registry.setSecure(site, true)
                 finished = true
                 if openOnFinish { NSWorkspace.shared.open(URL(string: "https://\(site.domain)/")!) }
             } catch is CancellationError {

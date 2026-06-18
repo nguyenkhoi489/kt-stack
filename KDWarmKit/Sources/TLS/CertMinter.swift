@@ -82,3 +82,47 @@ public struct CertMinter {
         return Data(base64Encoded: base64)
     }
 }
+
+public struct SiteHTTPSProvisioner: Sendable {
+    public typealias TrustQuery = @Sendable (URL) -> Bool
+    public typealias InstallCA = @Sendable () throws -> Void
+    public typealias MintLeaf = @Sendable (String, String) throws -> Void
+
+    private let caCert: URL
+    private let tld: String
+    private let trustQuery: TrustQuery
+    private let installCA: InstallCA
+    private let mintLeaf: MintLeaf
+
+    public init(caCert: URL, tld: String,
+                trustQuery: @escaping TrustQuery,
+                installCA: @escaping InstallCA,
+                mintLeaf: @escaping MintLeaf) {
+        self.caCert = caCert
+        self.tld = tld
+        self.trustQuery = trustQuery
+        self.installCA = installCA
+        self.mintLeaf = mintLeaf
+    }
+
+    public init(paths: AppSupportPaths,
+                tld: String = AppPreferences.defaultTLD,
+                mkcert: MkcertRunner,
+                certMinter: CertMinter,
+                trustQuery: @escaping TrustQuery = CATrustService.isTrustedInSystemKeychain) {
+        self.init(caCert: paths.caRootCert,
+                  tld: tld,
+                  trustQuery: trustQuery,
+                  installCA: { try mkcert.install() },
+                  mintLeaf: { domain, tld in
+                      try certMinter.mint(name: domain, domain: domain, tld: tld)
+                  })
+    }
+
+    public func enableHTTPS(for site: Site) throws {
+        if !trustQuery(caCert) {
+            try installCA()
+        }
+        try mintLeaf(site.domain, tld)
+    }
+}
