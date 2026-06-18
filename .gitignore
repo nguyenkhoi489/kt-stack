@@ -104,6 +104,8 @@ AGENTS.md
 
 plans/
 
+.build-release-dmg/
+
 plans/*
 
 docs/
