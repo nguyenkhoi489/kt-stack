@@ -25,7 +25,9 @@ struct DumpsPanelView: View {
             )) {
                 HStack(spacing: KDSpacing.space1) {
                     Text("Capture dumps").font(KDFont.body)
-                    if model.enabled {
+                    if model.busy {
+                        ProgressView().controlSize(.small)
+                    } else if model.enabled {
                         StatusPill(.running, text: "on")
                     } else {
                         StatusPill(.stopped, text: "off")
