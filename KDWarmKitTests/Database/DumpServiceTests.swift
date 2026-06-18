@@ -1,11 +1,6 @@
 import XCTest
 @testable import KDWarmKit
 
-/// Coverage for the dump subprocess hardening. The engine-free tests (CI-blocking) prove the security
-/// boundary: identifiers reject injection, the defaults file carries the secret (never argv) and is
-/// written mode 0600, and a missing engine yields a typed `engineNotInstalled` instead of a crash.
-/// The opt-in integration test (KDWARM_DB_IT=1) proves a real round-trip and that `ps` never sees the
-/// password mid-dump.
 final class DumpServiceTests: XCTestCase {
 
     // MARK: - Identifier validation (engine-free)
@@ -83,6 +78,21 @@ final class DumpServiceTests: XCTestCase {
             try await service.export(profile: .managedMySQL, password: nil,
                                      database: "app", table: nil,
                                      to: tmp.appendingPathComponent("out.sql"))
+            XCTFail("expected engineNotInstalled")
+        } catch let error as DatabaseError {
+            XCTAssertEqual(error, .engineNotInstalled(kind: "MySQL"))
+        }
+    }
+
+    func testCreateDatabaseWithoutEngineThrowsEngineNotInstalled() async throws {
+        let tmp = FileManager.default.temporaryDirectory
+            .appendingPathComponent("kdwarm-empty-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tmp) }
+
+        let service = DumpService(catalog: ServiceBinaryCatalog(paths: AppSupportPaths(root: tmp)))
+        do {
+            try await service.createDatabase(profile: .managedMySQL, password: nil, database: "app")
             XCTFail("expected engineNotInstalled")
         } catch let error as DatabaseError {
             XCTAssertEqual(error, .engineNotInstalled(kind: "MySQL"))
