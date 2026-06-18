@@ -5,6 +5,9 @@ struct CollectionTreeView: View {
     @EnvironmentObject private var vm: DocumentViewModel
 
     var onSelectDatabase: () -> Void = {}
+    var onCreateDatabase: () -> Void = {}
+    var canCreateDatabase = false
+    var createDatabaseHelp = "Create Database..."
 
     @State private var expanded: Set<String> = []
     @State private var pendingDrop: String?
@@ -13,10 +16,19 @@ struct CollectionTreeView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Collections")
-                .font(KDFont.footnote).foregroundStyle(.secondary)
-                .padding(.horizontal, KDSpacing.space3)
-                .padding(.vertical, KDSpacing.space2)
+            HStack(spacing: KDSpacing.space2) {
+                Text("Collections")
+                    .font(KDFont.footnote).foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+                Button(action: onCreateDatabase) {
+                    Image(systemName: "plus")
+                }
+                .buttonStyle(.borderless)
+                .help(createDatabaseHelp)
+                .disabled(!canCreateDatabase)
+            }
+            .padding(.horizontal, KDSpacing.space3)
+            .padding(.vertical, KDSpacing.space2)
             Divider()
             content
         }

@@ -108,10 +108,16 @@ struct DatabaseSectionView: View {
     @ViewBuilder
     private var relationalTrack: some View {
         if inWindow {
-            SchemaTreeView(onlySelectedDatabase: true)
+            SchemaTreeView(onCreateDatabase: showCreateDatabase,
+                           onlySelectedDatabase: true,
+                           canCreateDatabase: canCreateActiveDatabase,
+                           createDatabaseHelp: createDatabaseTooltip)
             rightPane.frame(minWidth: 360)
         } else {
-            SchemaTreeView(onSelectDatabase: openBrowserWindow)
+            SchemaTreeView(onSelectDatabase: openBrowserWindow,
+                           onCreateDatabase: showCreateDatabase,
+                           canCreateDatabase: canCreateActiveDatabase,
+                           createDatabaseHelp: createDatabaseTooltip)
             dashboardRightPane.frame(minWidth: 320)
         }
     }
@@ -121,7 +127,10 @@ struct DatabaseSectionView: View {
         if inWindow {
             DocumentSectionContent()
         } else if documentVM.connection == .connected {
-            CollectionTreeView(onSelectDatabase: openBrowserWindow)
+            CollectionTreeView(onSelectDatabase: openBrowserWindow,
+                               onCreateDatabase: showCreateDatabase,
+                               canCreateDatabase: canCreateActiveDatabase,
+                               createDatabaseHelp: createDatabaseTooltip)
             launcherPane.frame(minWidth: 320)
         } else {
             DocumentSectionContent()
@@ -153,33 +162,37 @@ struct DatabaseSectionView: View {
                 Button { showingBackups = true } label: {
                     Image(systemName: "externaldrive.badge.timemachine")
                 }
-                .help("Backups…")
-                .disabled(!isDocumentTrack && vm.connection != .connected)
-                .disabled(isDocumentTrack && documentVM.connection != .connected)
+                .help(backupsTooltip)
+                .accessibilityLabel("Backups")
+                .disabled(!canOpenBackups)
             }
             if inWindow && isDocumentTrack {
-                Button { showingCreateDatabase = true } label: {
-                    Image(systemName: "cylinder.badge.plus")
+                Button(action: showCreateDatabase) {
+                    Image(systemName: "plus")
                 }
-                .help("Create Database…")
-                .disabled(!documentVM.canCreateDatabase || documentVM.connection != .connected)
+                .help(createDatabaseTooltip)
+                .accessibilityLabel("Create Database")
+                .disabled(!canCreateActiveDatabase)
                 Button { showingImportExport = true } label: {
                     Image(systemName: "square.and.arrow.down.on.square")
                 }
-                .help("Import…")
-                .disabled(!documentVM.canManualImport || documentVM.connection != .connected)
+                .help(importExportTooltip)
+                .accessibilityLabel("Import")
+                .disabled(!canUseImportExport)
             }
             if inWindow && !isDocumentTrack {
-                Button { showingCreateDatabase = true } label: {
-                    Image(systemName: "cylinder.badge.plus")
+                Button(action: showCreateDatabase) {
+                    Image(systemName: "plus")
                 }
-                .help("Create Database…")
-                .disabled(!vm.canCreateDatabase || vm.connection != .connected)
+                .help(createDatabaseTooltip)
+                .accessibilityLabel("Create Database")
+                .disabled(!canCreateActiveDatabase)
                 Button { showingImportExport = true } label: {
                     Image(systemName: "square.and.arrow.up.on.square")
                 }
-                .help("Import / Export…")
-                .disabled(vm.connection != .connected || (!vm.canDump && !vm.canManualImport))
+                .help(importExportTooltip)
+                .accessibilityLabel("Import / Export")
+                .disabled(!canUseImportExport)
                 Picker("", selection: $rightTab) {
                     ForEach(RightTab.allCases) { Text($0.rawValue).tag($0) }
                 }
@@ -188,6 +201,80 @@ struct DatabaseSectionView: View {
             }
         }
         .padding(KDSpacing.space3)
+    }
+
+    private func showCreateDatabase() {
+        guard canCreateActiveDatabase else { return }
+        showingCreateDatabase = true
+    }
+
+    private var canOpenBackups: Bool {
+        isDocumentTrack ? documentVM.connection == .connected : vm.connection == .connected
+    }
+
+    private var canCreateActiveDatabase: Bool {
+        if isDocumentTrack {
+            return documentVM.connection == .connected && documentVM.canCreateDatabase
+        }
+        return vm.connection == .connected && vm.canCreateDatabase
+    }
+
+    private var canUseImportExport: Bool {
+        if isDocumentTrack {
+            return documentVM.connection == .connected && documentVM.canManualImport
+        }
+        return vm.connection == .connected && (vm.canDump || vm.canManualImport)
+    }
+
+    private var backupsTooltip: String {
+        canOpenBackups ? "Open backups" : "Connect to a database before opening backups."
+    }
+
+    private var createDatabaseTooltip: String {
+        guard canOpenBackups else { return "Connect to a database before creating a database." }
+        if isDocumentTrack {
+            if documentVM.canCreateDatabase { return "Create MongoDB database" }
+            if documentVM.isReadOnlyConnection { return "This connection is read-only." }
+            return "Create Database is unavailable for this connection."
+        }
+        switch vm.selectedProfile?.kind {
+        case .some(.mysql):
+            return vm.canCreateDatabase ? "Create MySQL database" : "Install the MySQL engine to create databases."
+        case .some(.postgres):
+            return vm.canCreateDatabase ? "Create PostgreSQL database" : "Install PostgreSQL client tools to create databases."
+        case .some(.sqlite):
+            return "Create Database is unavailable for SQLite connections."
+        case .some(.mongodb):
+            return "Create MongoDB database"
+        case .none:
+            return "Pick a connection before creating a database."
+        }
+    }
+
+    private var importExportTooltip: String {
+        guard canOpenBackups else { return "Connect to a database before importing." }
+        if isDocumentTrack {
+            return documentVM.canManualImport
+                ? "Import MongoDB dump folder"
+                : (documentVM.manualImportUnavailableReason ?? "Import is unavailable for this connection.")
+        }
+        switch vm.selectedProfile?.kind {
+        case .some(.mysql):
+            if vm.canDump { return "Import or export selected MySQL database" }
+            return vm.manualImportUnavailableReason ?? "Install the MySQL engine to import or export."
+        case .some(.postgres):
+            return vm.canManualImport
+                ? "Import .sql or .dump into the selected PostgreSQL database"
+                : (vm.manualImportUnavailableReason ?? "Install PostgreSQL client tools to import.")
+        case .some(.sqlite):
+            return vm.canManualImport
+                ? "Import .sqlite or .db and replace the selected SQLite file"
+                : (vm.manualImportUnavailableReason ?? "Import is unavailable for SQLite.")
+        case .some(.mongodb):
+            return "Use the MongoDB document track for dump folder import."
+        case .none:
+            return "Pick a connection before importing."
+        }
     }
 
     private var activeProfileName: String {

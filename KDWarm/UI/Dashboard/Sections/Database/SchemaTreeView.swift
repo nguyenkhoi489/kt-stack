@@ -6,14 +6,26 @@ struct SchemaTreeView: View {
     @EnvironmentObject private var vm: DatabaseViewModel
 
     var onSelectDatabase: () -> Void = {}
+    var onCreateDatabase: () -> Void = {}
     var onlySelectedDatabase = false
+    var canCreateDatabase = false
+    var createDatabaseHelp = "Create Database..."
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Schema")
-                .font(KDFont.footnote).foregroundStyle(.secondary)
-                .padding(.horizontal, KDSpacing.space3)
-                .padding(.vertical, KDSpacing.space2)
+            HStack(spacing: KDSpacing.space2) {
+                Text("Schema")
+                    .font(KDFont.footnote).foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+                Button(action: onCreateDatabase) {
+                    Image(systemName: "plus")
+                }
+                .buttonStyle(.borderless)
+                .help(createDatabaseHelp)
+                .disabled(!canCreateDatabase)
+            }
+            .padding(.horizontal, KDSpacing.space3)
+            .padding(.vertical, KDSpacing.space2)
             Divider()
             content
         }
