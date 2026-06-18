@@ -23,14 +23,17 @@ public final class DatabaseViewModel: ObservableObject {
     @Published public private(set) var selectedDatabase: String?
     @Published public internal(set) var tables: [TableInfo] = []
     @Published public private(set) var selectedTable: TableInfo?
-    @Published public private(set) var result: QueryResult?
-    @Published public private(set) var resultError: String?
-    @Published public private(set) var resultSource: ResultSource = .none
+    @Published public internal(set) var result: QueryResult?
+    @Published public internal(set) var resultError: String?
+    @Published public internal(set) var resultSource: ResultSource = .none
+    @Published public internal(set) var queryTabs: [QueryTab] = [QueryTab(title: "Query 1")]
+    @Published public internal(set) var activeQueryTabID: UUID?
+    @Published public internal(set) var queryHistoryEntries: [QueryHistoryEntry] = []
  
     @Published public internal(set) var isBusy = false
     @Published public private(set) var pageOffset = 0
     
-    @Published public private(set) var hasMorePages = false
+    @Published public internal(set) var hasMorePages = false
 
     @Published public internal(set) var currentColumns: [ColumnInfo] = []
 
@@ -38,7 +41,7 @@ public final class DatabaseViewModel: ObservableObject {
 
     @Published public private(set) var schemaCatalog: SchemaCatalog = .empty
 
-    @Published public private(set) var pendingDangerousSQL: String?
+    @Published public internal(set) var pendingDangerousSQL: String?
 
     /// Composed DDL awaiting user confirmation. The UI shows it verbatim; nothing runs until confirmed.
     @Published public internal(set) var pendingDDL: String?
@@ -90,18 +93,24 @@ public final class DatabaseViewModel: ObservableObject {
     private let makeDriver: DriverFactory
     let passwordFor: @Sendable (ConnectionProfile) -> String?
     let dumpService: DumpService
+    let historyStore: QueryHistoryStore
 
     private(set) var driver: RelationalDriver?
 
 
     private var generation = 0
+    var queryGenerations: [UUID: Int] = [:]
 
     public init(makeDriver: @escaping DriverFactory = DatabaseViewModel.defaultDriver,
                 passwordFor: @escaping @Sendable (ConnectionProfile) -> String? = DatabaseViewModel.defaultPassword,
-                dumpService: DumpService = DumpService()) {
+                dumpService: DumpService = DumpService(),
+                historyStore: QueryHistoryStore = QueryHistoryStore()) {
         self.makeDriver = makeDriver
         self.passwordFor = passwordFor
         self.dumpService = dumpService
+        self.historyStore = historyStore
+        self.queryHistoryEntries = historyStore.entries()
+        self.activeQueryTabID = queryTabs.first?.id
     }
 
     // MARK: - Connection
@@ -114,6 +123,7 @@ public final class DatabaseViewModel: ObservableObject {
         driver = nil
         databases = []; tables = []; selectedDatabase = nil; selectedTable = nil
         result = nil; resultError = nil; resultSource = .none
+        resetQueryWorkspace()
         currentColumns = []; currentIndexes = []
         schemaCatalog = .empty
         pageOffset = 0; hasMorePages = false; isBusy = false
@@ -123,6 +133,7 @@ public final class DatabaseViewModel: ObservableObject {
         selectedDatabase = nil
         tables = []; selectedTable = nil
         result = nil; resultError = nil; resultSource = .none
+        clearQueryTabResults()
         currentColumns = []; currentIndexes = []
         schemaCatalog = .empty
     }
@@ -132,6 +143,7 @@ public final class DatabaseViewModel: ObservableObject {
         selectedProfile = profile
         databases = []; tables = []; selectedDatabase = nil; selectedTable = nil
         result = nil; resultError = nil; resultSource = .none; pageOffset = 0; hasMorePages = false
+        clearQueryTabResults()
         schemaCatalog = .empty
         connection = .connecting
 
@@ -172,6 +184,7 @@ public final class DatabaseViewModel: ObservableObject {
         _ = beginOperation()
         selectedDatabase = database
         tables = []; selectedTable = nil; result = nil; resultError = nil; resultSource = .none
+        clearQueryTabResults()
         schemaCatalog = .empty
         return true
     }
@@ -251,39 +264,6 @@ public final class DatabaseViewModel: ObservableObject {
         }
         if token == generation { isBusy = false }
     }
-
-    // MARK: - SQL runner
-
-
-    public func runSQL(_ sql: String, confirmed: Bool = false) async {
-        guard let driver else { return }
-        let trimmed = sql.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        if !confirmed, DestructiveGuard.evaluate(trimmed).isDestructive {
-            pendingDangerousSQL = trimmed
-            return
-        }
-        pendingDangerousSQL = nil
-        let token = beginOperation()
-        do {
-            let r = try await driver.query(trimmed, database: selectedDatabase)
-            guard token == generation else { return }
-            result = r
-            resultError = nil
-            resultSource = .query
-            hasMorePages = false
-        } catch {
-            guard token == generation else { return }
-            result = nil
-            resultError = Self.asDatabaseError(error).message
-            resultSource = .none
-        }
-        if token == generation { isBusy = false }
-    }
-
- 
-    public func cancelDangerousSQL() { pendingDangerousSQL = nil }
-
 
     public func clearEditError() { editError = nil }
 

@@ -100,6 +100,7 @@ public struct AppSupportPaths: Sendable {
     }
 
     public var backupManifest: URL { backups.appendingPathComponent("manifest.json") }
+    public var queryHistoryFile: URL { config.appendingPathComponent("query-history.json") }
 
     public func backupSetDir(_ id: UUID) -> URL {
         backups.appendingPathComponent(id.uuidString, isDirectory: true)
