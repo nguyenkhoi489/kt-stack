@@ -26,6 +26,8 @@ private struct SitesContent: View {
     var onOpenLogs: (String?) -> Void
     @State private var showAddSheet = false
     @State private var showScanSheet = false
+    @State private var showNewSheet = false
+    @State private var showImportSheet = false
     @State private var searchText = ""
 
     private var filteredSites: [Site] {
@@ -72,6 +74,13 @@ private struct SitesContent: View {
         .sheet(isPresented: $showScanSheet) {
             ScanImportSheet(registry: registry, sitesRoot: preferences.sitesRootURL)
         }
+        .sheet(isPresented: $showNewSheet) {
+            NewSiteSheet(registry: registry, availableVersions: server.availableVersions,
+                         sitesRoot: preferences.sitesRootURL, tld: registry.tld)
+        }
+        .sheet(isPresented: $showImportSheet) {
+            MigrateImportSheet(registry: registry, availableVersions: server.availableVersions)
+        }
     }
 
     private var toolbar: some View {
@@ -81,7 +90,10 @@ private struct SitesContent: View {
             StatusPill(server.nginxStatus, text: server.isRunning ? "nginx" : "offline")
             Spacer()
             Button { showScanSheet = true } label: { Label("Scan…", systemImage: "folder.badge.gearshape") }
+            Button { showImportSheet = true } label: { Label("Import…", systemImage: "square.and.arrow.down") }
             Button { showAddSheet = true } label: { Label("Add Site", systemImage: "plus") }
+            Button { showNewSheet = true } label: { Label("New Site", systemImage: "sparkles") }
+                .keyboardShortcut("n", modifiers: .command)
         }
         .padding(KDSpacing.space2)
     }

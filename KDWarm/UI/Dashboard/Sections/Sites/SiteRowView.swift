@@ -19,6 +19,7 @@ struct SiteRowView: View {
     @State private var domainDraft: String
     @State private var domainError: String?
     @State private var didCopy = false
+    @State private var debugConfigError: String?
 
     init(site: Site, availableVersions: [String], canOpen: Bool,
          onOpen: @escaping () -> Void, onRemove: @escaping () -> Void,
@@ -77,6 +78,9 @@ struct SiteRowView: View {
                 Button("Reveal in Finder") { revealInFinder() }
                 Button("Open Terminal Here") { openTerminal() }
                 Button("Logs", action: onOpenLogs)
+                if site.type == .php {
+                    Button("Configure VS Code Debug") { configureVSCode() }
+                }
                 Divider()
                 Button("Remove Site", role: .destructive, action: onRemove)
             } label: {
@@ -87,6 +91,13 @@ struct SiteRowView: View {
         .padding(.vertical, KDSpacing.space2)
         .padding(.horizontal, KDSpacing.space2)
         .onChange(of: site.domain) { new in domainDraft = new; domainError = nil }
+        .alert("Configure VS Code Debug Failed", isPresented: Binding(
+            get: { debugConfigError != nil },
+            set: { if !$0 { debugConfigError = nil } })) {
+                Button("OK", role: .cancel) { debugConfigError = nil }
+            } message: {
+                Text(debugConfigError ?? "")
+            }
     }
 
     @ViewBuilder
@@ -172,5 +183,16 @@ struct SiteRowView: View {
         let term = URL(fileURLWithPath: "/System/Applications/Utilities/Terminal.app")
         NSWorkspace.shared.open([url], withApplicationAt: term,
                                 configuration: NSWorkspace.OpenConfiguration())
+    }
+
+    private func configureVSCode() {
+        do {
+            let written = try IDEDebugConfigWriter().writeVSCode(
+                projectRoot: URL(fileURLWithPath: site.path),
+                docroot: URL(fileURLWithPath: site.docroot))
+            NSWorkspace.shared.activateFileViewerSelecting([written])
+        } catch {
+            debugConfigError = error.localizedDescription
+        }
     }
 }

@@ -15,7 +15,7 @@ public final class SiteRegistry: ObservableObject {
 
     private let storeURL: URL
     private let inspector = SiteInspector()
-    private let versionResolver = VersionResolver()
+    private let versionResolver = ProjectVersionResolver()
 
     private let installedPHP: @Sendable () -> [String]
 
@@ -47,15 +47,18 @@ public final class SiteRegistry: ObservableObject {
     // MARK: - Mutators
 
     @discardableResult
-    public func add(folder: URL, phpVersion: String = BundledPHP.defaultVersion) throws -> Site {
+    public func add(folder: URL, phpVersion: String = BundledPHP.defaultVersion,
+                    respectProjectMarkers: Bool = true) throws -> Site {
         var isDir: ObjCBool = false
         guard FileManager.default.fileExists(atPath: folder.path, isDirectory: &isDir), isDir.boolValue else {
             throw RegistryError.notADirectory(folder.path)
         }
         let info = inspector.inspect(folder: folder, tld: tld)
         let domain = uniqueDomain(info.defaultDomain)
-      
-        let resolvedPHP = resolveInitialPHP(folder: folder, fallback: phpVersion)
+
+        let resolvedPHP = respectProjectMarkers
+            ? resolveInitialPHP(folder: folder, fallback: phpVersion)
+            : (knownPHPVersions().contains(phpVersion) ? phpVersion : (knownPHPVersions().first ?? BundledPHP.defaultVersion))
         let site = Site(name: folder.lastPathComponent,
                         path: folder.path,
                         docroot: info.docroot.path,
@@ -90,10 +93,8 @@ public final class SiteRegistry: ObservableObject {
 
     private func resolveInitialPHP(folder: URL, fallback: String) -> String {
         let known = knownPHPVersions()
-        if let marker = versionResolver.version(.php, forProjectAt: folder), known.contains(marker) {
-            return marker
-        }
-        return known.contains(fallback) ? fallback : (known.first ?? BundledPHP.defaultVersion)
+        return versionResolver.selectVersion(.php, forProjectAt: folder, installed: known, preferred: fallback)
+            ?? (known.first ?? BundledPHP.defaultVersion)
     }
 
   
