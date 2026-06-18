@@ -36,6 +36,9 @@ final class DatabaseViewModelTests: XCTestCase {
         var indexesResult: [IndexInfo] = []
         func indexes(database: String, table: String) async throws -> [IndexInfo] { indexesResult }
 
+        var foreignKeysResult: [ForeignKeyRelation] = []
+        func foreignKeys(database: String) async throws -> [ForeignKeyRelation] { foreignKeysResult }
+
         func query(_ sql: String, database: String?) async throws -> QueryResult {
             if let queryShouldThrow { throw queryShouldThrow }
             return QueryResult(columns: [ColumnMeta(name: "n")], rows: [[.int(1)]])

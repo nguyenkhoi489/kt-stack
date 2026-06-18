@@ -212,6 +212,15 @@ public final class DatabaseViewModel: ObservableObject {
         schemaCatalog = SchemaCatalog(tables: tableNames, columnsByTable: map)
     }
 
+    public func loadRelationsIfNeeded() async {
+        guard let driver, let database = selectedDatabase else { return }
+        guard schemaCatalog.relations.isEmpty else { return }
+        let token = generation
+        let relations = (try? await driver.foreignKeys(database: database)) ?? []
+        guard token == generation else { return }
+        schemaCatalog = schemaCatalog.withRelations(relations)
+    }
+
     public func select(table: TableInfo) async {
         guard let driver, let database = selectedDatabase else { return }
         selectedTable = table

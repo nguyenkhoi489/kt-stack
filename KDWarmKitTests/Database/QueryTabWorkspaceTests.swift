@@ -13,6 +13,7 @@ final class QueryTabWorkspaceTests: XCTestCase {
         func listTables(database: String) async throws -> [TableInfo] { [TableInfo(name: "users")] }
         func columns(database: String, table: String) async throws -> [ColumnInfo] { [] }
         func indexes(database: String, table: String) async throws -> [IndexInfo] { [] }
+        func foreignKeys(database: String) async throws -> [ForeignKeyRelation] { [] }
 
         func query(_ sql: String, database: String?) async throws -> QueryResult {
             if queryDelay > .zero { try? await Task.sleep(for: queryDelay) }

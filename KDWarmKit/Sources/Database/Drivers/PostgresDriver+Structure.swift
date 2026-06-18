@@ -50,6 +50,23 @@ extension PostgresDriver {
         return map
     }
 
+    public func foreignKeys(database: String) async throws -> [ForeignKeyRelation] {
+        var binds = PostgresBindings()
+        binds.append(database)
+        let result = try await runQuery(PostgresQuery(unsafeSQL: """
+        SELECT tc.table_name, kcu.column_name, ccu.table_name AS referenced_table, \
+        ccu.column_name AS referenced_column, tc.constraint_name \
+        FROM information_schema.table_constraints tc \
+        JOIN information_schema.key_column_usage kcu \
+          ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema \
+        JOIN information_schema.constraint_column_usage ccu \
+          ON ccu.constraint_name = tc.constraint_name AND ccu.table_schema = tc.table_schema \
+        WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_schema = $1 \
+        ORDER BY tc.table_name, tc.constraint_name, kcu.ordinal_position
+        """, binds: binds))
+        return ForeignKeyRowParser.parseRelational(result.rows)
+    }
+
     public func indexes(database: String, table: String) async throws -> [IndexInfo] {
         var binds = PostgresBindings()
         binds.append(database)

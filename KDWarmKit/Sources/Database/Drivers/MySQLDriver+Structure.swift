@@ -21,6 +21,18 @@ extension MySQLDriver {
         return map
     }
 
+    public func foreignKeys(database: String) async throws -> [ForeignKeyRelation] {
+        let sql = """
+        SELECT TABLE_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME, CONSTRAINT_NAME \
+        FROM information_schema.KEY_COLUMN_USAGE \
+        WHERE TABLE_SCHEMA = \(try MySQLErrorMapper.quoteLiteral(database)) \
+        AND REFERENCED_TABLE_NAME IS NOT NULL \
+        ORDER BY TABLE_NAME, CONSTRAINT_NAME, ORDINAL_POSITION
+        """
+        let result = try await query(sql, database: nil)
+        return ForeignKeyRowParser.parseRelational(result.rows)
+    }
+
     public func indexes(database: String, table: String) async throws -> [IndexInfo] {
         let sql = """
         SELECT INDEX_NAME, COLUMN_NAME, NON_UNIQUE FROM information_schema.STATISTICS \

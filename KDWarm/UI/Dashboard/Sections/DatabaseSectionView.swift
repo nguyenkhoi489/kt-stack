@@ -18,6 +18,7 @@ struct DatabaseSectionView: View {
         case data = "Data"
         case structure = "Structure"
         case query = "Query"
+        case er = "ER"
         var id: String { rawValue }
     }
 
@@ -190,7 +191,7 @@ struct DatabaseSectionView: View {
                 Picker("", selection: $rightTab) {
                     ForEach(RightTab.allCases) { Text($0.rawValue).tag($0) }
                 }
-                .pickerStyle(.segmented).labelsHidden().frame(width: 220)
+                .pickerStyle(.segmented).labelsHidden().frame(width: 280)
                 .disabled(vm.connection != .connected)
             }
         }
@@ -352,6 +353,7 @@ struct DatabaseSectionView: View {
             case .data:      TableDataView()
             case .structure: TableStructureView()
             case .query:     QueryEditorView()
+            case .er:        ERDiagramView()
             }
         default:
             connectionGate

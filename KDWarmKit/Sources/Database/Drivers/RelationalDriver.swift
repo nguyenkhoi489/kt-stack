@@ -14,6 +14,8 @@ public protocol RelationalDriver: DatabaseDriver {
 
     func indexes(database: String, table: String) async throws -> [IndexInfo]
 
+    func foreignKeys(database: String) async throws -> [ForeignKeyRelation]
+
     func query(_ sql: String, database: String?) async throws -> QueryResult
 
     func paginatedRows(database: String, table: String, limit: Int, offset: Int) async throws -> QueryResult
