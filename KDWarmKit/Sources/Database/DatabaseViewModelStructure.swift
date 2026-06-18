@@ -41,15 +41,20 @@ public extension DatabaseViewModel {
         stageDDL { try ddlDialect.dropDatabase(name) }
     }
 
-    func confirmDropDatabase(_ name: String) async {
-        guard let sql = pendingDDL else { return }
+    @discardableResult
+    func confirmDropDatabase(_ name: String) async -> Bool {
+        guard let sql = pendingDDL else { return false }
         pendingDDL = nil
-        guard !isReadOnlyConnection else { ddlError = "This connection is read-only."; return }
-        guard await runConfirmedDDL(sql) else { return }
+        guard !isReadOnlyConnection else {
+            ddlError = "This connection is read-only."
+            return false
+        }
+        guard await runConfirmedDDL(sql, database: nil) else { return false }
         if let refreshed = try? await driver?.listDatabases() {
             databases = refreshed
         }
         if selectedDatabase == name { clearSelectedDatabase() }
+        return true
     }
 
     func prepareDropTable() {
@@ -70,7 +75,7 @@ public extension DatabaseViewModel {
             ddlError = "This connection is read-only."
             return
         }
-        guard await runConfirmedDDL(sql) else { return }
+        guard await runConfirmedDDL(sql, database: selectedDatabase) else { return }
         if let database = selectedDatabase {
             tables = (try? await driver?.listTables(database: database)) ?? tables
         }
@@ -87,13 +92,13 @@ public extension DatabaseViewModel {
         }
     }
 
-    private func runConfirmedDDL(_ sql: String) async -> Bool {
+    private func runConfirmedDDL(_ sql: String, database: String?) async -> Bool {
         guard let driver else { return false }
         isBusy = true
         ddlError = nil
         defer { isBusy = false }
         do {
-            _ = try await driver.query(sql, database: selectedDatabase)
+            _ = try await driver.query(sql, database: database)
             recordQueryHistory(sql)
             return true
         } catch {

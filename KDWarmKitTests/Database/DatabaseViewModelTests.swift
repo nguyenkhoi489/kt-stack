@@ -265,16 +265,17 @@ final class DatabaseViewModelTests: XCTestCase {
         vm.prepareDropDatabase("db_a")
 
         driver.databasesResult = [DatabaseInfo(name: "keep")]
-        async let drop: Void = vm.confirmDropDatabase("db_a")
+        async let drop: Bool = vm.confirmDropDatabase("db_a")
         try? await Task.sleep(for: .milliseconds(10))
         XCTAssertTrue(vm.isBusy)
-        await drop
+        let dropped = await drop
 
+        XCTAssertTrue(dropped)
         XCTAssertFalse(vm.isBusy)
         XCTAssertNil(vm.ddlError)
         XCTAssertNil(vm.pendingDDL)
         XCTAssertEqual(driver.queryCalls.map(\.sql), ["DROP DATABASE `db_a`"])
-        XCTAssertEqual(driver.queryCalls.map(\.database), ["db_a"])
+        XCTAssertEqual(driver.queryCalls.map(\.database), [nil])
         XCTAssertEqual(vm.databases.map(\.name), ["keep"])
         XCTAssertNil(vm.selectedDatabase)
     }
@@ -287,13 +288,26 @@ final class DatabaseViewModelTests: XCTestCase {
         await vm.select(database: "db_a")
         vm.prepareDropDatabase("db_a")
 
-        await vm.confirmDropDatabase("db_a")
+        let dropped = await vm.confirmDropDatabase("db_a")
 
+        XCTAssertFalse(dropped)
         XCTAssertFalse(vm.isBusy)
         XCTAssertEqual(vm.ddlError, DatabaseError.syntax("cannot drop database").message)
         XCTAssertNil(vm.pendingDDL)
         XCTAssertEqual(vm.databases.map(\.name), ["db_a"])
         XCTAssertEqual(vm.selectedDatabase, "db_a")
+    }
+
+    func testConfirmDropDatabaseWithoutPendingStatementDoesNotCallDriver() async {
+        let driver = StubDriver(tag: "a")
+        let vm = makeVM(driver)
+        await vm.select(profile: .managedMySQL)
+
+        let dropped = await vm.confirmDropDatabase("db_a")
+
+        XCTAssertFalse(dropped)
+        XCTAssertTrue(driver.queryCalls.isEmpty)
+        XCTAssertNil(vm.ddlError)
     }
 
     // MARK: - Read-only gates write/DDL/import paths

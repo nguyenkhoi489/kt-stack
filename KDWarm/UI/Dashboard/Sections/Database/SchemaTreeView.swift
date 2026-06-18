@@ -21,6 +21,7 @@ struct SchemaTreeView: View {
     @State private var ddlSheet: DDLActionSheet.Mode?
     @State private var sidebarDDLActive = false
     @State private var confirmDropDb: DatabaseInfo?
+    @State private var dropDatabaseSheet: DatabaseInfo?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -53,8 +54,12 @@ struct SchemaTreeView: View {
         }
         .frame(minWidth: 180, idealWidth: 220)
         .sheet(item: $ddlSheet) { DDLActionSheet(mode: $0) }
+        .sheet(item: $dropDatabaseSheet, onDismiss: finishDropDatabaseSheet) { db in
+            DropDatabaseConfirmationSheet(database: db)
+                .environmentObject(vm)
+        }
         .alert("Run this SQL?",
-               isPresented: .init(get: { vm.pendingDDL != nil && sidebarDDLActive },
+               isPresented: .init(get: { vm.pendingDDL != nil && sidebarDDLActive && confirmDropDb == nil },
                                   set: { if !$0 { cancelSidebarDDL() } }),
                presenting: vm.pendingDDL) { _ in
             Button("Run", role: .destructive) { confirmSidebarDDL() }
@@ -148,8 +153,8 @@ struct SchemaTreeView: View {
             }
             Button("Drop Database…", role: .destructive) {
                 confirmDropDb = db
-                sidebarDDLActive = true
                 vm.prepareDropDatabase(db.name)
+                if vm.pendingDDL != nil { dropDatabaseSheet = db }
             }
             .disabled(vm.isReadOnlyConnection || !vm.canDropDatabase)
         }
@@ -208,6 +213,12 @@ struct SchemaTreeView: View {
     }
 
     private func cancelSidebarDDL() {
+        vm.cancelDDL()
+        sidebarDDLActive = false
+        confirmDropDb = nil
+    }
+
+    private func finishDropDatabaseSheet() {
         vm.cancelDDL()
         sidebarDDLActive = false
         confirmDropDb = nil
