@@ -6,7 +6,6 @@ struct KTDatabaseScreen: View {
     @EnvironmentObject private var vm: DatabaseViewModel
     @EnvironmentObject private var connectionStore: ConnectionStore
     @EnvironmentObject private var services: ServiceManager
-    @Environment(\.openWindow) private var openWindow
 
     enum Tab: Hashable { case databases, backups }
 
@@ -18,6 +17,7 @@ struct KTDatabaseScreen: View {
     @State private var showImportExport = false
     @State private var restoringSet: BackupSet?
     @State private var pendingDeleteBackup: BackupSet?
+    @State private var showEditor = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -42,6 +42,13 @@ struct KTDatabaseScreen: View {
                   secondaryButton: .cancel())
         }
         .task { await autoConnectIfNeeded(); reloadBackups() }
+        .overlay {
+            if showEditor {
+                KTDatabaseEditorModal(onClose: { showEditor = false })
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeOut(duration: 0.15), value: showEditor)
     }
 
     private var header: some View {
@@ -169,7 +176,7 @@ struct KTDatabaseScreen: View {
     private func open(_ name: String) {
         Task {
             await vm.select(database: name)
-            openWindow(id: DatabaseWindow.windowID)
+            showEditor = true
         }
     }
 
