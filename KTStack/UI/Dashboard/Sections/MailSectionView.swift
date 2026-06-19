@@ -6,85 +6,155 @@ struct MailSectionView: View {
     @EnvironmentObject private var services: ServiceManager
 
     var body: some View {
-        Group {
-            if !mail.isReachable && mail.messages.isEmpty {
-                offlineState
-            } else {
-                HSplitView {
-                    messageList.frame(minWidth: 240, idealWidth: 300)
-                    detailPane.frame(minWidth: 360)
-                }
-            }
+        VStack(spacing: 0) {
+            header.padding(.horizontal, KTSpacing.screenGutter).padding(.top, 18)
+            content.padding(.horizontal, KTSpacing.screenGutter).padding(.top, 16).padding(.bottom, 24)
         }
-        .navigationTitle("Mail")
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button { mail.deleteAll() } label: { Label("Delete All", systemImage: "trash") }
-                    .disabled(mail.messages.isEmpty)
-            }
-        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(KTColor.contentBg)
         .onAppear { mail.startPolling() }
         .onDisappear { mail.stopPolling() }
     }
 
-    private var offlineState: some View {
-        EmptyStateView(
-            symbol: "envelope",
-            title: "Mailpit is off",
-            message: "Start Mailpit to catch outgoing mail from your sites and read it here.",
-            actionTitle: "Start Mailpit"
-        ) { services.toggle(.mailpit) }
-    }
-
-    private var messageList: some View {
-        List(selection: Binding(get: { mail.selectedID }, set: { if let id = $0 { mail.select(id) } })) {
-            ForEach(mail.messages) { msg in
-                MailRow(summary: msg).tag(msg.ID)
+    private var header: some View {
+        HStack(spacing: 12) {
+            Text("Mail").font(KTType.screenTitle).tracking(KTType.screenTitleTracking).foregroundStyle(KTColor.ink)
+            Text("Mailpit · :8025")
+                .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Color(hex: 0x8E8E93))
+                .padding(.horizontal, 10).padding(.vertical, 3)
+                .background(Capsule().fill(KTColor.pillBg))
+            Spacer()
+            Button(action: { mail.deleteAll() }) {
+                Text("Clear inbox").font(.system(size: 13, weight: .medium)).foregroundStyle(KTColor.danger)
+                    .padding(.horizontal, 14).padding(.vertical, 7)
+                    .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Color.white))
+                    .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(KTColor.dangerBorder, lineWidth: 0.5))
+                    .contentShape(Rectangle())
             }
-        }
-        .overlay {
-            if mail.messages.isEmpty {
-                Text("No messages yet.\nSend mail from a site to :1025.")
-                    .font(KDFont.footnote).foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
+            .buttonStyle(.plain)
+            .disabled(mail.messages.isEmpty)
+            .opacity(mail.messages.isEmpty ? 0.5 : 1)
         }
     }
 
     @ViewBuilder
-    private var detailPane: some View {
-        if let detail = mail.detail {
-            MailMessageView(detail: detail,
-                            onDelete: { mail.delete(detail.ID) },
-                            rawURL: mail.rawURL(detail.ID))
+    private var content: some View {
+        if !mail.isReachable && mail.messages.isEmpty {
+            offlineState
         } else {
-            EmptyStateView(symbol: "envelope.open", title: "No message selected",
-                           message: "Pick a message from the list to read it.", actionTitle: nil)
+            HStack(spacing: 14) {
+                messageList
+                detailPane
+            }
         }
+    }
+
+    private var messageList: some View {
+        ScrollView {
+            LazyVStack(spacing: 2) {
+                ForEach(mail.messages) { msg in
+                    MailListRow(summary: msg, active: mail.selectedID == msg.ID) { mail.select(msg.ID) }
+                }
+            }
+            .padding(6)
+        }
+        .frame(width: 300)
+        .background(RoundedRectangle(cornerRadius: 13, style: .continuous).fill(Color.white))
+        .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).stroke(KTColor.sep, lineWidth: 0.5))
+        .overlay { if mail.messages.isEmpty { listEmptyHint } }
+    }
+
+    private var listEmptyHint: some View {
+        Text("No messages yet.\nSend mail from a site to :1025.")
+            .font(.system(size: 12.5)).foregroundStyle(KTColor.muted).multilineTextAlignment(.center)
+    }
+
+    @ViewBuilder
+    private var detailPane: some View {
+        Group {
+            if let detail = mail.detail {
+                MailMessageView(detail: detail,
+                                onDelete: { mail.delete(detail.ID) },
+                                rawURL: mail.rawURL(detail.ID))
+            } else {
+                VStack(spacing: 6) {
+                    Image(systemName: "envelope.open").font(.system(size: 42, weight: .light)).foregroundStyle(KTColor.faint)
+                    Text("No message selected").font(.system(size: 16, weight: .semibold)).foregroundStyle(KTColor.ink3)
+                    Text("Pick a message from the list to read it.").font(.system(size: 13)).foregroundStyle(KTColor.muted)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(RoundedRectangle(cornerRadius: 13, style: .continuous).fill(Color.white))
+        .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).stroke(KTColor.sep, lineWidth: 0.5))
+        .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+    }
+
+    private var offlineState: some View {
+        EmptyStateView(symbol: "envelope", title: "Mailpit is off",
+                       message: "Start Mailpit to catch outgoing mail from your sites and read it here.",
+                       actionTitle: "Start Mailpit") { services.toggle(.mailpit) }
     }
 }
 
-
-private struct MailRow: View {
+struct MailListRow: View {
     let summary: MailSummary
+    let active: Bool
+    let onTap: () -> Void
 
     var body: some View {
-        HStack(spacing: KDSpacing.space2) {
-            Circle().fill(summary.Read ? Color.clear : Color.accentColor).frame(width: 7, height: 7)
-            VStack(alignment: .leading, spacing: 1) {
-                HStack {
-                    Text(summary.From?.display ?? "—").font(KDFont.footnote).foregroundStyle(.secondary).lineLimit(1)
-                    Spacer()
-                    if summary.Attachments > 0 { Image(systemName: "paperclip").font(.system(size: 9)).foregroundStyle(.tertiary) }
-                }
-                Text(summary.Subject.isEmpty ? "(no subject)" : summary.Subject)
-                    .font(KDFont.body).fontWeight(summary.Read ? .regular : .semibold).lineLimit(1)
-                if let date = summary.date {
-                    Text(date.formatted(date: .abbreviated, time: .shortened))
-                        .font(.system(size: 10)).foregroundStyle(.tertiary)
+        Button(action: onTap) {
+            HStack(alignment: .top, spacing: 10) {
+                MailAvatar(name: senderName)
+                VStack(alignment: .leading, spacing: 1) {
+                    HStack(spacing: 6) {
+                        Text(senderName).font(.system(size: 13.5, weight: .semibold))
+                            .foregroundStyle(KTColor.ink).lineLimit(1)
+                        Spacer(minLength: 4)
+                        if let date = summary.date {
+                            Text(date.formatted(date: .omitted, time: .shortened))
+                                .font(.system(size: 11.5)).foregroundStyle(KTColor.muted)
+                        }
+                    }
+                    Text(summary.Subject.isEmpty ? "(no subject)" : summary.Subject)
+                        .font(.system(size: 13)).foregroundStyle(KTColor.ink2).lineLimit(1)
+                    Text(summary.Snippet).font(.system(size: 12)).foregroundStyle(KTColor.muted).lineLimit(1)
                 }
             }
+            .padding(.horizontal, 10).padding(.vertical, 9)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(active ? KTColor.accentSoft : Color.clear))
+            .contentShape(Rectangle())
         }
-        .padding(.vertical, 2)
+        .buttonStyle(.plain)
+    }
+
+    private var senderName: String {
+        let name = summary.From?.Name ?? ""
+        return name.isEmpty ? (summary.From?.Address ?? "—") : name
+    }
+}
+
+struct MailAvatar: View {
+    let name: String
+
+    private var tint: KTTint {
+        let palette = [KTIconTint.code, KTIconTint.cube, KTIconTint.db, KTIconTint.globe, KTIconTint.mail]
+        let index = Int(name.hashValue.magnitude % UInt(palette.count))
+        return palette[index]
+    }
+
+    private var initial: String {
+        String(name.trimmingCharacters(in: .whitespaces).first ?? "?").uppercased()
+    }
+
+    var body: some View {
+        Text(initial)
+            .font(.system(size: 13, weight: .bold))
+            .foregroundStyle(tint.fg)
+            .frame(width: 34, height: 34)
+            .background(Circle().fill(tint.bg))
     }
 }
