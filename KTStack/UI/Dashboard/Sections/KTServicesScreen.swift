@@ -7,6 +7,7 @@ struct KTServicesScreen: View {
 
     @EnvironmentObject private var services: ServiceManager
     @EnvironmentObject private var dns: DNSAutomationService
+    @EnvironmentObject private var overlay: KTOverlayCenter
 
     private let paths = AppSupportPaths()
     @State private var caExists = false
@@ -61,8 +62,12 @@ struct KTServicesScreen: View {
         HStack(spacing: 12) {
             Text("Services").font(KTType.screenTitle).tracking(KTType.screenTitleTracking).foregroundStyle(KTColor.ink)
             Spacer()
-            KTButton(title: "Restart All", systemImage: "arrow.clockwise", kind: .secondary) { services.restartAll() }
-            KTButton(title: "Start All", kind: .primary) { services.startAll() }
+            KTButton(title: "Restart All", systemImage: "arrow.clockwise", kind: .secondary) {
+                services.restartAll(); overlay.toast("Restarting all services")
+            }
+            KTButton(title: "Start All", kind: .primary) {
+                services.startAll(); overlay.toast("Starting all services")
+            }
         }
     }
 

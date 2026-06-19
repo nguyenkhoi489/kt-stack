@@ -24,13 +24,14 @@ private struct KTSitesContent: View {
     @ObservedObject var tunnels: TunnelManager
     var onOpenLogs: (String?) -> Void
 
+    @EnvironmentObject private var overlay: KTOverlayCenter
+
     @State private var searchText = ""
     @State private var gridView = false
     @State private var showScan = false
     @State private var showImport = false
     @State private var showNew = false
     @State private var showAdd = false
-    @State private var pendingRemoval: Site?
     @State private var removingSiteID: UUID?
     @State private var actionError: String?
 
@@ -81,7 +82,6 @@ private struct KTSitesContent: View {
         .sheet(isPresented: $showScan) { ScanImportSheet(registry: registry, sitesRoot: preferences.sitesRootURL) }
         .sheet(isPresented: $showImport) { MigrateImportSheet(registry: registry, availableVersions: server.availableVersions) }
         .sheet(isPresented: $showAdd) { AddSiteSheet(registry: registry, availableVersions: server.availableVersions, sitesRoot: preferences.sitesRootURL) }
-        .alert(item: $pendingRemoval, content: removeAlert)
         .overlay {
             if showNew {
                 KTModalCard(icon: "plus.app", tint: KTIconTint.cube,
@@ -164,7 +164,7 @@ private struct KTSitesContent: View {
                               onEditDomain: { try registry.editDomain(site, to: $0) },
                               onOpenLogs: { onOpenLogs("site-\(site.domain)-access") },
                               onToggleShare: { toggleShare(site, $0) },
-                              onRemove: { pendingRemoval = site },
+                              onRemove: { confirmRemove(site) },
                               onError: { actionError = $0 })
                 if index < filteredSites.count - 1 {
                     Rectangle().fill(KTColor.sepFaint).frame(height: 0.5).padding(.leading, 16)
@@ -183,7 +183,7 @@ private struct KTSitesContent: View {
                                onSetSecure: { server.setSiteSecure(site, $0) },
                                onOpenLogs: { onOpenLogs("site-\(site.domain)-access") },
                                onToggleShare: { toggleShare(site, $0) },
-                               onRemove: { pendingRemoval = site },
+                               onRemove: { confirmRemove(site) },
                                onError: { actionError = $0 })
             }
         }
@@ -207,11 +207,9 @@ private struct KTSitesContent: View {
         if on { tunnels.start(site: site) } else { tunnels.stop(site: site.id) }
     }
 
-    private func removeAlert(_ site: Site) -> Alert {
-        Alert(title: Text("Remove \(site.domain)?"),
-              message: Text(removeMessage(site)),
-              primaryButton: .destructive(Text("Remove Site")) { remove(site) },
-              secondaryButton: .cancel())
+    private func confirmRemove(_ site: Site) {
+        overlay.confirm(title: "Remove \(site.domain)?", message: removeMessage(site),
+                        okLabel: "Remove Site", danger: true) { remove(site) }
     }
 
     private func removeMessage(_ site: Site) -> String {
@@ -237,6 +235,7 @@ private struct KTSitesContent: View {
                     },
                     removeRecord: { site in await MainActor.run { registry.remove(site) } })
                 try await coordinator.remove(site)
+                overlay.toast("Removed \(site.domain)")
             } catch {
                 actionError = "Couldn't remove \(site.domain): \(error.localizedDescription)"
             }

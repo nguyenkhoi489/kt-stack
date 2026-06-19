@@ -17,6 +17,7 @@ struct DashboardWindow: View {
     @State private var selection: SidebarItem = .sites
 
     @State private var logTarget: String?
+    @StateObject private var overlay = KTOverlayCenter()
 
 
     private func openLogs(_ sourceID: String?) {
@@ -32,6 +33,8 @@ struct DashboardWindow: View {
             version: versionText) {
             detail(for: selection)
         }
+        .environmentObject(overlay)
+        .ktOverlayHost(overlay)
     }
 
     private var versionText: String {

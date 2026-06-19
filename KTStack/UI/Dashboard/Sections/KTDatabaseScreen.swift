@@ -6,6 +6,7 @@ struct KTDatabaseScreen: View {
     @EnvironmentObject private var vm: DatabaseViewModel
     @EnvironmentObject private var connectionStore: ConnectionStore
     @EnvironmentObject private var services: ServiceManager
+    @EnvironmentObject private var overlay: KTOverlayCenter
 
     enum Tab: Hashable { case databases, backups }
 
@@ -16,9 +17,7 @@ struct KTDatabaseScreen: View {
     @State private var showNewDatabase = false
     @State private var showImportExport = false
     @State private var restoringSet: BackupSet?
-    @State private var pendingDeleteBackup: BackupSet?
     @State private var showEditor = false
-    @StateObject private var toast = KTToastCenter()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -38,12 +37,9 @@ struct KTDatabaseScreen: View {
         .overlay { editorOverlay }
         .overlay { connectOverlay }
         .overlay { newDatabaseOverlay }
-        .overlay { confirmDeleteOverlay }
         .animation(.easeOut(duration: 0.15), value: showEditor)
         .animation(.easeOut(duration: 0.15), value: showConnect)
         .animation(.easeOut(duration: 0.15), value: showNewDatabase)
-        .animation(.easeOut(duration: 0.15), value: pendingDeleteBackup)
-        .ktToast(toast)
     }
 
     @ViewBuilder
@@ -60,7 +56,7 @@ struct KTDatabaseScreen: View {
                            onConnected: { name in
                                showConnect = false
                                reloadBackups()
-                               toast.show("Connected to \(name)")
+                               overlay.toast("Connected to \(name)")
                            })
                 .transition(.opacity)
         }
@@ -72,26 +68,19 @@ struct KTDatabaseScreen: View {
             KTNewDatabaseModal(onClose: { showNewDatabase = false },
                                onCreated: { name in
                                    showNewDatabase = false
-                                   toast.show("Database “\(name)” created")
+                                   overlay.toast("Database “\(name)” created")
                                })
                 .transition(.opacity)
         }
     }
 
-    @ViewBuilder
-    private var confirmDeleteOverlay: some View {
-        if let set = pendingDeleteBackup {
-            KTConfirmModal(title: "Delete backup?",
-                           message: "Permanently delete this backup. This cannot be undone.",
-                           okLabel: "Delete", danger: true,
-                           onCancel: { pendingDeleteBackup = nil },
-                           onConfirm: {
-                               vm.deleteBackup(set, session: session)
-                               pendingDeleteBackup = nil
-                               reloadBackups()
-                               toast.show("Backup deleted")
-                           })
-                .transition(.opacity)
+    private func confirmDeleteBackup(_ set: BackupSet) {
+        overlay.confirm(title: "Delete backup?",
+                        message: "Permanently delete this backup. This cannot be undone.",
+                        okLabel: "Delete", danger: true) {
+            vm.deleteBackup(set, session: session)
+            reloadBackups()
+            overlay.toast("Backup deleted")
         }
     }
 
@@ -170,7 +159,7 @@ struct KTDatabaseScreen: View {
                                 KTBackupRow(backup: set,
                                             onRestore: { restoringSet = set },
                                             onDownload: { download(set) },
-                                            onDelete: { pendingDeleteBackup = set })
+                                            onDelete: { confirmDeleteBackup(set) })
                                 if index < backupSets.count - 1 {
                                     Rectangle().fill(KTColor.sepFaint).frame(height: 0.5).padding(.leading, 18)
                                 }
@@ -228,7 +217,7 @@ struct KTDatabaseScreen: View {
         Task {
             let set = await vm.backupDatabase(name, session: session)
             reloadBackups()
-            if set != nil { toast.show("Backed up “\(name)”") }
+            if set != nil { overlay.toast("Backed up “\(name)”") }
         }
     }
 
@@ -236,7 +225,7 @@ struct KTDatabaseScreen: View {
         Task {
             let set = await vm.backupAllDatabases(session: session)
             reloadBackups()
-            if set != nil { toast.show("Backup complete") }
+            if set != nil { overlay.toast("Backup complete") }
         }
     }
 

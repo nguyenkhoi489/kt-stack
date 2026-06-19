@@ -4,20 +4,14 @@ import KTStackKit
 struct KTRuntimesScreen: View {
     @EnvironmentObject private var runtimes: RuntimeManager
     @EnvironmentObject private var server: LocalServerController
+    @EnvironmentObject private var overlay: KTOverlayCenter
 
     @State private var tab: RuntimeLanguage = .php
     @State private var showInstall = false
     @State private var editingIni: VersionRef?
     @State private var managingExt: VersionRef?
-    @State private var pendingUninstall: PendingUninstall?
 
     private struct VersionRef: Identifiable { let version: String; var id: String { version } }
-    private struct PendingUninstall: Identifiable {
-        let language: RuntimeLanguage
-        let version: String
-        let inUseBy: [String]
-        var id: String { "\(language.rawValue)-\(version)" }
-    }
 
     private struct Entry: Identifiable {
         let version: String
@@ -45,7 +39,6 @@ struct KTRuntimesScreen: View {
         .sheet(isPresented: $showInstall) { RuntimeDownloadSheet() }
         .sheet(item: $editingIni) { PHPIniEditorSheet(version: $0.version) }
         .sheet(item: $managingExt) { PHPExtensionsSheet(version: $0.version) }
-        .alert(item: $pendingUninstall, content: uninstallAlert)
     }
 
     private var header: some View {
@@ -66,7 +59,10 @@ struct KTRuntimesScreen: View {
                     version: entry.version,
                     state: entry.state,
                     downloadFraction: downloadFraction(tab, entry.version),
-                    onSetDefault: { runtimes.setGlobalDefault(tab, entry.version) },
+                    onSetDefault: {
+                        runtimes.setGlobalDefault(tab, entry.version)
+                        overlay.toast("\(tab.displayName) \(entry.version) set as default")
+                    },
                     onInstall: { if let release = entry.release { runtimes.install(release) } },
                     onCancel: { runtimes.cancel(tab) },
                     onUninstall: { requestUninstall(tab, entry.version) },
@@ -97,26 +93,23 @@ struct KTRuntimesScreen: View {
         let inUse = lang == .php
             ? server.registry.sites.filter { $0.type == .php && $0.phpVersion == version }.map(\.domain)
             : []
-        pendingUninstall = PendingUninstall(language: lang, version: version, inUseBy: inUse)
-    }
-
-    private func uninstallAlert(_ p: PendingUninstall) -> Alert {
-        let name = "\(p.language.displayName) \(p.version)"
-        guard !p.inUseBy.isEmpty else {
-            return Alert(title: Text("Remove \(name)?"),
-                         message: Text("This deletes the downloaded runtime. You can reinstall it anytime."),
-                         primaryButton: .destructive(Text("Remove")) { performUninstall(p) },
-                         secondaryButton: .cancel())
+        let name = "\(lang.displayName) \(version)"
+        let message: String
+        if inUse.isEmpty {
+            message = "This deletes the downloaded runtime. You can reinstall it anytime."
+        } else {
+            let n = inUse.count
+            message = "In use by \(n) site\(n == 1 ? "" : "s"): \(inUse.joined(separator: ", "))."
         }
-        let n = p.inUseBy.count
-        return Alert(title: Text("Remove \(name)?"),
-                     message: Text("In use by \(n) site\(n == 1 ? "" : "s"): \(p.inUseBy.joined(separator: ", "))."),
-                     primaryButton: .destructive(Text("Remove anyway")) { performUninstall(p) },
-                     secondaryButton: .cancel())
+        overlay.confirm(title: "Remove \(name)?", message: message,
+                        okLabel: inUse.isEmpty ? "Remove" : "Remove anyway", danger: true) {
+            performUninstall(lang, version)
+        }
     }
 
-    private func performUninstall(_ p: PendingUninstall) {
-        runtimes.uninstall(p.language, p.version)
-        if p.language == .php { server.reconcileAfterRuntimeChange() }
+    private func performUninstall(_ lang: RuntimeLanguage, _ version: String) {
+        runtimes.uninstall(lang, version)
+        if lang == .php { server.reconcileAfterRuntimeChange() }
+        overlay.toast("Removed \(lang.displayName) \(version)")
     }
 }

@@ -80,16 +80,20 @@ struct KTSettingsTextButton: View {
     var danger = false
     let action: () -> Void
 
+    @State private var hovering = false
+
     var body: some View {
         Button(action: action) {
             Text(title).font(.system(size: 13, weight: .medium))
                 .foregroundStyle(danger ? KTColor.danger : KTColor.ink)
                 .padding(.horizontal, 14).padding(.vertical, 7)
-                .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Color.white))
+                .background(RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .fill(hovering ? (danger ? KTColor.dangerBg : KTColor.btnHover) : Color.white))
                 .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous)
                     .stroke(danger ? KTColor.dangerBorder : KTColor.btnBorder, lineWidth: 0.5))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .onHover { hovering = $0 }
     }
 }
