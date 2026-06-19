@@ -12,7 +12,6 @@ public struct VersionResolver: Sendable {
       
         merge(&result, .php, fromFile: readFile(dir, ".php-version"))
         merge(&result, .node, fromFile: readFile(dir, ".nvmrc"))
-        merge(&result, .python, fromFile: readFile(dir, ".python-version"))
         return result
     }
 

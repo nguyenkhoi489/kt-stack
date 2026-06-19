@@ -1,6 +1,6 @@
 # KTStack
 
-Native macOS local development environment for PHP, Node.js, Python and Go.
+Native macOS local development environment for PHP and Node.js.
 
 Run local websites with trusted HTTPS, automatic `.test` domains, databases, mail testing, logs, and public sharing — all from a native SwiftUI application.
 
@@ -14,7 +14,7 @@ Run local websites with trusted HTTPS, automatic `.test` domains, databases, mai
 * ✅ Trusted local HTTPS
 * ✅ Nginx + PHP-FPM management
 * ✅ PHP 8.1 / 8.3 / 8.4
-* ✅ Node.js, Python and Go runtimes
+* ✅ Node.js runtimes
 * ✅ MySQL, PostgreSQL, Redis and MongoDB
 * ✅ Built-in Mailpit
 * ✅ Per-site log viewer
@@ -77,7 +77,7 @@ with HTTPS, databases, logs, and mail testing already configured.
 | HTTPS          | Trusted local TLS certificates                                      |
 | Web server     | Nginx virtual hosts and PHP-FPM pools                               |
 | PHP            | On-demand PHP 8.1 / 8.3 / 8.4                                       |
-| Other runtimes | Node.js, Python, Go                                                 |
+| Other runtimes | Node.js                                                             |
 | Services       | Nginx, PHP-FPM, dnsmasq, MySQL, PostgreSQL, Redis, MongoDB, Mailpit |
 | Database UI    | MySQL, PostgreSQL, SQLite, MongoDB                                  |
 | Mail           | Mailpit integration                                                 |

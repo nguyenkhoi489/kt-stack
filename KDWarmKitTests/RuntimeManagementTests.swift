@@ -28,13 +28,11 @@ final class RuntimeManagementTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: dir) }
         try ".kdwarmrc has php only\nphp = \"8.1\"".write(to: dir.appendingPathComponent(".kdwarmrc"), atomically: true, encoding: .utf8)
         try "v22.5.0".write(to: dir.appendingPathComponent(".nvmrc"), atomically: true, encoding: .utf8)   // leading v stripped
-        try "3.11.9".write(to: dir.appendingPathComponent(".python-version"), atomically: true, encoding: .utf8)
 
         let r = VersionResolver()
         let v = r.versions(forProjectAt: dir)
         XCTAssertEqual(v[.php], "8.1")        // from .kdwarmrc
         XCTAssertEqual(v[.node], "22.5.0")    // .nvmrc fallback, v-stripped
-        XCTAssertEqual(v[.python], "3.11.9")  // .python-version fallback
     }
 
     func testKDWarmRCBeatsLanguageFallback() throws {
@@ -51,19 +49,19 @@ final class RuntimeManagementTests: XCTestCase {
         let root = try tempDir()
         defer { try? FileManager.default.removeItem(at: root) }
         let paths = AppSupportPaths(root: root)
-        // Install Go 1.26.4 (the manifest version) by creating its marker binary.
-        let goBin = paths.runtimeBin("go", "1.26.4")
-        try FileManager.default.createDirectory(at: goBin, withIntermediateDirectories: true)
-        FileManager.default.createFile(atPath: goBin.appendingPathComponent("go").path,
+        // Install Node 22.22.3 (the manifest version) by creating its marker binary.
+        let nodeBin = paths.runtimeBin("node", "22.22.3")
+        try FileManager.default.createDirectory(at: nodeBin, withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: nodeBin.appendingPathComponent("node").path,
                                        contents: Data(), attributes: [.posixPermissions: 0o755])
 
         let catalog = RuntimeCatalog(paths: paths)
-        XCTAssertEqual(catalog.installedVersions(.go), ["1.26.4"])
-        XCTAssertTrue(catalog.isInstalled(.go, "1.26.4"))
+        XCTAssertEqual(catalog.installedVersions(.node), ["22.22.3"])
+        XCTAssertTrue(catalog.isInstalled(.node, "22.22.3"))
         // The installed version is filtered out of the available list.
-        XCTAssertFalse(catalog.availableReleases(.go).contains { $0.version == "1.26.4" })
-        // Node still available (not installed).
-        XCTAssertTrue(catalog.availableReleases(.node).contains { $0.version == "22.22.3" })
+        XCTAssertFalse(catalog.availableReleases(.node).contains { $0.version == "22.22.3" })
+        // PHP still available (not installed).
+        XCTAssertTrue(catalog.availableReleases(.php).contains { $0.version == "8.4" })
     }
 
     func testManifestEntriesAreWellFormed() {

@@ -1,25 +1,21 @@
 import Foundation
 
 public enum RuntimeLanguage: String, CaseIterable, Sendable, Identifiable, Hashable {
-    case php, node, python, go, ruby, java
+    case php, node
 
     public var id: String { rawValue }
 
     public var displayName: String {
         switch self {
-        case .php: return "PHP"; case .node: return "Node.js"; case .python: return "Python"
-        case .go: return "Go"; case .ruby: return "Ruby"; case .java: return "Java"
+        case .php:  return "PHP"
+        case .node: return "Node.js"
         }
     }
 
     public var symbolName: String {
         switch self {
-        case .php:    return "chevron.left.forwardslash.chevron.right"
-        case .node:   return "shippingbox"
-        case .python: return "tortoise.fill"
-        case .go:     return "hare.fill"
-        case .ruby:   return "diamond.fill"
-        case .java:   return "cup.and.saucer.fill"
+        case .php:  return "chevron.left.forwardslash.chevron.right"
+        case .node: return "shippingbox"
         }
     }
 
@@ -27,12 +23,8 @@ public enum RuntimeLanguage: String, CaseIterable, Sendable, Identifiable, Hasha
 
     public var executableRelPath: String {
         switch self {
-        case .php:    return "bin/php-fpm"
-        case .node:   return "bin/node"
-        case .python: return "bin/python3"
-        case .go:     return "bin/go"
-        case .ruby:   return "bin/ruby"
-        case .java:   return "bin/java"
+        case .php:  return "bin/php-fpm"
+        case .node: return "bin/node"
         }
     }
 }
@@ -87,14 +79,8 @@ public struct RuntimeCatalog: Sendable {
         RuntimeRelease(language: .php, version: "8.1",
                        url: "https://github.com/nguyenkhoi489/kd-warm/releases/download/binaries-v1/php-8.1-arm64.tar.gz",
                        sha256: "ee5befe972d83773e19a786e33350a6d510a7c38c3f6de5d775ac37dff1e48ff"),
-        RuntimeRelease(language: .go, version: "1.26.4",
-                       url: "https://go.dev/dl/go1.26.4.darwin-arm64.tar.gz",
-                       sha256: "b62ad2b6d7d2464f12a5bcad7ff47f19d08325773b5efd21610e445a05a9bf53"),
         RuntimeRelease(language: .node, version: "22.22.3",
                        url: "https://nodejs.org/dist/v22.22.3/node-v22.22.3-darwin-arm64.tar.gz",
                        sha256: "0da7ff74ef8611328c8212f17943368713a2ad953fb7d89a8c8a0eae87c23207"),
-        RuntimeRelease(language: .python, version: "3.12.13",
-                       url: "https://github.com/astral-sh/python-build-standalone/releases/download/20260610/cpython-3.12.13%2B20260610-aarch64-apple-darwin-install_only.tar.gz",
-                       sha256: "e18ddd4c1e8f4a1d6c4590b37f423d76aec734447edc20ed08e93983d95f2132"),
     ]
 }
