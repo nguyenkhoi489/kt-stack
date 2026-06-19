@@ -66,7 +66,7 @@ private struct KTSitesContent: View {
 
             if let actionError = server.lastError ?? actionError {
                 Text(actionError)
-                    .font(.system(size: 12))
+                    .font(.jbMono(12))
                     .foregroundStyle(KTColor.danger)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, KTSpacing.screenGutter)
@@ -88,7 +88,7 @@ private struct KTSitesContent: View {
             HStack(spacing: 8) {
                 KTDot(color: server.isRunning ? KTColor.runDot : KTColor.stopDot)
                 Text("Server: \(server.isRunning ? "Running" : "Stopped")")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.jbMono(13, .medium))
                     .foregroundStyle(server.isRunning ? KTColor.online : KTColor.muted)
             }
             .padding(.vertical, 6)
@@ -165,6 +165,7 @@ private struct KTSitesContent: View {
             ForEach(filteredSites) { site in
                 KTSiteGridCard(site: site, availableVersions: server.availableVersions,
                                canOpen: server.isRunning, isSharing: isSharing(site),
+                               shareStarting: isStartingShare(site), shareURL: shareURL(site),
                                onOpen: { KTSiteActions.openInBrowser(site) },
                                onSetVersion: { registry.setPHPVersion(site, to: $0) },
                                onSetSecure: { server.setSiteSecure(site, $0) },
@@ -179,8 +180,8 @@ private struct KTSitesContent: View {
     private func emptyState(title: String, message: String) -> some View {
         VStack(spacing: 6) {
             Image(systemName: "globe").font(.system(size: 46, weight: .light)).foregroundStyle(KTColor.faint)
-            Text(title).font(.system(size: 17, weight: .semibold)).foregroundStyle(KTColor.ink3)
-            Text(message).font(.system(size: 13)).foregroundStyle(KTColor.muted).multilineTextAlignment(.center)
+            Text(title).font(.jbMono(17, .semibold)).foregroundStyle(KTColor.ink3)
+            Text(message).font(.jbMono(13)).foregroundStyle(KTColor.muted).multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

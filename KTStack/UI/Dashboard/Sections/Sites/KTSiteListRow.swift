@@ -55,7 +55,7 @@ struct KTSiteListRow: View {
                 Text(site.name).font(KTType.rowName).foregroundStyle(KTColor.ink).lineLimit(1)
                 TextField("domain", text: $domainDraft)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 12.5, design: .monospaced))
+                    .font(.jbMono(12.5))
                     .foregroundStyle(domainError ? KTColor.danger : KTColor.muted)
                     .lineLimit(1)
                     .onSubmit(commitDomain)
@@ -74,7 +74,7 @@ struct KTSiteListRow: View {
                 .help("Serve over HTTPS with a locally-trusted certificate")
                 .accessibilityLabel("Serve \(site.domain) over HTTPS")
 
-            actionIcons
+            KTSiteShareControls(shareStarting: shareStarting, shareURL: shareURL, onToggleShare: onToggleShare)
 
             KTButton(title: "Open", kind: .secondary, action: onOpen)
                 .disabled(!canOpen)
@@ -88,39 +88,6 @@ struct KTSiteListRow: View {
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
         .onChange(of: site.domain) { new in domainDraft = new; domainError = false }
-    }
-
-    @ViewBuilder
-    private var actionIcons: some View {
-        HStack(spacing: 2) {
-            if shareStarting {
-                ProgressView().controlSize(.small).frame(width: 28, height: 26)
-            } else if let shareURL {
-                iconButton("doc.on.doc", help: "Copy tunnel URL", tint: KTColor.ink3) {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(shareURL.absoluteString, forType: .string)
-                }
-                TunnelQRCodeButton(url: shareURL).foregroundStyle(KTColor.accent)
-                iconButton("antenna.radiowaves.left.and.right", help: "Stop sharing via tunnel",
-                           tint: KTColor.accent) { onToggleShare(false) }
-            } else {
-                iconButton("antenna.radiowaves.left.and.right.slash", help: "Share via tunnel",
-                           tint: KTColor.ink3) { onToggleShare(true) }
-            }
-        }
-    }
-
-    private func iconButton(_ symbol: String, help: String, tint: Color,
-                            action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(tint)
-                .frame(width: 28, height: 26)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .help(help)
     }
 
     private func commitDomain() {
