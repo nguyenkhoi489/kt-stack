@@ -39,7 +39,9 @@ final class NewSiteModel: ObservableObject {
                 try PHPIniStore(paths: paths).ensureSeeded(version: request.phpVersion)
                 let installer = try await buildInstaller(request: request, php: php, phpIni: phpIni, paths: paths)
                 let site = try await service.install(request, installer: installer, register: { folder in
-                    try await MainActor.run { try registry.add(folder: folder, phpVersion: request.phpVersion) }
+                    try await MainActor.run {
+                        try registry.add(folder: folder, phpVersion: request.phpVersion, databaseName: request.databaseName)
+                    }
                 }, emit: { event in
                     Task { @MainActor in self.events.append(event) }
                 })
@@ -90,72 +92,92 @@ struct NewSiteSheet: View {
     @State private var kind: NewSiteKind = .wordpress
     @State private var phpVersion = BundledPHP.defaultVersion
     @State private var adminPassword = NewSiteSheet.randomPassword()
+    @State private var siteTitle = ""
+    @State private var adminUser = "admin"
+    @State private var adminEmail = "admin@example.com"
+    @State private var advancedExpanded = false
 
     private var slug: String { SiteInspector.slug(name) }
     private var domain: String { "\(slug).\(tld)" }
+    private var hasOverlayState: Bool {
+        model.installing || model.finished || model.error != nil
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: KDSpacing.space3) {
-            Text("New Site").font(KDFont.title)
-            if model.installing || model.finished || model.error != nil {
+        VStack(alignment: .leading, spacing: 0) {
+            NewSiteHeader(onDismiss: { dismiss() })
+                .padding(.horizontal, KDSpacing.space5)
+                .padding(.top, KDSpacing.space5)
+                .padding(.bottom, KDSpacing.space4)
+
+            if hasOverlayState {
+                Divider()
                 SiteInstallProgressView(events: model.events, error: model.error)
+                    .padding(KDSpacing.space5)
             } else {
-                form
-            }
-            controls
-        }
-        .padding(KDSpacing.space4)
-        .frame(width: 480)
-    }
-
-    private var form: some View {
-        Grid(alignment: .leading, verticalSpacing: KDSpacing.space2) {
-            GridRow {
-                Text("Name").foregroundStyle(.secondary)
-                TextField("my-site", text: $name).font(KDFont.mono).frame(width: 260)
-            }
-            GridRow {
-                Text("Type").foregroundStyle(.secondary)
-                Picker("", selection: $kind) {
-                    ForEach(NewSiteKind.allCases) { Text($0.label).tag($0) }
-                }.labelsHidden().fixedSize()
-            }
-            GridRow {
-                Text("PHP").foregroundStyle(.secondary)
-                Picker("", selection: $phpVersion) {
-                    ForEach(availableVersions, id: \.self) { Text($0).tag($0) }
-                }.labelsHidden().fixedSize()
-            }
-            if kind == .wordpress {
-                GridRow {
-                    Text("Admin password").foregroundStyle(.secondary)
-                    TextField("", text: $adminPassword).font(KDFont.mono).frame(width: 260)
+                ScrollView {
+                    NewSiteFormBody(
+                        availableVersions: availableVersions,
+                        tld: tld,
+                        name: $name,
+                        kind: $kind,
+                        phpVersion: $phpVersion,
+                        adminPassword: $adminPassword,
+                        siteTitle: $siteTitle,
+                        adminUser: $adminUser,
+                        adminEmail: $adminEmail,
+                        advancedExpanded: $advancedExpanded,
+                        regeneratePassword: NewSiteSheet.randomPassword
+                    )
+                    .padding(.horizontal, KDSpacing.space5)
+                    .padding(.vertical, KDSpacing.space2)
                 }
             }
-            if !name.isEmpty {
-                GridRow {
-                    Text("Domain").foregroundStyle(.secondary)
-                    Text("https://\(domain)").font(KDFont.footnote).foregroundStyle(.secondary)
-                }
-            }
+
+            Divider()
+            footer
+                .padding(KDSpacing.space4)
         }
+        .frame(width: 560)
+        .frame(minHeight: 420, maxHeight: 720)
+        .background(Color(NSColor.windowBackgroundColor))
     }
 
-    private var controls: some View {
-        HStack {
-            Spacer()
+    private var footer: some View {
+        HStack(spacing: KDSpacing.space2) {
             if model.finished {
-                Button("Done") { dismiss() }.keyboardShortcut(.defaultAction)
+                Spacer()
+                Button("Done") { dismiss() }
+                    .keyboardShortcut(.defaultAction)
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color.KDStatus.info)
             } else if model.installing {
+                Spacer()
                 Button("Cancel") { model.cancel() }
             } else if model.error != nil {
-                Button("Back") { model.reset() }.keyboardShortcut(.cancelAction)
-                Button("Try Again") { create() }.keyboardShortcut(.defaultAction)
-            } else {
-                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
-                Button("Create Site") { create() }
+                Spacer()
+                Button("Back") { model.reset() }
+                    .keyboardShortcut(.cancelAction)
+                Button("Try Again") { create() }
                     .keyboardShortcut(.defaultAction)
-                    .disabled(slug.isEmpty || availableVersions.isEmpty)
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color.KDStatus.info)
+            } else {
+                Button("Cancel") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+                Spacer()
+                Button(action: create) {
+                    HStack(spacing: KDSpacing.space1) {
+                        Image(systemName: "plus")
+                        Text("Create Site")
+                    }
+                    .padding(.horizontal, KDSpacing.space2)
+                    .padding(.vertical, 2)
+                }
+                .keyboardShortcut(.defaultAction)
+                .buttonStyle(.borderedProminent)
+                .tint(Color.KDStatus.info)
+                .disabled(slug.isEmpty || availableVersions.isEmpty)
             }
         }
     }
@@ -164,7 +186,10 @@ struct NewSiteSheet: View {
         let request = NewSiteRequest(
             name: slug, kind: kind, phpVersion: phpVersion,
             folder: sitesRoot.appendingPathComponent(slug, isDirectory: true),
-            domain: domain, databaseName: slug, siteTitle: slug,
+            domain: domain, databaseName: slug,
+            siteTitle: siteTitle.isEmpty ? slug : siteTitle,
+            adminUser: adminUser.isEmpty ? "admin" : adminUser,
+            adminEmail: adminEmail.isEmpty ? "admin@example.com" : adminEmail,
             adminPassword: kind == .wordpress ? adminPassword : "")
         model.install(request: request, registry: registry, openOnFinish: true)
     }
