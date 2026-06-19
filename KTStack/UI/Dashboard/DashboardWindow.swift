@@ -31,7 +31,8 @@ struct DashboardWindow: View {
             siteCount: server.registry.sites.count,
             serverStatus: sidebarServerStatus,
             version: versionText) {
-            detail(for: selection)
+            DeferredView { detail(for: selection) }
+                .id(selection)
         }
         .environmentObject(overlay)
         .overlay { windowModals }
