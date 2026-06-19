@@ -102,7 +102,9 @@ struct MenuBarContentView: View {
         VStack(spacing: 0) {
             footerButton("Open Dashboard…", systemImage: "rectangle.split.3x1", shortcut: "⌘D") {
                 AppActivationPolicy.activateRegular()
-                openWindow(id: DashboardWindow.windowID)
+                if !AppActivationPolicy.focusExistingWindow(titled: "KTStack Dashboard") {
+                    openWindow(id: DashboardWindow.windowID)
+                }
             }
             settingsFooterItem
             footerButton("Check for Updates…", systemImage: "arrow.down.circle", shortcut: "") {

@@ -144,7 +144,7 @@ private struct KTSitesContent: View {
             ForEach(Array(filteredSites.enumerated()), id: \.element.id) { index, site in
                 KTSiteListRow(site: site, availableVersions: server.availableVersions,
                               canOpen: server.isRunning, isSharing: isSharing(site),
-                              shareURL: shareURL(site),
+                              shareStarting: isStartingShare(site), shareURL: shareURL(site),
                               onOpen: { KTSiteActions.openInBrowser(site) },
                               onSetVersion: { registry.setPHPVersion(site, to: $0) },
                               onSetSecure: { server.setSiteSecure(site, $0) },
@@ -192,6 +192,10 @@ private struct KTSitesContent: View {
 
     private func shareURL(_ site: Site) -> URL? {
         tunnels.session(site.id)?.status.publicURL
+    }
+
+    private func isStartingShare(_ site: Site) -> Bool {
+        tunnels.session(site.id)?.status == .starting
     }
 
     private func toggleShare(_ site: Site, _ on: Bool) {

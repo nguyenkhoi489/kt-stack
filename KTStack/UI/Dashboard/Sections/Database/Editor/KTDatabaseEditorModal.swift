@@ -83,7 +83,7 @@ struct KTDatabaseEditorModal: View {
                                     .init(value: .structure, label: "Structure"),
                                     .init(value: .query, label: "Query"),
                                     .init(value: .er, label: "ER")],
-                            selection: $tab)
+                            selection: $tab, large: true)
             closeButton
         }
         .padding(.horizontal, 18).padding(.vertical, 13)

@@ -51,6 +51,7 @@ struct KTEditorERTab: View {
                 .offset(x: pan.width + gesturePan.width, y: pan.height + gesturePan.height)
             }
             .contentShape(Rectangle())
+            .clipped()
             .gesture(panGesture)
             .gesture(zoomGesture)
             .overlay(alignment: .bottomTrailing) { zoomControls }

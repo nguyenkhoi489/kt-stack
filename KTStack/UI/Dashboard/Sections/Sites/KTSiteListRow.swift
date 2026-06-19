@@ -7,6 +7,7 @@ struct KTSiteListRow: View {
     let availableVersions: [String]
     let canOpen: Bool
     let isSharing: Bool
+    var shareStarting: Bool = false
     var shareURL: URL? = nil
     let onOpen: () -> Void
     let onSetVersion: (String) -> Void
@@ -22,7 +23,7 @@ struct KTSiteListRow: View {
     @State private var hovering = false
 
     init(site: Site, availableVersions: [String], canOpen: Bool, isSharing: Bool,
-         shareURL: URL? = nil,
+         shareStarting: Bool = false, shareURL: URL? = nil,
          onOpen: @escaping () -> Void, onSetVersion: @escaping (String) -> Void,
          onSetSecure: @escaping (Bool) -> Void, onEditDomain: @escaping (String) throws -> Void,
          onOpenLogs: @escaping () -> Void, onToggleShare: @escaping (Bool) -> Void,
@@ -31,6 +32,7 @@ struct KTSiteListRow: View {
         self.availableVersions = availableVersions
         self.canOpen = canOpen
         self.isSharing = isSharing
+        self.shareStarting = shareStarting
         self.shareURL = shareURL
         self.onOpen = onOpen
         self.onSetVersion = onSetVersion
@@ -89,21 +91,22 @@ struct KTSiteListRow: View {
         .onChange(of: site.domain) { new in domainDraft = new; domainError = false }
     }
 
+    @ViewBuilder
     private var actionIcons: some View {
         HStack(spacing: 2) {
-            iconButton("doc.on.doc", help: "Copy site URL", tint: KTColor.ink3) {
-                let url = shareURL?.absoluteString ?? "\(site.secure ? "https" : "http")://\(site.domain)"
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(url, forType: .string)
-            }
-            iconButton(isSharing ? "antenna.radiowaves.left.and.right" : "antenna.radiowaves.left.and.right.slash",
-                       help: isSharing ? "Stop sharing via tunnel" : "Share via tunnel",
-                       tint: isSharing ? KTColor.accent : KTColor.ink3) {
-                onToggleShare(!isSharing)
-            }
-            if let shareURL {
-                TunnelQRCodeButton(url: shareURL)
-                    .foregroundStyle(KTColor.ink3)
+            if shareStarting {
+                ProgressView().controlSize(.small).frame(width: 28, height: 26)
+            } else if let shareURL {
+                iconButton("doc.on.doc", help: "Copy tunnel URL", tint: KTColor.ink3) {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(shareURL.absoluteString, forType: .string)
+                }
+                TunnelQRCodeButton(url: shareURL).foregroundStyle(KTColor.accent)
+                iconButton("antenna.radiowaves.left.and.right", help: "Stop sharing via tunnel",
+                           tint: KTColor.accent) { onToggleShare(false) }
+            } else {
+                iconButton("antenna.radiowaves.left.and.right.slash", help: "Share via tunnel",
+                           tint: KTColor.ink3) { onToggleShare(true) }
             }
         }
     }

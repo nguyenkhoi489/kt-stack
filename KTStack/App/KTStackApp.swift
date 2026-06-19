@@ -13,7 +13,9 @@ private struct MenuBarLaunchLabel: View {
                 guard !didLaunchWindow else { return }
                 didLaunchWindow = true
                 AppActivationPolicy.activateRegular()
-                openWindow(id: DashboardWindow.windowID)
+                if !AppActivationPolicy.focusExistingWindow(titled: "KTStack Dashboard") {
+                    openWindow(id: DashboardWindow.windowID)
+                }
                 DispatchQueue.main.async { AppActivationPolicy.activateRegular() }
             }
     }

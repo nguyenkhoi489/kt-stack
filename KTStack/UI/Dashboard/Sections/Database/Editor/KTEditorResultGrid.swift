@@ -8,24 +8,36 @@ struct KTEditorResultGrid: View {
     var onSelect: ((Int) -> Void)?
     var onActivate: ((Int) -> Void)?
 
-    private var columnWidths: [CGFloat] {
+    private var baseWidths: [CGFloat] {
         result.columns.enumerated().map { index, column in
             var longest = column.name.count
             for row in result.rows.prefix(80) {
                 if let text = row[safe: index]?.displayText { longest = max(longest, text.count) }
             }
-            return min(max(CGFloat(longest) * 7.6 + 28, 110), 320)
+            return min(max(CGFloat(longest) * 7.6 + 28, 110), 360)
         }
     }
 
+    private func resolvedWidths(available: CGFloat) -> [CGFloat] {
+        let base = baseWidths
+        let total = base.reduce(0, +)
+        guard total > 0, available > total else { return base }
+        let scale = available / total
+        return base.map { $0 * scale }
+    }
+
     var body: some View {
-        let widths = columnWidths
-        ScrollView([.horizontal, .vertical]) {
-            LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                Section { rows(widths) } header: { headerRow(widths) }
+        GeometryReader { geo in
+            let widths = resolvedWidths(available: geo.size.width)
+            let contentWidth = widths.reduce(0, +)
+            ScrollView([.horizontal, .vertical]) {
+                LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+                    Section { rows(widths) } header: { headerRow(widths) }
+                }
+                .frame(width: contentWidth, alignment: .leading)
             }
+            .background(KTColor.contentBg)
         }
-        .background(KTColor.contentBg)
     }
 
     private func headerRow(_ widths: [CGFloat]) -> some View {
