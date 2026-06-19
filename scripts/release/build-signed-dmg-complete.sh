@@ -19,8 +19,8 @@ if ! security find-identity -v -p codesigning | grep -q "44452PW7V3"; then
     exit 1
 fi
 
-if ! security find-generic-password -s "com.apple.gke.notary.tool" >/dev/null 2>&1; then
-    echo "❌ ERROR: Notary credential profile '$KEYCHAIN_PROFILE' not found in keychain"
+if ! xcrun notarytool history --keychain-profile "$KEYCHAIN_PROFILE" >/dev/null 2>&1; then
+    echo "❌ ERROR: Notary credential profile '$KEYCHAIN_PROFILE' is missing or invalid"
     echo "   The build would fail at Step 4 (notarize) after several minutes — set it up first:"
     echo "   xcrun notarytool store-credentials $KEYCHAIN_PROFILE \\"
     echo "       --apple-id <your-apple-id-email> --team-id 44452PW7V3 --password <app-specific-password>"
