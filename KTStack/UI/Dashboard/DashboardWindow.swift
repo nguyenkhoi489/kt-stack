@@ -56,7 +56,7 @@ struct DashboardWindow: View {
                                      caTrust: caTrust, updater: updater, uninstaller: uninstaller)
                             .navigationTitle("Settings")
         case .about:    AboutSettingsView().navigationTitle("About")
-        case .database: DatabaseSectionView()
+        case .database: KTDatabaseScreen()
         case .dumps:    DumpsPanelView()
         }
     }
