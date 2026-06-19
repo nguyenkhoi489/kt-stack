@@ -266,5 +266,10 @@ struct SettingsView: View {
 }
 
 private struct ShellIntegrationSheetBody: View {
-    var body: some View { ShellIntegrationView() }
+    var body: some View {
+        Form { ShellIntegrationView() }
+            .formStyle(.grouped)
+            .scrollContentBackground(.hidden)
+            .background(KTColor.contentBg)
+    }
 }

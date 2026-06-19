@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import KTStackKit
 
 struct KTSiteListRow: View {
@@ -6,6 +7,7 @@ struct KTSiteListRow: View {
     let availableVersions: [String]
     let canOpen: Bool
     let isSharing: Bool
+    var shareURL: URL? = nil
     let onOpen: () -> Void
     let onSetVersion: (String) -> Void
     let onSetSecure: (Bool) -> Void
@@ -20,6 +22,7 @@ struct KTSiteListRow: View {
     @State private var hovering = false
 
     init(site: Site, availableVersions: [String], canOpen: Bool, isSharing: Bool,
+         shareURL: URL? = nil,
          onOpen: @escaping () -> Void, onSetVersion: @escaping (String) -> Void,
          onSetSecure: @escaping (Bool) -> Void, onEditDomain: @escaping (String) throws -> Void,
          onOpenLogs: @escaping () -> Void, onToggleShare: @escaping (Bool) -> Void,
@@ -28,6 +31,7 @@ struct KTSiteListRow: View {
         self.availableVersions = availableVersions
         self.canOpen = canOpen
         self.isSharing = isSharing
+        self.shareURL = shareURL
         self.onOpen = onOpen
         self.onSetVersion = onSetVersion
         self.onSetSecure = onSetSecure
@@ -68,6 +72,8 @@ struct KTSiteListRow: View {
                 .help("Serve over HTTPS with a locally-trusted certificate")
                 .accessibilityLabel("Serve \(site.domain) over HTTPS")
 
+            actionIcons
+
             KTButton(title: "Open", kind: .secondary, action: onOpen)
                 .disabled(!canOpen)
 
@@ -81,6 +87,38 @@ struct KTSiteListRow: View {
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
         .onChange(of: site.domain) { new in domainDraft = new; domainError = false }
+    }
+
+    private var actionIcons: some View {
+        HStack(spacing: 2) {
+            iconButton("doc.on.doc", help: "Copy site URL", tint: KTColor.ink3) {
+                let url = shareURL?.absoluteString ?? "\(site.secure ? "https" : "http")://\(site.domain)"
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(url, forType: .string)
+            }
+            iconButton(isSharing ? "antenna.radiowaves.left.and.right" : "antenna.radiowaves.left.and.right.slash",
+                       help: isSharing ? "Stop sharing via tunnel" : "Share via tunnel",
+                       tint: isSharing ? KTColor.accent : KTColor.ink3) {
+                onToggleShare(!isSharing)
+            }
+            if let shareURL {
+                TunnelQRCodeButton(url: shareURL)
+                    .foregroundStyle(KTColor.ink3)
+            }
+        }
+    }
+
+    private func iconButton(_ symbol: String, help: String, tint: Color,
+                            action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(tint)
+                .frame(width: 28, height: 26)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
     }
 
     private func commitDomain() {
