@@ -13,8 +13,6 @@ struct KTDatabaseScreen: View {
     @State private var tab: Tab = .databases
     @State private var session = BackupSession.managed()
     @State private var backupSets: [BackupSet] = []
-    @State private var showConnect = false
-    @State private var showNewDatabase = false
     @State private var showImportExport = false
     @State private var restoringSet: BackupSet?
 
@@ -33,35 +31,6 @@ struct KTDatabaseScreen: View {
             }
         }
         .task { await autoConnectIfNeeded(); reloadBackups() }
-        .overlay { connectOverlay }
-        .overlay { newDatabaseOverlay }
-        .animation(.easeOut(duration: 0.15), value: showConnect)
-        .animation(.easeOut(duration: 0.15), value: showNewDatabase)
-    }
-
-    @ViewBuilder
-    private var connectOverlay: some View {
-        if showConnect {
-            KTConnectModal(onClose: { showConnect = false },
-                           onConnected: { name in
-                               showConnect = false
-                               reloadBackups()
-                               overlay.toast("Connected to \(name)")
-                           })
-                .transition(.opacity)
-        }
-    }
-
-    @ViewBuilder
-    private var newDatabaseOverlay: some View {
-        if showNewDatabase {
-            KTNewDatabaseModal(onClose: { showNewDatabase = false },
-                               onCreated: { name in
-                                   showNewDatabase = false
-                                   overlay.toast("Database “\(name)” created")
-                               })
-                .transition(.opacity)
-        }
     }
 
     private func confirmDeleteBackup(_ set: BackupSet) {
@@ -79,10 +48,12 @@ struct KTDatabaseScreen: View {
             Text("Database").font(KTType.screenTitle).tracking(KTType.screenTitleTracking).foregroundStyle(KTColor.ink)
             KTPill(text: "\(vm.databases.count) databases")
             Spacer()
-            KTButton(title: "Connect", systemImage: "link", kind: .secondary) { showConnect = true }
+            KTButton(title: "Connect", systemImage: "link", kind: .secondary) { overlay.connectPresented = true }
+            KTButton(title: "Import", systemImage: "square.and.arrow.down", kind: .secondary) { showImportExport = true }
+                .disabled(vm.connection != .connected || !(vm.canDump || vm.canManualImport))
             KTButton(title: "Backup All", systemImage: "tray.and.arrow.down", kind: .secondary) { backupAll() }
                 .disabled(vm.connection != .connected)
-            KTButton(title: "New Database", systemImage: "plus", kind: .primary) { showNewDatabase = true }
+            KTButton(title: "New Database", systemImage: "plus", kind: .primary) { overlay.newDatabasePresented = true }
                 .disabled(vm.connection != .connected || !vm.canCreateDatabase)
         }
     }
@@ -166,7 +137,7 @@ struct KTDatabaseScreen: View {
             Image(systemName: "cylinder.split.1x2").font(.system(size: 46, weight: .light)).foregroundStyle(KTColor.faint)
             Text(gateTitle).font(.system(size: 17, weight: .semibold)).foregroundStyle(KTColor.ink3)
             Text(gateMessage).font(.system(size: 13)).foregroundStyle(KTColor.muted).multilineTextAlignment(.center)
-            KTButton(title: "Connect", systemImage: "link", kind: .primary) { showConnect = true }.padding(.top, 4)
+            KTButton(title: "Connect", systemImage: "link", kind: .primary) { overlay.connectPresented = true }.padding(.top, 4)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

@@ -8,15 +8,14 @@ struct AboutSettingsView: View {
     private var versionLine: String {
         let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""
-        let arch = ProcessInfo.processInfo.machineIsAppleSilicon ? "Apple Silicon" : "Intel"
         let buildPart = build.isEmpty ? "" : " · Build \(build)"
-        return "Version \(short)\(buildPart) · \(arch)"
+        return "Version \(short)\(buildPart) · Minh Trang"
     }
 
     var body: some View {
         VStack(spacing: 0) {
             appIcon
-            Text("KTStack").font(.system(size: 28, weight: .bold)).tracking(-0.6).foregroundStyle(KTColor.ink)
+            Text("KTStack").font(.system(size: 24, weight: .bold)).tracking(-0.6).foregroundStyle(KTColor.ink)
                 .padding(.top, 20)
             Text(versionLine).font(.system(size: 14)).foregroundStyle(Color(hex: 0x8E8E93)).padding(.top, 6)
             Text("A blazing-fast local development environment for macOS. Run unlimited sites, switch PHP & Node versions instantly, and inspect everything in one place.")
@@ -72,14 +71,3 @@ struct AboutSettingsView: View {
     }
 }
 
-private extension ProcessInfo {
-    var machineIsAppleSilicon: Bool {
-        var info = utsname()
-        uname(&info)
-        let machine = withUnsafeBytes(of: &info.machine) { raw -> String in
-            let bytes = raw.prefix { $0 != 0 }
-            return String(decoding: bytes, as: UTF8.self)
-        }
-        return machine.hasPrefix("arm")
-    }
-}

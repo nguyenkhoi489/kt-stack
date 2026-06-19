@@ -30,7 +30,6 @@ private struct KTSitesContent: View {
     @State private var gridView = false
     @State private var showScan = false
     @State private var showImport = false
-    @State private var showNew = false
     @State private var showAdd = false
     @State private var removingSiteID: UUID?
     @State private var actionError: String?
@@ -48,7 +47,7 @@ private struct KTSitesContent: View {
             KTSitesHeader(siteCount: registry.sites.count,
                           onScan: { showScan = true },
                           onImport: { showImport = true },
-                          onNewSite: { showNew = true },
+                          onNewSite: { overlay.newSitePresented = true },
                           onAddExisting: { showAdd = true })
                 .padding(.horizontal, KTSpacing.screenGutter)
                 .padding(.top, 18)
@@ -82,19 +81,6 @@ private struct KTSitesContent: View {
         .sheet(isPresented: $showScan) { ScanImportSheet(registry: registry, sitesRoot: preferences.sitesRootURL) }
         .sheet(isPresented: $showImport) { MigrateImportSheet(registry: registry, availableVersions: server.availableVersions) }
         .sheet(isPresented: $showAdd) { AddSiteSheet(registry: registry, availableVersions: server.availableVersions, sitesRoot: preferences.sitesRootURL) }
-        .overlay {
-            if showNew {
-                KTModalCard(icon: "plus.app", tint: KTIconTint.cube,
-                            title: "New Site", subtitle: "Create a new local development site",
-                            width: 680, onClose: { showNew = false }) {
-                    KTNewSiteForm(registry: registry, availableVersions: server.availableVersions,
-                                  sitesRoot: preferences.sitesRootURL, tld: registry.tld,
-                                  defaultHTTPS: preferences.serveHTTPSByDefault,
-                                  onClose: { showNew = false })
-                }
-                .transition(.opacity)
-            }
-        }
     }
 
     private var serverStatusRow: some View {

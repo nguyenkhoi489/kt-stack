@@ -34,14 +34,48 @@ struct DashboardWindow: View {
             detail(for: selection)
         }
         .environmentObject(overlay)
-        .overlay {
-            if overlay.databaseEditorPresented {
-                KTDatabaseEditorModal(onClose: { overlay.databaseEditorPresented = false })
-                    .transition(.opacity)
-            }
-        }
+        .overlay { windowModals }
         .animation(.easeOut(duration: 0.15), value: overlay.databaseEditorPresented)
+        .animation(.easeOut(duration: 0.15), value: overlay.newSitePresented)
+        .animation(.easeOut(duration: 0.15), value: overlay.connectPresented)
+        .animation(.easeOut(duration: 0.15), value: overlay.newDatabasePresented)
         .ktOverlayHost(overlay)
+    }
+
+    @ViewBuilder
+    private var windowModals: some View {
+        if overlay.databaseEditorPresented {
+            KTDatabaseEditorModal(onClose: { overlay.databaseEditorPresented = false })
+                .transition(.opacity)
+        }
+        if overlay.newSitePresented {
+            KTModalCard(icon: "plus.app", tint: KTIconTint.cube,
+                        title: "New Site", subtitle: "Create a new local development site",
+                        width: 680, onClose: { overlay.newSitePresented = false }) {
+                KTNewSiteForm(registry: server.registry,
+                              availableVersions: server.availableVersions,
+                              sitesRoot: preferences.sitesRootURL, tld: server.registry.tld,
+                              defaultHTTPS: preferences.serveHTTPSByDefault,
+                              onClose: { overlay.newSitePresented = false })
+            }
+            .transition(.opacity)
+        }
+        if overlay.connectPresented {
+            KTConnectModal(onClose: { overlay.connectPresented = false },
+                           onConnected: { name in
+                               overlay.connectPresented = false
+                               overlay.toast("Connected to \(name)")
+                           })
+                .transition(.opacity)
+        }
+        if overlay.newDatabasePresented {
+            KTNewDatabaseModal(onClose: { overlay.newDatabasePresented = false },
+                               onCreated: { name in
+                                   overlay.newDatabasePresented = false
+                                   overlay.toast("Database “\(name)” created")
+                               })
+                .transition(.opacity)
+        }
     }
 
     private var versionText: String {

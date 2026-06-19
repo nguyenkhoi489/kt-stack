@@ -3,6 +3,22 @@ import AppKit
 import ServiceManagement
 import KTStackKit
 
+private struct MenuBarLaunchLabel: View {
+    @Environment(\.openWindow) private var openWindow
+    @State private var didLaunchWindow = false
+
+    var body: some View {
+        Image("MenuBarGlyph")
+            .onAppear {
+                guard !didLaunchWindow else { return }
+                didLaunchWindow = true
+                AppActivationPolicy.activateRegular()
+                openWindow(id: DashboardWindow.windowID)
+                DispatchQueue.main.async { AppActivationPolicy.activateRegular() }
+            }
+    }
+}
+
 @main
 struct KTStackApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
@@ -15,13 +31,14 @@ struct KTStackApp: App {
 
     var body: some Scene {
 
-        MenuBarExtra("KTStack", image: "MenuBarGlyph",
-                     isInserted: Binding(get: { showInMenuBar }, set: { _ in })) {
+        MenuBarExtra(isInserted: Binding(get: { showInMenuBar }, set: { _ in })) {
             MenuBarContentView()
                 .environmentObject(appDelegate.server)
                 .environmentObject(appDelegate.services)
                 .environmentObject(appDelegate.runtimes)
                 .environmentObject(appDelegate.updater)
+        } label: {
+            MenuBarLaunchLabel()
         }
         .menuBarExtraStyle(.window)
 
@@ -42,7 +59,7 @@ struct KTStackApp: App {
                 .environmentObject(appDelegate.documentViewModel)
                 .environmentObject(appDelegate.tunnels)
         }
-        .defaultSize(width: 1280, height: 720)
+        .defaultSize(width: 1440, height: 820)
         .windowResizability(.contentMinSize)
 
         Window("Database", id: DatabaseWindow.windowID) {

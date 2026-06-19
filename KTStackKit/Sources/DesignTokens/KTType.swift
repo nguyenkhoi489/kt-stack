@@ -1,8 +1,8 @@
 import SwiftUI
 
 public enum KTType {
-    public static let screenTitle = Font.system(size: 25, weight: .bold)
-    public static let modalTitle = Font.system(size: 20, weight: .bold)
+    public static let screenTitle = Font.system(size: 22, weight: .bold)
+    public static let modalTitle = Font.system(size: 18, weight: .bold)
     public static let cardName = Font.system(size: 15, weight: .semibold)
     public static let rowName = Font.system(size: 14.5, weight: .semibold)
     public static let label = Font.system(size: 14, weight: .semibold)
