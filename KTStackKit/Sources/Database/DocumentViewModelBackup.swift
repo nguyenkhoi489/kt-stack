@@ -30,7 +30,10 @@ public extension DocumentViewModel {
     }
 
     func backupDatabase(_ database: String, session: BackupSession) async -> BackupSet? {
-        guard let profile = selectedProfile else { return nil }
+        guard let profile = selectedProfile else {
+            backupStatus = .failed("Connect to a database before backing up.")
+            return nil
+        }
         backupStatus = .running("Backing up \(database)…")
         do {
             let set = try await session.create(profile: profile, password: passwordFor(profile),
@@ -44,7 +47,10 @@ public extension DocumentViewModel {
     }
 
     func backupAllDatabases(session: BackupSession) async -> BackupSet? {
-        guard let profile = selectedProfile, let driver else { return nil }
+        guard let profile = selectedProfile, let driver else {
+            backupStatus = .failed("Connect to a database before backing up.")
+            return nil
+        }
         backupStatus = .running("Listing databases…")
         let names: [String]
         do {

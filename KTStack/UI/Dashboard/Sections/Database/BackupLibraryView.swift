@@ -40,6 +40,9 @@ struct BackupLibraryView<VM: AnyObject>: View {
         }
         .frame(width: 560, height: 480)
         .onAppear { reload() }
+        .onChange(of: backupStatus) { status in
+            if case .done = status { reload() }
+        }
         .sheet(item: $restoringSet) { set in restoreSheet(set) }
         .alert("Restore All Databases?",
                isPresented: .init(get: { confirmingRestoreAllSet != nil },
