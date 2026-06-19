@@ -8,7 +8,7 @@ struct KTStackApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     init() {
-
+        LegacyKDWarmMigration.runIfNeeded()
         UserDefaults.standard.register(defaults: ["NSQuitAlwaysKeepsWindows": false])
     }
 
@@ -127,8 +127,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             existing.activate(options: [.activateAllWindows])
             exit(0)
         }
-
-        LegacyKDWarmMigration.runIfNeeded()
 
         NSApp.setActivationPolicy(.accessory)
         NotificationCenter.default.addObserver(
