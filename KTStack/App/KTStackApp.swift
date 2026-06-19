@@ -40,7 +40,7 @@ struct KTStackApp: App {
                 .environmentObject(appDelegate.documentViewModel)
                 .environmentObject(appDelegate.tunnels)
         }
-        .defaultSize(width: 920, height: 600)
+        .defaultSize(width: 1280, height: 720)
         .windowResizability(.contentMinSize)
 
         Window("Database", id: DatabaseWindow.windowID) {
@@ -50,7 +50,7 @@ struct KTStackApp: App {
                 .environmentObject(appDelegate.databaseViewModel)
                 .environmentObject(appDelegate.documentViewModel)
         }
-        .defaultSize(width: 1180, height: 760)
+        .defaultSize(width: 1280, height: 720)
         .windowResizability(.contentMinSize)
 
         Settings {
