@@ -65,24 +65,7 @@ public struct RuntimeCatalog: Sendable {
 
     public func availableReleases(_ lang: RuntimeLanguage) -> [RuntimeRelease] {
         let installed = Set(installedVersions(lang))
-        return Self.manifest.filter { release in
-            guard release.language == lang else { return false }
-            if !installed.contains(release.version) { return true }
-            return lang == .php && needsMigration(release.version)
-        }
-    }
-
-    private func sourceMarker(_ version: String) -> URL {
-        paths.runtimeDir("php", version).appendingPathComponent(".ktstack-source")
-    }
-
-    public func needsMigration(_ version: String) -> Bool {
-        guard isInstalled(.php, version) else { return false }
-        return !FileManager.default.fileExists(atPath: sourceMarker(version).path)
-    }
-
-    public func markBottleSource(_ version: String) {
-        try? "bottle\n".write(to: sourceMarker(version), atomically: true, encoding: .utf8)
+        return Self.manifest.filter { $0.language == lang && !installed.contains($0.version) }
     }
 
     static let phpRuntimeVersions = ["7.4", "8.0", "8.1", "8.2", "8.3", "8.4"]
