@@ -60,6 +60,8 @@ public final class RuntimeManager: ObservableObject {
         guard !isDownloading(release.language) else { return }
         downloads[release.language] = DownloadState(version: release.version, received: 0, total: -1)
         let downloader = self.downloader
+        let paths = self.paths
+        let catalog = self.catalog
         let lang = release.language
         let version = release.version
         tasks[lang] = Task { [weak self] in
@@ -72,8 +74,12 @@ public final class RuntimeManager: ObservableObject {
                         self?.downloads[lang]?.total = progress.total
                     }
                 }
-           
-                if lang == .php { PHPModules.invalidate(version: version) }
+
+                if lang == .php {
+                    PHPModules.invalidate(version: version)
+                    try? PHPExtensionInstaller(paths: paths).writeExtensionDirIni(phpVersion: version)
+                    catalog.markBottleSource(version)
+                }
                 await self?.finish(lang, error: nil)
             } catch is CancellationError {
                 await self?.finish(lang, error: nil)

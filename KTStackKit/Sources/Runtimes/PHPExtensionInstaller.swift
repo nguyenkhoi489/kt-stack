@@ -110,11 +110,21 @@ public struct PHPExtensionInstaller: Sendable {
         try FileManager.default.copyItem(at: local, to: dest)
     }
 
-    
-    public func finishInstall(extID: String, phpVersion: String) throws {
-        try writeExtensionDirIni(phpVersion: phpVersion)
+    public func writeExtensionLoadIni(extID: String, phpVersion: String) throws {
         try iniContent(forExtID: extID, phpVersion: phpVersion)
             .write(to: extensionIniURL(extID: extID, phpVersion: phpVersion), atomically: true, encoding: .utf8)
+    }
+
+    public func removeExtensionLoadIni(extID: String, phpVersion: String) {
+        let url = extensionIniURL(extID: extID, phpVersion: phpVersion)
+        if FileManager.default.fileExists(atPath: url.path) {
+            try? FileManager.default.removeItem(at: url)
+        }
+    }
+
+    public func finishInstall(extID: String, phpVersion: String) throws {
+        try writeExtensionDirIni(phpVersion: phpVersion)
+        try writeExtensionLoadIni(extID: extID, phpVersion: phpVersion)
     }
 
     @discardableResult
@@ -138,11 +148,17 @@ public struct PHPExtensionInstaller: Sendable {
                         onProgress: @escaping @Sendable (RuntimeDownloader.Progress) -> Void = { _ in })
         async throws -> InstallResult {
         try await installSharedObjectOnly(extID, phpVersion: phpVersion, onProgress: onProgress)
-        try finishInstall(extID: extID, phpVersion: phpVersion)
+        try writeExtensionDirIni(phpVersion: phpVersion)
         PHPModules.invalidate(version: phpVersion)
 
         let (loaded, warning) = verifyLoad(extID: extID, phpVersion: phpVersion)
-        return loaded ? .installed : .installedButFailedToLoad(warning: warning)
+        guard loaded else {
+            removeExtensionLoadIni(extID: extID, phpVersion: phpVersion)
+            return .installedButFailedToLoad(warning: warning)
+        }
+        try writeExtensionLoadIni(extID: extID, phpVersion: phpVersion)
+        PHPModules.invalidate(version: phpVersion)
+        return .installed
     }
 
   

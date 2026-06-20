@@ -52,10 +52,14 @@ final class PHPExtensionCatalogTests: XCTestCase {
     private let catalog = PHPExtensionCatalog(paths: AppSupportPaths())
 
     func testStatusBuiltInIsAlwaysBuiltIn() {
+        let intl = PHPExtensionCatalog.descriptor("intl")!
+        XCTAssertTrue(intl.isBuiltIn)
+        XCTAssertEqual(catalog.status(intl, phpVersion: "8.4", installed: [], soOnDisk: false), .builtIn)
+    }
+
+    func testRedisIsOptionalNotBuiltIn() {
         let redis = PHPExtensionCatalog.descriptor("redis")!
-        XCTAssertTrue(redis.isBuiltIn)
-        // Built-in is compiled into the base — status-only, regardless of php -m / disk.
-        XCTAssertEqual(catalog.status(redis, phpVersion: "8.4", installed: [], soOnDisk: false), .builtIn)
+        XCTAssertFalse(redis.isBuiltIn)
     }
 
     func testXMLWriterIsTrackedAsBuiltIn() {

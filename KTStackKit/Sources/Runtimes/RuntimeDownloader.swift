@@ -88,9 +88,13 @@ public struct RuntimeDownloader: Sendable {
         try fm.createDirectory(at: modulesDir, withIntermediateDirectories: true,
                                attributes: [.posixPermissions: 0o700])
         let dest = modulesDir.appendingPathComponent(soName)
-        if fm.fileExists(atPath: dest.path) { try fm.removeItem(at: dest) }   // replace THIS .so only
-        try fm.moveItem(at: src, to: dest)
-        Self.stripQuarantine(dest)                // ad-hoc-signed .so is quarantined by URLSession
+        let payloadItems = try fm.contentsOfDirectory(at: payload, includingPropertiesForKeys: nil)
+        for item in payloadItems {
+            let target = modulesDir.appendingPathComponent(item.lastPathComponent)
+            if fm.fileExists(atPath: target.path) { try fm.removeItem(at: target) }
+            try fm.moveItem(at: item, to: target)
+            Self.stripQuarantine(target)          // ad-hoc-signed .so + private dylibs are quarantined by URLSession
+        }
         return dest
     }
 
