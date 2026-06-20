@@ -8,10 +8,10 @@ struct KTServicesScreen: View {
     @EnvironmentObject private var services: ServiceManager
     @EnvironmentObject private var dns: DNSAutomationService
     @EnvironmentObject private var overlay: KTOverlayCenter
+    @EnvironmentObject private var caTrust: CATrustService
 
-    private let paths = AppSupportPaths()
-    @State private var caExists = false
-    @State private var caTrusted = false
+    private var caExists: Bool { caTrust.status != .notInstalled }
+    private var caTrusted: Bool { caTrust.isTrusted }
 
     private static let groups: [(title: String, kinds: [ServiceKind])] = [
         ("Core Proxy & DNS", [.nginx, .dnsmasq]),
@@ -55,7 +55,7 @@ struct KTServicesScreen: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(KTColor.contentBg)
-        .task { await refreshCATrustLoop() }
+        .task { await caTrust.refreshAsync() }
     }
 
     private var header: some View {
@@ -95,20 +95,6 @@ struct KTServicesScreen: View {
             snapshots: services.snapshots, dns: dns, caTrusted: caTrusted, caExists: caExists,
             onEnableDNS: { dns.enable() }, onResetDNS: { dns.reset() },
             onOpenTLSSettings: { onNavigate(.settings) }, onRestart: { services.restart($0) })
-    }
-
-    private func refreshCATrustLoop() async {
-        let caCert = paths.caRootCert
-        while !Task.isCancelled {
-            let exists = FileManager.default.fileExists(atPath: caCert.path)
-            var trusted = false
-            if exists {
-                trusted = await Task.detached { CATrustService.isTrustedInSystemKeychain(caCert: caCert) }.value
-            }
-            if exists != caExists { caExists = exists }
-            if trusted != caTrusted { caTrusted = trusted }
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-        }
     }
 
     private static func logSourceID(for kind: ServiceKind) -> String? {

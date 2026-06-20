@@ -32,6 +32,13 @@ public final class CATrustService: ObservableObject {
         status = Self.isTrustedInSystemKeychain(caCert: paths.caRootCert) ? .trusted : .untrusted
     }
 
+    public func refreshAsync() async {
+        guard runner.caExists else { status = .notInstalled; return }
+        let caCert = paths.caRootCert
+        let trusted = await Task.detached { Self.isTrustedInSystemKeychain(caCert: caCert) }.value
+        status = trusted ? .trusted : .untrusted
+    }
+
     public func install() { run { try self.runner.install() } }
 
    
