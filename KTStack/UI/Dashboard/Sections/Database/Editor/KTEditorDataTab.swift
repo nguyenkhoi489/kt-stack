@@ -26,10 +26,10 @@ struct KTEditorDataTab: View {
         if table == nil {
             emptyState
         } else if let result = vm.result, vm.isTableBrowse {
-            KTEditorResultGrid(result: result,
-                               selectedRow: selectedRow,
-                               onSelect: { selectedRow = $0 },
-                               onActivate: { if vm.canEditRows { editor = .edit($0) } })
+            KTDataGrid(result: result,
+                       selectedRow: $selectedRow,
+                       onActivate: { if vm.canEditRows { editor = .edit($0) } },
+                       onNearEnd: { Task { await vm.loadMoreRows() } })
             footer(result)
         } else if let error = vm.resultError {
             messageState(icon: "exclamationmark.triangle", title: "Couldn’t load rows", message: error)
@@ -51,7 +51,6 @@ struct KTEditorDataTab: View {
                         .font(.jbMono(12.5)).foregroundStyle(KTColor.muted)
                 }
                 Spacer()
-                pager
                 if vm.canEditRows {
                     rowActions
                 }
@@ -85,15 +84,6 @@ struct KTEditorDataTab: View {
         }
     }
 
-    private var pager: some View {
-        HStack(spacing: 4) {
-            iconButton("chevron.left") { Task { await vm.previousPage(); selectedRow = nil } }
-                .disabled(vm.pageOffset == 0 || vm.isBusy)
-            iconButton("chevron.right") { Task { await vm.nextPage(); selectedRow = nil } }
-                .disabled(!vm.hasMorePages || vm.isBusy)
-        }
-    }
-
     private func iconButton(_ symbol: String, tint: Color = Color(hex: 0x86868F),
                             action: @escaping () -> Void) -> some View {
         Button(action: action) {
@@ -107,14 +97,16 @@ struct KTEditorDataTab: View {
     }
 
     private func rowCountLabel(_ result: QueryResult) -> String {
-        if vm.pageOffset == 0 && !vm.hasMorePages { return "\(result.rowCount) rows" }
-        return "\(result.rowCount) rows on this page"
+        "\(result.rowCount) row\(result.rowCount == 1 ? "" : "s") loaded"
     }
 
     private func footer(_ result: QueryResult) -> some View {
         HStack(spacing: 8) {
-            Text("Showing rows \(vm.pageOffset + 1)–\(vm.pageOffset + result.rowCount)\(vm.hasMorePages ? " · more available" : "")")
+            Text("\(result.rowCount) rows loaded\(vm.hasMorePages ? " · scroll for more" : "")")
                 .font(.jbMono(12)).foregroundStyle(KTColor.muted)
+            if vm.isFetchingMore {
+                ProgressView().controlSize(.small).scaleEffect(0.7)
+            }
             Spacer()
         }
         .padding(.horizontal, 16).padding(.vertical, 8)

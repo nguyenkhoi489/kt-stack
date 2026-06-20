@@ -38,7 +38,7 @@ public extension DatabaseViewModel {
         isBusy = true
         do {
             try await op(driver, database, table.name)
-            await loadPage()
+            await reloadAfterWrite()
         } catch {
             editError = Self.asDatabaseError(error).message
             isBusy = false

@@ -32,8 +32,12 @@ public final class DatabaseViewModel: ObservableObject {
  
     @Published public internal(set) var isBusy = false
     @Published public private(set) var pageOffset = 0
-    
+
     @Published public internal(set) var hasMorePages = false
+
+    @Published public internal(set) var isFetchingMore = false
+
+    private var isIncrementalBrowse = false
 
     @Published public internal(set) var currentColumns: [ColumnInfo] = []
 
@@ -127,7 +131,8 @@ public final class DatabaseViewModel: ObservableObject {
         resetQueryWorkspace()
         currentColumns = []; currentIndexes = []
         schemaCatalog = .empty
-        pageOffset = 0; hasMorePages = false; isBusy = false
+        pageOffset = 0; hasMorePages = false; isBusy = false; isFetchingMore = false
+        isIncrementalBrowse = false
         if let previousDriver { Task { await previousDriver.closeSession() } }
     }
 
@@ -230,6 +235,7 @@ public final class DatabaseViewModel: ObservableObject {
         guard let driver, let database = selectedDatabase else { return }
         selectedTable = table
         pageOffset = 0
+        isIncrementalBrowse = false
         currentColumns = []
         currentIndexes = []
         let token = beginOperation()
@@ -249,14 +255,78 @@ public final class DatabaseViewModel: ObservableObject {
 
     public func nextPage() async {
         guard hasMorePages else { return }
+        isIncrementalBrowse = false
         pageOffset += pageSize
         await loadPage()
     }
 
     public func previousPage() async {
         guard pageOffset > 0 else { return }
+        isIncrementalBrowse = false
         pageOffset = max(0, pageOffset - pageSize)
         await loadPage()
+    }
+
+    public func loadMoreRows() async {
+        guard hasMorePages, !isFetchingMore,
+              let driver, let database = selectedDatabase, let table = selectedTable,
+              let current = result, case .table = resultSource else { return }
+        let token = generation
+        let expectedColumns = current.columns
+        let nextOffset = pageOffset + pageSize
+        isFetchingMore = true
+        defer { isFetchingMore = false }
+        do {
+            let page = try await driver.paginatedRows(
+                database: database, table: table.name, limit: pageSize + 1, offset: nextOffset)
+            guard token == generation, let latest = result, latest.columns == expectedColumns else { return }
+            if page.rows.isEmpty {
+                hasMorePages = false
+                return
+            }
+            guard page.columns == expectedColumns else { return }
+            let hasMore = page.rowCount > pageSize
+            let appended = hasMore ? Array(page.rows.prefix(pageSize)) : page.rows
+            result = QueryResult(columns: latest.columns, rows: latest.rows + appended)
+            pageOffset = nextOffset
+            hasMorePages = hasMore
+            isIncrementalBrowse = true
+        } catch {
+            return
+        }
+    }
+
+    func reloadAfterWrite() async {
+        if isIncrementalBrowse {
+            await reloadLoadedRows()
+        } else {
+            await loadPage()
+        }
+    }
+
+    private func reloadLoadedRows() async {
+        guard let driver, let database = selectedDatabase, let table = selectedTable,
+              let current = result else { return }
+        let loadedCount = current.rowCount
+        let token = beginOperation()
+        do {
+            let page = try await driver.paginatedRows(
+                database: database, table: table.name, limit: loadedCount + 1, offset: 0)
+            guard token == generation else { return }
+            let hasMore = page.rowCount > loadedCount
+            result = hasMore
+                ? QueryResult(columns: page.columns, rows: Array(page.rows.prefix(loadedCount)))
+                : page
+            resultError = nil
+            resultSource = .table(database: database, table: table.name)
+            hasMorePages = hasMore
+            pageOffset = max(0, (result?.rowCount ?? 0) - pageSize)
+            isIncrementalBrowse = true
+        } catch {
+            guard token == generation else { return }
+            resultError = Self.asDatabaseError(error).message
+        }
+        if token == generation { isBusy = false }
     }
 
     func loadPage() async {
@@ -289,6 +359,7 @@ public final class DatabaseViewModel: ObservableObject {
     private func beginOperation() -> Int {
         generation += 1
         isBusy = true
+        isFetchingMore = false
         return generation
     }
 

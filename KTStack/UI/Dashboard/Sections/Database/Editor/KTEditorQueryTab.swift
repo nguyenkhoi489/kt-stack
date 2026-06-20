@@ -75,7 +75,7 @@ struct KTEditorQueryTab: View {
         if let error = vm.activeQueryTab?.resultError {
             messageState(icon: "exclamationmark.triangle", title: "SQL error", message: error)
         } else if let result = vm.activeQueryTab?.result {
-            KTEditorResultGrid(result: result)
+            KTDataGrid(result: result)
         } else {
             messageState(icon: "terminal", title: "Run a query", message: "Type SQL above and press ⌘↩ to see results here.")
         }
