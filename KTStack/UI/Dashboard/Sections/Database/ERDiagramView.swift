@@ -65,8 +65,8 @@ struct ERDiagramView: View {
                         y: pan.height + gesturePan.height)
             }
             .contentShape(Rectangle())
-            .gesture(panGesture)
-            .gesture(zoomGesture)
+            .simultaneousGesture(panGesture)
+            .simultaneousGesture(zoomGesture)
             .overlay(alignment: .bottomTrailing) { zoomControls }
         }
     }
@@ -108,7 +108,7 @@ struct ERDiagramView: View {
     private func tableNodeView(_ node: ERTableNode) -> some View {
         VStack(spacing: 0) {
             Text(node.table)
-                .font(.jbMono(15, .semibold))
+                .font(.jbMono(15, .regular))
                 .padding(.horizontal, KDSpacing.space2)
                 .padding(.vertical, 4)
                 .frame(maxWidth: .infinity, alignment: .leading)
