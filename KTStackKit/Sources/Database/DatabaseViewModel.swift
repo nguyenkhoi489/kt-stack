@@ -117,6 +117,7 @@ public final class DatabaseViewModel: ObservableObject {
 
 
     public func deselect() {
+        let previousDriver = driver
         generation += 1
         connection = .idle
         selectedProfile = nil
@@ -127,6 +128,7 @@ public final class DatabaseViewModel: ObservableObject {
         currentColumns = []; currentIndexes = []
         schemaCatalog = .empty
         pageOffset = 0; hasMorePages = false; isBusy = false
+        if let previousDriver { Task { await previousDriver.closeSession() } }
     }
 
     func clearSelectedDatabase() {
@@ -139,6 +141,7 @@ public final class DatabaseViewModel: ObservableObject {
     }
 
     public func select(profile: ConnectionProfile) async {
+        let previousDriver = driver
         let token = beginOperation()
         selectedProfile = profile
         databases = []; tables = []; selectedDatabase = nil; selectedTable = nil
@@ -146,6 +149,7 @@ public final class DatabaseViewModel: ObservableObject {
         clearQueryTabResults()
         schemaCatalog = .empty
         connection = .connecting
+        await previousDriver?.closeSession()
 
         guard let driver = makeDriver(profile, passwordFor(profile)) else {
             connection = .failed(.connection("Unsupported engine: \(profile.kind.rawValue)"))
@@ -157,6 +161,7 @@ public final class DatabaseViewModel: ObservableObject {
             try await driver.ping()
             let dbs = try await driver.listDatabases()
             guard token == generation else { return }
+            try? await driver.openSession()
             databases = dbs
             connection = .connected
         } catch {
@@ -259,12 +264,15 @@ public final class DatabaseViewModel: ObservableObject {
         let token = beginOperation()
         do {
             let page = try await driver.paginatedRows(
-                database: database, table: table.name, limit: pageSize, offset: pageOffset)
+                database: database, table: table.name, limit: pageSize + 1, offset: pageOffset)
             guard token == generation else { return }
-            result = page
+            let hasMore = page.rowCount > pageSize
+            result = hasMore
+                ? QueryResult(columns: page.columns, rows: Array(page.rows.prefix(pageSize)))
+                : page
             resultError = nil
             resultSource = .table(database: database, table: table.name)
-            hasMorePages = page.rowCount == pageSize
+            hasMorePages = hasMore
         } catch {
             guard token == generation else { return }
             result = nil

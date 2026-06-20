@@ -20,6 +20,12 @@ public protocol RelationalDriver: DatabaseDriver {
 
     func paginatedRows(database: String, table: String, limit: Int, offset: Int) async throws -> QueryResult
 
+    func openSession() async throws
+
+    func closeSession() async
+
+    func runSelect(_ statement: DMLStatement, database: String?) async throws -> QueryResult
+
     func insert(database: String, table: String, values: [ColumnValue]) async throws
 
     func update(database: String, table: String, values: [ColumnValue], key: [ColumnValue]) async throws

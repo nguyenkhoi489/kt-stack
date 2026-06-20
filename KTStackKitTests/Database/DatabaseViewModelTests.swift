@@ -17,6 +17,9 @@ final class DatabaseViewModelTests: XCTestCase {
         var writeShouldThrow: DatabaseError?
         private(set) var queryCalls: [(sql: String, database: String?)] = []
         private(set) var paginateCalls: [(database: String, table: String, limit: Int, offset: Int)] = []
+        private(set) var openSessionCalls = 0
+        private(set) var closeSessionCalls = 0
+        private(set) var runSelectCalls: [DMLStatement] = []
         private(set) var insertCalls: [[ColumnValue]] = []
         private(set) var updateCalls: [(values: [ColumnValue], key: [ColumnValue])] = []
         private(set) var deleteCalls: [[ColumnValue]] = []
@@ -58,6 +61,15 @@ final class DatabaseViewModelTests: XCTestCase {
             // Return a full page so the VM reports `hasMorePages`.
             let rows = (0..<limit).map { _ in [Cell.int(Int64(offset))] }
             return QueryResult(columns: [ColumnMeta(name: "id")], rows: rows)
+        }
+
+        func openSession() async throws { openSessionCalls += 1 }
+        func closeSession() async { closeSessionCalls += 1 }
+
+        func runSelect(_ statement: DMLStatement, database: String?) async throws -> QueryResult {
+            runSelectCalls.append(statement)
+            if let queryShouldThrow { throw queryShouldThrow }
+            return QueryResult(columns: [ColumnMeta(name: "n")], rows: [[.int(1)]])
         }
 
         func insert(database: String, table: String, values: [ColumnValue]) async throws {

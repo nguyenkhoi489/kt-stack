@@ -18,6 +18,7 @@ public struct PostgresDriver: RelationalDriver {
     let catalog: ServiceBinaryCatalog
     let dialect = SQLDialect.forKind(.postgres)
     let logger = Logger(label: "ktstack.postgres")
+    let session: ConnectionSession
 
     public init(profile: ConnectionProfile,
                 password: String?,
@@ -25,6 +26,15 @@ public struct PostgresDriver: RelationalDriver {
         self.profile = profile
         self.password = password
         self.catalog = catalog
+        let capturedProfile = profile
+        let capturedPassword = password
+        let capturedLogger = logger
+        self.session = ConnectionSession {
+            let connection = try await PostgresDriver.establishConnection(
+                profile: capturedProfile, password: capturedPassword, logger: capturedLogger)
+            return PostgresSessionConnection(connection: connection, logger: capturedLogger,
+                                             isManaged: capturedProfile.isManaged)
+        }
     }
 
     // MARK: - RelationalDriver
@@ -61,9 +71,24 @@ public struct PostgresDriver: RelationalDriver {
 
     public func paginatedRows(database: String, table: String,
                               limit: Int, offset: Int) async throws -> QueryResult {
+        try preflightManagedEngine()
         let qualified = try dialect.qualifiedTable(schema: database, table: table)
         let sql = dialect.paginate("SELECT * FROM \(qualified)", limit: limit, offset: offset)
-        return try await runQuery(PostgresQuery(unsafeSQL: sql))
+        return try await session.runText(sql)
+    }
+
+    public func openSession() async throws {
+        try preflightManagedEngine()
+        try await session.warmUp()
+    }
+
+    public func closeSession() async {
+        await session.shutdown()
+    }
+
+    public func runSelect(_ statement: DMLStatement, database: String?) async throws -> QueryResult {
+        try preflightManagedEngine()
+        return try await session.runSelect(statement)
     }
 
     // MARK: - Connect + run
@@ -82,11 +107,18 @@ public struct PostgresDriver: RelationalDriver {
     }
 
     func connect() async throws -> PostgresConnection {
+        try await Self.establishConnection(profile: profile, password: password, logger: logger)
+    }
+
+    static func establishConnection(profile: ConnectionProfile, password: String?,
+                                    logger: Logger) async throws -> PostgresConnection {
         let group = try EventLoopProvider.shared.group()
         let connection: PostgresConnection
         do {
             connection = try await PostgresConnection.connect(
-                on: group.next(), configuration: try makeConfiguration(), id: 1, logger: logger)
+                on: group.next(),
+                configuration: try makeConfiguration(profile: profile, password: password),
+                id: 1, logger: logger)
         } catch {
             throw PostgresErrorMapper.map(error, isManaged: profile.isManaged)
         }
@@ -108,19 +140,20 @@ public struct PostgresDriver: RelationalDriver {
         }
     }
 
-    private func makeConfiguration() throws -> PostgresConnection.Configuration {
+    private static func makeConfiguration(profile: ConnectionProfile,
+                                          password: String?) throws -> PostgresConnection.Configuration {
         PostgresConnection.Configuration(
             host: profile.host,
             port: profile.port,
             username: profile.user,
             password: password,
             database: profile.database.isEmpty ? nil : profile.database,
-            tls: try makeTLS())
+            tls: try makeTLS(profile: profile))
     }
 
     /// PostgresNIO's TLS has no separate "verify hostname only" tier, so `require`/`verifyFull` both
     /// require TLS and differ only in the certificate-verification policy of the SSL context.
-    private func makeTLS() throws -> PostgresConnection.Configuration.TLS {
+    private static func makeTLS(profile: ConnectionProfile) throws -> PostgresConnection.Configuration.TLS {
         var config = TLSConfiguration.makeClientConfiguration()
         switch profile.tlsMode {
         case .disable:

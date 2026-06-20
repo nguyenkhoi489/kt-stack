@@ -59,6 +59,36 @@ enum MySQLCellMapper {
         ColumnMeta(name: column.name, typeName: column.columnType.description)
     }
 
+    static func result(from rows: [MySQLRow]) -> QueryResult {
+        guard let first = rows.first else { return QueryResult(columns: [], rows: []) }
+        let columns = first.columnDefinitions.map(columnMeta)
+        let mapped = rows.map { row in
+            zip(row.columnDefinitions, row.values).map {
+                cell(definition: $0, format: row.format, value: $1)
+            }
+        }
+        return QueryResult(columns: columns, rows: mapped)
+    }
+
+    static func cell(definition column: MySQLProtocol.ColumnDefinition41,
+                     format: MySQLData.Format, value: ByteBuffer?) -> Cell {
+        guard let buffer = value else { return .null }
+        let typeRaw = column.columnType.rawValue
+        if isBinary(typeRaw: typeRaw, charsetRaw: column.characterSet.rawValue) {
+            var copy = buffer
+            return .blob(Data(copy.readBytes(length: copy.readableBytes) ?? []))
+        }
+        let data = MySQLData(type: column.columnType, format: format, buffer: buffer,
+                             isUnsigned: column.flags.contains(.COLUMN_UNSIGNED))
+        if integerTypes.contains(typeRaw) {
+            return data.int64.map(Cell.int) ?? data.string.map(Cell.text) ?? .null
+        }
+        if floatTypes.contains(typeRaw) {
+            return data.double.map(Cell.double) ?? data.string.map(Cell.text) ?? .null
+        }
+        return data.string.map(Cell.text) ?? .null
+    }
+
     // MARK: - Cell → bind value (write path)
 
     static func mysqlData(for cell: Cell) -> MySQLData {

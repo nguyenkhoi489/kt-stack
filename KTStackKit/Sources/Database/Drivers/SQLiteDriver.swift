@@ -11,9 +11,14 @@ public struct SQLiteDriver: RelationalDriver {
 
     let profile: ConnectionProfile
     let dialect = SQLDialect.forKind(.sqlite)
+    let session: ConnectionSession
 
     public init(profile: ConnectionProfile) {
         self.profile = profile
+        let capturedProfile = profile
+        self.session = ConnectionSession {
+            SQLiteSessionConnection(queue: try SQLiteDriver.makeQueue(profile: capturedProfile))
+        }
     }
 
     /// SQLite's single attached file is its one database; surfaced as `main` so the schema browser's
@@ -51,8 +56,8 @@ public struct SQLiteDriver: RelationalDriver {
         let queue = try makeQueue()
         do {
             return profile.readOnly
-                ? try await queue.read { try fetch($0, sql: sql, binds: []) }
-                : try await queue.write { try fetch($0, sql: sql, binds: []) }
+                ? try await queue.read { try Self.fetch($0, sql: sql, binds: []) }
+                : try await queue.write { try Self.fetch($0, sql: sql, binds: []) }
         } catch {
             throw Self.mapError(error)
         }
@@ -62,12 +67,19 @@ public struct SQLiteDriver: RelationalDriver {
                               limit: Int, offset: Int) async throws -> QueryResult {
         let qualified = try dialect.qualifiedTable(schema: database, table: table)
         let sql = dialect.paginate("SELECT * FROM \(qualified)", limit: limit, offset: offset)
-        let queue = try makeQueue()
-        do {
-            return try await queue.read { try fetch($0, sql: sql, binds: []) }
-        } catch {
-            throw Self.mapError(error)
-        }
+        return try await session.runText(sql)
+    }
+
+    public func openSession() async throws {
+        try await session.warmUp()
+    }
+
+    public func closeSession() async {
+        await session.shutdown()
+    }
+
+    public func runSelect(_ statement: DMLStatement, database: String?) async throws -> QueryResult {
+        try await session.runSelect(statement)
     }
 
     // MARK: - Shared statement execution
@@ -75,7 +87,7 @@ public struct SQLiteDriver: RelationalDriver {
     /// Prepares the statement first so column names survive a zero-row result (the schema browser shows
     /// the header even when a table is empty). A statement with no result columns (DDL/DML) is just
     /// executed; otherwise every row is fetched and its storage classes mapped to `Cell`.
-    func fetch(_ db: Database, sql: String, binds: [Cell]) throws -> QueryResult {
+    static func fetch(_ db: Database, sql: String, binds: [Cell]) throws -> QueryResult {
         let statement = try db.makeStatement(sql: sql)
         let arguments = SQLiteCellMapper.arguments(binds)
         guard statement.columnCount > 0 else {
@@ -93,6 +105,10 @@ public struct SQLiteDriver: RelationalDriver {
     // MARK: - Connection + errors
 
     func makeQueue() throws -> DatabaseQueue {
+        try Self.makeQueue(profile: profile)
+    }
+
+    static func makeQueue(profile: ConnectionProfile) throws -> DatabaseQueue {
         guard let path = profile.filePath, !path.isEmpty else {
             throw DatabaseError.connection("No SQLite file selected for this connection.")
         }

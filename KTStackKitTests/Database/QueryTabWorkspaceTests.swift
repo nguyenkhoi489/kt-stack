@@ -25,6 +25,12 @@ final class QueryTabWorkspaceTests: XCTestCase {
             QueryResult(columns: [ColumnMeta(name: "id")], rows: [[.int(1)]])
         }
 
+        func openSession() async throws {}
+        func closeSession() async {}
+        func runSelect(_ statement: DMLStatement, database: String?) async throws -> QueryResult {
+            QueryResult(columns: [], rows: [])
+        }
+
         func insert(database: String, table: String, values: [ColumnValue]) async throws {}
         func update(database: String, table: String, values: [ColumnValue], key: [ColumnValue]) async throws {}
         func delete(database: String, table: String, key: [ColumnValue]) async throws {}

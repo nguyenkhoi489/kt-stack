@@ -13,6 +13,7 @@ public struct MySQLDriver: RelationalDriver {
     let password: String?
     let catalog: ServiceBinaryCatalog
     let dialect = SQLDialect.forKind(.mysql)
+    let session: ConnectionSession
 
     public init(profile: ConnectionProfile,
                 password: String?,
@@ -20,6 +21,11 @@ public struct MySQLDriver: RelationalDriver {
         self.profile = profile
         self.password = password
         self.catalog = catalog
+        let capturedProfile = profile
+        let capturedPassword = password
+        self.session = ConnectionSession {
+            try await MySQLDriver.makeSessionConnection(profile: capturedProfile, password: capturedPassword)
+        }
     }
 
     // MARK: - RelationalDriver
@@ -75,9 +81,24 @@ public struct MySQLDriver: RelationalDriver {
 
     public func paginatedRows(database: String, table: String,
                               limit: Int, offset: Int) async throws -> QueryResult {
+        try preflightManagedEngine()
         let qualified = try dialect.qualifiedTable(schema: database, table: table)
         let sql = dialect.paginate("SELECT * FROM \(qualified)", limit: limit, offset: offset)
-        return try await runStatement(sql, database: database)
+        return try await session.runText(sql)
+    }
+
+    public func openSession() async throws {
+        try preflightManagedEngine()
+        try await session.warmUp()
+    }
+
+    public func closeSession() async {
+        await session.shutdown()
+    }
+
+    public func runSelect(_ statement: DMLStatement, database: String?) async throws -> QueryResult {
+        try preflightManagedEngine()
+        return try await session.runSelect(statement)
     }
 
     // MARK: - Connect + run
@@ -117,15 +138,40 @@ public struct MySQLDriver: RelationalDriver {
             throw MySQLErrorMapper.map(error, isManaged: profile.isManaged)
         }
         
-        if profile.readOnly {
-            do {
-                _ = try await connection.simpleQuery("SET SESSION TRANSACTION READ ONLY").get()
-            } catch {
-                try? await connection.close().get()
-                throw MySQLErrorMapper.map(error, isManaged: profile.isManaged)
-            }
-        }
+        try await Self.applyReadOnly(to: connection, profile: profile)
         return connection
+    }
+
+    static func makeSessionConnection(profile: ConnectionProfile,
+                                      password: String?) async throws -> SessionConnection {
+        let group = try EventLoopProvider.shared.group()
+        let address = try SocketAddress.makeAddressResolvingHost(profile.host, port: profile.port)
+        let connection: MySQLConnection
+        do {
+            connection = try await MySQLConnection.connect(
+                to: address,
+                username: profile.user,
+                database: profile.database,
+                password: password,
+                tlsConfiguration: tlsConfiguration(for: profile),
+                on: group.next()
+            ).get()
+        } catch {
+            throw MySQLErrorMapper.map(error, isManaged: profile.isManaged)
+        }
+        try await applyReadOnly(to: connection, profile: profile)
+        return MySQLSessionConnection(connection: connection, isManaged: profile.isManaged)
+    }
+
+    private static func applyReadOnly(to connection: MySQLConnection,
+                                      profile: ConnectionProfile) async throws {
+        guard profile.readOnly else { return }
+        do {
+            _ = try await connection.simpleQuery("SET SESSION TRANSACTION READ ONLY").get()
+        } catch {
+            try? await connection.close().get()
+            throw MySQLErrorMapper.map(error, isManaged: profile.isManaged)
+        }
     }
 
 
@@ -136,8 +182,12 @@ public struct MySQLDriver: RelationalDriver {
         }
     }
 
-    
+
     private func tlsConfiguration() -> TLSConfiguration? {
+        Self.tlsConfiguration(for: profile)
+    }
+
+    static func tlsConfiguration(for profile: ConnectionProfile) -> TLSConfiguration? {
         var config = TLSConfiguration.makeClientConfiguration()
         switch profile.tlsMode {
         case .disable:
