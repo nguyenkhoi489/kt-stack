@@ -1,62 +1,154 @@
 import SwiftUI
+import AppKit
+import UniformTypeIdentifiers
 import KTStackKit
 
 struct KTEditorERTab: View {
     @EnvironmentObject private var vm: DatabaseViewModel
+    @StateObject private var state = ERDiagramState()
 
-    @State private var zoom: CGFloat = 1
-    @State private var gestureZoom: CGFloat = 1
-    @State private var pan: CGSize = .zero
-    @State private var gesturePan: CGSize = .zero
-
-    private static let cardTints = [KTIconTint.code, KTIconTint.cube, KTIconTint.db, KTIconTint.globe]
-
-    private var layout: ERDiagramLayout {
-        let catalog = vm.schemaCatalog
-        guard !catalog.tables.isEmpty else { return .empty }
-        let pkByTable = Dictionary(uniqueKeysWithValues: catalog.tables.map { ($0, Set<String>()) })
-        return ERLayoutEngine.layout(tables: catalog.tables,
-                                     columnsByTable: catalog.columnsByTable,
-                                     primaryKeysByTable: pkByTable,
-                                     relations: catalog.relations)
-    }
+    @State private var scrollMonitor: Any?
+    @State private var hoverCursor: NSCursor?
+    @State private var magnifyStartMag: CGFloat?
 
     var body: some View {
         Group {
-            if vm.schemaCatalog.tables.isEmpty {
+            if state.isEmpty {
                 placeholder
             } else {
-                canvas
+                diagram
             }
         }
         .task(id: vm.selectedDatabase) {
-            await vm.ensureSchemaCatalogLoaded()
+            await vm.ensureDetailedColumnsLoaded()
             await vm.loadRelationsIfNeeded()
+            syncState()
+        }
+        .onChange(of: vm.schemaCatalog) { _ in syncState() }
+    }
+
+    private func syncState() {
+        state.apply(catalog: vm.schemaCatalog,
+                    connectionKey: vm.selectedProfile?.id.uuidString ?? "none",
+                    schemaKey: vm.selectedDatabase ?? "none")
+    }
+
+    private var diagram: some View {
+        GeometryReader { proxy in
+            canvas
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(dottedBackground)
+                .contentShape(Rectangle())
+                .clipped()
+                .gesture(dragGesture.simultaneously(with: magnifyGesture))
+                .onContinuousHover { updateHover($0) }
+                .onTapGesture { state.selectedTable = state.tableAt(viewPoint: $0) }
+                .overlay(alignment: .bottomTrailing) { toolbar }
+                .onAppear {
+                    state.viewportSize = proxy.size
+                    attachScrollMonitor()
+                    fitIfNeeded(size: proxy.size)
+                }
+                .onChange(of: proxy.size) { newSize in
+                    state.viewportSize = newSize
+                    fitIfNeeded(size: newSize)
+                }
+                .onChange(of: state.needsInitialFit) { _ in fitIfNeeded(size: proxy.size) }
+                .onDisappear { detachScrollMonitor() }
         }
     }
 
     private var canvas: some View {
-        GeometryReader { proxy in
-            let current = layout
-            ZStack {
-                dottedBackground
-                ZStack(alignment: .topLeading) {
-                    edges(current)
-                    ForEach(Array(current.nodes.enumerated()), id: \.element.id) { index, node in
-                        card(node, tint: Self.cardTints[index % Self.cardTints.count])
-                            .position(x: node.rect.midX, y: node.rect.midY)
+        Canvas { context, _ in
+            var ctx = context
+            ctx.translateBy(x: state.canvasOffset.x, y: state.canvasOffset.y)
+            ctx.scaleBy(x: state.magnification, y: state.magnification)
+            EREdgeRenderer.drawEdges(context: ctx, edges: state.graph.edges, rects: state.cachedRects)
+            for node in state.graph.nodes {
+                guard let rect = state.cachedRects[node.id] else { continue }
+                ERNodeRenderer.drawNode(context: &ctx,
+                                        node: node,
+                                        rect: rect,
+                                        isSelected: state.selectedTable == node.id)
+            }
+        }
+    }
+
+    private func fitIfNeeded(size: CGSize) {
+        guard state.needsInitialFit, size.width > 0, !state.isEmpty, state.canvasSize.width > 0 else { return }
+        state.fitToWindow()
+        state.consumeInitialFit()
+    }
+
+    private var dragGesture: some Gesture {
+        DragGesture(minimumDistance: 2)
+            .onChanged { value in
+                if state.draggingTable == nil && hoverCursor != .closedHand {
+                    state.beginDrag(at: value.startLocation)
+                    if state.draggingTable != nil {
+                        if hoverCursor != nil { NSCursor.pop() }
+                        NSCursor.closedHand.push()
+                        hoverCursor = .closedHand
                     }
                 }
-                .frame(width: max(current.canvasSize.width, proxy.size.width),
-                       height: max(current.canvasSize.height, proxy.size.height),
-                       alignment: .topLeading)
-                .scaleEffect(zoom * gestureZoom, anchor: .topLeading)
-                .offset(x: pan.width + gesturePan.width, y: pan.height + gesturePan.height)
+                state.updateDrag(translation: value.translation)
             }
-            .contentShape(Rectangle())
-            .gesture(panGesture)
-            .gesture(zoomGesture)
-            .overlay(alignment: .bottomTrailing) { zoomControls }
+            .onEnded { _ in
+                state.endDrag()
+                if hoverCursor == .closedHand {
+                    NSCursor.pop()
+                    hoverCursor = nil
+                }
+            }
+    }
+
+    private var magnifyGesture: some Gesture {
+        MagnificationGesture()
+            .onChanged { value in
+                if magnifyStartMag == nil { magnifyStartMag = state.magnification }
+                let base = magnifyStartMag ?? state.magnification
+                state.zoom(to: base * value)
+            }
+            .onEnded { _ in magnifyStartMag = nil }
+    }
+
+    private func updateHover(_ phase: HoverPhase) {
+        switch phase {
+        case .active(let location):
+            state.isMouseOverCanvas = true
+            guard state.draggingTable == nil else { return }
+            let desired: NSCursor? = state.tableAt(viewPoint: location) != nil ? .openHand : nil
+            if desired !== hoverCursor {
+                if hoverCursor != nil { NSCursor.pop() }
+                desired?.push()
+                hoverCursor = desired
+            }
+        case .ended:
+            state.isMouseOverCanvas = false
+            if hoverCursor != nil { NSCursor.pop(); hoverCursor = nil }
+        }
+    }
+
+    private func attachScrollMonitor() {
+        guard scrollMonitor == nil else { return }
+        scrollMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { event in
+            guard state.isMouseOverCanvas else { return event }
+            if event.modifierFlags.contains(.command) {
+                state.zoom(to: state.magnification + event.scrollingDeltaY * 0.01)
+                return nil
+            }
+            let multiplier: CGFloat = event.hasPreciseScrollingDeltas ? 1.0 : 10.0
+            state.canvasOffset = CGPoint(
+                x: state.canvasOffset.x + event.scrollingDeltaX * multiplier,
+                y: state.canvasOffset.y + event.scrollingDeltaY * multiplier)
+            return nil
+        }
+    }
+
+    private func detachScrollMonitor() {
+        if let monitor = scrollMonitor {
+            NSEvent.removeMonitor(monitor)
+            scrollMonitor = nil
         }
     }
 
@@ -74,66 +166,8 @@ struct KTEditorERTab: View {
                 y += spacing
             }
         }
+        .drawingGroup()
         .background(Color(hex: 0xFAFAFC))
-    }
-
-    private func edges(_ layout: ERDiagramLayout) -> some View {
-        Canvas { ctx, _ in
-            for edge in layout.edges {
-                var path = Path()
-                path.move(to: edge.fromPoint)
-                let dx = (edge.toPoint.x - edge.fromPoint.x) * 0.5
-                path.addCurve(to: edge.toPoint,
-                              control1: CGPoint(x: edge.fromPoint.x + dx, y: edge.fromPoint.y),
-                              control2: CGPoint(x: edge.toPoint.x - dx, y: edge.toPoint.y))
-                ctx.stroke(path, with: .color(Color(hex: 0xC0C8D8)), lineWidth: 1.6)
-                for point in [edge.fromPoint, edge.toPoint] {
-                    ctx.fill(Path(ellipseIn: CGRect(x: point.x - 3, y: point.y - 3, width: 6, height: 6)),
-                             with: .color(KTColor.accent))
-                }
-            }
-        }
-        .frame(width: layout.canvasSize.width, height: layout.canvasSize.height)
-        .allowsHitTesting(false)
-    }
-
-    private func card(_ node: ERTableNode, tint: KTTint) -> some View {
-        VStack(spacing: 0) {
-            Text(node.table)
-                .font(.jbMono(12, .bold))
-                .foregroundStyle(tint.fg)
-                .padding(.horizontal, 12).padding(.vertical, 8)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(tint.bg)
-            ForEach(Array(node.columns.enumerated()), id: \.offset) { index, column in
-                columnRow(node, column: column)
-                if index < node.columns.count - 1 {
-                    Rectangle().fill(KTColor.sepFaint).frame(height: 0.5)
-                }
-            }
-        }
-        .frame(width: node.rect.width, alignment: .leading)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(Color(hex: 0xE0E0E8), lineWidth: 1))
-        .shadow(color: .black.opacity(0.12), radius: 6, y: 4)
-    }
-
-    private func columnRow(_ node: ERTableNode, column: String) -> some View {
-        let isPK = node.primaryKeyColumns.contains(column)
-        let isFK = node.foreignKeyColumns.contains(column)
-        return HStack(spacing: 4) {
-            Text(column)
-                .font(.jbMono(12, isPK ? .bold : .regular))
-                .foregroundStyle(isPK ? KTColor.ink : KTColor.ink2)
-                .lineLimit(1)
-            if isFK {
-                Text("· FK").font(.jbMono(11)).foregroundStyle(KTColor.muted)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 12).padding(.vertical, 7)
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var placeholder: some View {
@@ -147,36 +181,26 @@ struct KTEditorERTab: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private var panGesture: some Gesture {
-        DragGesture()
-            .onChanged { gesturePan = $0.translation }
-            .onEnded { value in
-                pan.width += value.translation.width
-                pan.height += value.translation.height
-                gesturePan = .zero
-            }
-    }
-
-    private var zoomGesture: some Gesture {
-        MagnificationGesture()
-            .onChanged { gestureZoom = $0 }
-            .onEnded { value in
-                zoom = max(0.25, min(3, zoom * value))
-                gestureZoom = 1
-            }
-    }
-
-    private var zoomControls: some View {
+    private var toolbar: some View {
         HStack(spacing: 8) {
-            zoomButton("minus") { zoom = max(0.25, zoom / 1.2) }
-            Button { zoom = 1; pan = .zero } label: {
-                Text("\(Int((zoom * 100).rounded()))%")
+            iconButton("arrow.up.left.and.arrow.down.right") { state.fitToWindow() }
+            divider
+            iconButton("minus") { state.zoom(to: state.magnification - 0.2) }
+            Button { state.zoom(to: 1) } label: {
+                Text("\(Int((state.magnification * 100).rounded()))%")
                     .font(.jbMono(12, .medium).monospacedDigit())
                     .foregroundStyle(KTColor.ink2)
                     .frame(minWidth: 44, minHeight: 26)
             }
             .buttonStyle(.plain)
-            zoomButton("plus") { zoom = min(3, zoom * 1.2) }
+            iconButton("plus") { state.zoom(to: state.magnification + 0.2) }
+            divider
+            iconButton(state.isCompact ? "rectangle.expand.vertical" : "rectangle.compress.vertical",
+                       active: state.isCompact) { state.setCompact(!state.isCompact) }
+            iconButton("arrow.counterclockwise") { state.resetLayout() }
+            divider
+            iconButton("square.and.arrow.up") { exportPNG() }
+            iconButton("doc.on.doc") { copyToClipboard() }
         }
         .padding(.horizontal, 6)
         .background(Capsule().fill(Color.white))
@@ -185,11 +209,80 @@ struct KTEditorERTab: View {
         .padding(16)
     }
 
-    private func zoomButton(_ symbol: String, action: @escaping () -> Void) -> some View {
+    private var divider: some View {
+        Rectangle().fill(KTColor.sepFaint).frame(width: 0.5, height: 18)
+    }
+
+    private func iconButton(_ symbol: String, active: Bool = false, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol).font(.system(size: 12, weight: .regular))
-                .foregroundStyle(KTColor.ink3).frame(width: 26, height: 26).contentShape(Rectangle())
+                .foregroundStyle(active ? KTColor.accent : KTColor.ink3)
+                .frame(width: 26, height: 26).contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    @MainActor private func renderImage() -> NSImage? {
+        let padding: CGFloat = 40
+        let bounds = state.cachedRects.values.reduce(CGRect.null) { $0.union($1) }
+        guard !bounds.isNull else { return nil }
+        let exportView = ERExportCanvas(
+            edges: state.graph.edges,
+            nodes: state.graph.nodes,
+            rects: state.cachedRects,
+            selected: state.selectedTable,
+            offsetX: -bounds.minX + padding,
+            offsetY: -bounds.minY + padding,
+            width: bounds.width + padding * 2,
+            height: bounds.height + padding * 2)
+        let renderer = ImageRenderer(content: exportView)
+        renderer.scale = 2.0
+        return renderer.nsImage
+    }
+
+    private func copyToClipboard() {
+        guard let image = renderImage() else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.writeObjects([image])
+    }
+
+    private func exportPNG() {
+        guard let image = renderImage(),
+              let tiff = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiff),
+              let png = bitmap.representation(using: .png, properties: [:]) else { return }
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.png]
+        panel.nameFieldStringValue = "\(vm.selectedDatabase ?? "er-diagram").png"
+        guard let window = NSApp.keyWindow else { return }
+        panel.beginSheetModal(for: window) { response in
+            guard response == .OK, let url = panel.url else { return }
+            try? png.write(to: url)
+        }
+    }
+}
+
+private struct ERExportCanvas: View {
+    let edges: [ERSchemaEdge]
+    let nodes: [ERSchemaNode]
+    let rects: [String: CGRect]
+    let selected: String?
+    let offsetX: CGFloat
+    let offsetY: CGFloat
+    let width: CGFloat
+    let height: CGFloat
+
+    var body: some View {
+        Canvas { context, _ in
+            var ctx = context
+            ctx.translateBy(x: offsetX, y: offsetY)
+            EREdgeRenderer.drawEdges(context: ctx, edges: edges, rects: rects)
+            for node in nodes {
+                guard let rect = rects[node.id] else { continue }
+                ERNodeRenderer.drawNode(context: &ctx, node: node, rect: rect, isSelected: false)
+            }
+        }
+        .frame(width: width, height: height)
+        .background(Color(hex: 0xFAFAFC))
     }
 }
