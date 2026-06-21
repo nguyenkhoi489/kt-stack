@@ -30,6 +30,19 @@ final class ServiceMetricsSamplerTests: XCTestCase {
         XCTAssertEqual(rows[1].basename, "mailpit")
     }
 
+    func testParseMatchesNginxAndPHPFPMProcessTitles() {
+        let raw = """
+          98551  10416   0:00.03 nginx: master process /Users/x/Library/Application Support/KTStack/bin/nginx -g daemon off;
+          98556   2160   0:00.00 nginx: worker process
+          97005  13728   0:00.14 php-fpm: master process (/Users/x/Library/Application Support/KTStack/config/php-fpm/8.1.conf)
+          97012  42240   0:00.14 php-fpm: pool 8.1
+          400    30000   0:09.00 redis-server *:6379
+        """
+        let rows = ServiceMetricsSampler.parse(raw)
+        XCTAssertEqual(rows.map(\.basename),
+                       ["nginx", "nginx", "php-fpm", "php-fpm", "redis-server"])
+    }
+
     func testAggregateSumsMultiProcessAndComputesCPUDelta() {
         let now = Date()
         let earlier = now.addingTimeInterval(-1)

@@ -248,7 +248,7 @@ public final class ServiceManager: ObservableObject {
 
     private func webSnapshot(_ kind: ServiceKind, status: ServiceStatus, detail: String) -> ServiceSnapshot {
         ServiceSnapshot(kind: kind, status: status, detail: detail, isInstalled: true,
-                        isBusy: status == .starting, errorMessage: nil)
+                        isBusy: status == .starting || status == .stopping, errorMessage: nil)
     }
 
     private func phpDetail() -> String {

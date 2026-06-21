@@ -74,13 +74,28 @@ final class ServiceMetricsSampler {
                   let rssKiB = Int64(fields[1]),
                   let cpuSeconds = parseCPUTime(String(fields[2])) else { continue }
             let command = fields[3...].joined(separator: " ")
-            let basename = (command as NSString).lastPathComponent
             rows.append(ParsedServiceProcess(pid: pid,
                                              rssBytes: rssKiB * 1024,
                                              cpuSeconds: cpuSeconds,
-                                             basename: basename))
+                                             basename: serviceName(from: command)))
         }
         return rows
+    }
+
+    static func serviceName(from command: String) -> String {
+        if command.hasPrefix("/") {
+            return (command as NSString).lastPathComponent
+        }
+        if let colon = command.firstIndex(of: ":") {
+            let head = String(command[..<colon])
+            if !head.contains("/"), !head.contains(" ") {
+                return head
+            }
+        }
+        if let space = command.firstIndex(of: " ") {
+            return (String(command[..<space]) as NSString).lastPathComponent
+        }
+        return (command as NSString).lastPathComponent
     }
 
     static func parseCPUTime(_ value: String) -> Double? {

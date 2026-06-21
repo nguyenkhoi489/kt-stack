@@ -1,13 +1,14 @@
 import SwiftUI
 
 public enum ServiceStatus: String, CaseIterable, Sendable {
-    case running, stopped, starting, warning, error, info
+    case running, stopped, starting, stopping, warning, error, info
 
     public var color: Color {
         switch self {
         case .running:  return .KDStatus.running
         case .stopped:  return .KDStatus.stopped
         case .starting: return .KDStatus.starting
+        case .stopping: return .KDStatus.starting
         case .warning:  return .KDStatus.warning
         case .error:    return .KDStatus.error
         case .info:     return .KDStatus.info
@@ -19,6 +20,7 @@ public enum ServiceStatus: String, CaseIterable, Sendable {
         case .running:  return "circle.fill"
         case .stopped:  return "circle"
         case .starting: return "circle.dotted"
+        case .stopping: return "circle.dotted"
         case .warning:  return "exclamationmark.triangle.fill"
         case .error:    return "xmark.octagon.fill"
         case .info:     return "info.circle"
@@ -30,6 +32,7 @@ public enum ServiceStatus: String, CaseIterable, Sendable {
         case .running:  return "Running"
         case .stopped:  return "Stopped"
         case .starting: return "Starting"
+        case .stopping: return "Stopping"
         case .warning:  return "Warning"
         case .error:    return "Error"
         case .info:     return "Info"

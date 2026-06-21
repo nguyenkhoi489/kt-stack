@@ -159,7 +159,7 @@ public final class LocalServerController: ObservableObject {
 
     public func stop() {
         guard !isBusy else { return }
-        isBusy = true
+        isBusy = true; nginxStatus = .stopping; phpStatus = .stopping
         Task.detached(priority: .userInitiated) { [nginx, pools, self] in
             nginx.stop()
             pools.stopAll()
@@ -212,7 +212,7 @@ public final class LocalServerController: ObservableObject {
 
     public func stopNginx() {
         guard !isBusy else { return }
-        isBusy = true
+        isBusy = true; nginxStatus = .stopping
         Task.detached(priority: .userInitiated) { [nginx, self] in
             nginx.stop()
             await MainActor.run { self.isBusy = false; self.recomputeStatus() }
@@ -244,7 +244,7 @@ public final class LocalServerController: ObservableObject {
 
     public func stopPHP() {
         guard !isBusy else { return }
-        isBusy = true
+        isBusy = true; phpStatus = .stopping
         Task.detached(priority: .userInitiated) { [pools, self] in
             pools.stopAll()
             await MainActor.run { self.isBusy = false; self.recomputeStatus() }
@@ -377,8 +377,7 @@ public final class LocalServerController: ObservableObject {
         let newNginx: ServiceStatus = nginxRunning ? .running : .stopped
         let active = pools.activeVersions
         let allUp = !active.isEmpty && active.allSatisfy { pools.isRunning(version: $0) }
-        let anyPHP = registry.sites.contains { $0.type == .php }
-        let newPhp: ServiceStatus = allUp ? .running : (anyPHP && nginxRunning ? .error : .stopped)
+        let newPhp: ServiceStatus = allUp ? .running : .stopped
         if newNginx != nginxStatus { nginxStatus = newNginx }
         if newPhp != phpStatus { phpStatus = newPhp }
     }
