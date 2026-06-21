@@ -159,7 +159,7 @@ public final class LocalServerController: ObservableObject {
 
     public func stop() {
         guard !isBusy else { return }
-        isBusy = true
+        isBusy = true; nginxStatus = .stopping; phpStatus = .stopping
         Task.detached(priority: .userInitiated) { [nginx, pools, self] in
             nginx.stop()
             pools.stopAll()
@@ -212,7 +212,7 @@ public final class LocalServerController: ObservableObject {
 
     public func stopNginx() {
         guard !isBusy else { return }
-        isBusy = true
+        isBusy = true; nginxStatus = .stopping
         Task.detached(priority: .userInitiated) { [nginx, self] in
             nginx.stop()
             await MainActor.run { self.isBusy = false; self.recomputeStatus() }
@@ -244,7 +244,7 @@ public final class LocalServerController: ObservableObject {
 
     public func stopPHP() {
         guard !isBusy else { return }
-        isBusy = true
+        isBusy = true; phpStatus = .stopping
         Task.detached(priority: .userInitiated) { [pools, self] in
             pools.stopAll()
             await MainActor.run { self.isBusy = false; self.recomputeStatus() }
