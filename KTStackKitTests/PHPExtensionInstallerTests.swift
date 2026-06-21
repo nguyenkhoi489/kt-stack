@@ -73,6 +73,36 @@ final class PHPExtensionInstallerTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: installer.extensionIniURL(extID: "imagick", phpVersion: "8.4").path))
     }
 
+    func testBaseExtensionInisWrittenWhenSoPresent() throws {
+        let paths = try tempPaths()
+        let installer = PHPExtensionInstaller(paths: paths)
+        let modules = paths.phpModulesDir(version: "8.1")
+        try FileManager.default.createDirectory(at: modules, withIntermediateDirectories: true)
+        try Data("fake".utf8).write(to: modules.appendingPathComponent("intl.so"))
+        try Data("fake".utf8).write(to: modules.appendingPathComponent("opcache.so"))
+
+        installer.writeBaseExtensionInis(phpVersion: "8.1")
+
+        let intlIni = installer.baseExtensionIniURL(extID: "intl", phpVersion: "8.1")
+        let opcacheIni = installer.baseExtensionIniURL(extID: "opcache", phpVersion: "8.1")
+        XCTAssertEqual(intlIni.lastPathComponent, "10-intl.ini")
+        XCTAssertEqual(try String(contentsOf: intlIni, encoding: .utf8), "extension=intl.so\n")
+        let opcacheBody = try String(contentsOf: opcacheIni, encoding: .utf8)
+        XCTAssertTrue(opcacheBody.hasPrefix("zend_extension=/"), opcacheBody)
+        XCTAssertTrue(opcacheBody.hasSuffix("/modules/opcache.so\n"), opcacheBody)
+    }
+
+    func testBaseExtensionInisSkippedWhenSoAbsent() throws {
+        let paths = try tempPaths()
+        let installer = PHPExtensionInstaller(paths: paths)
+        try FileManager.default.createDirectory(at: paths.phpModulesDir(version: "8.4"), withIntermediateDirectories: true)
+
+        installer.writeBaseExtensionInis(phpVersion: "8.4")
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: installer.baseExtensionIniURL(extID: "intl", phpVersion: "8.4").path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: installer.baseExtensionIniURL(extID: "opcache", phpVersion: "8.4").path))
+    }
+
     func testSpecCarriesIniScanDirEnv() throws {
         let paths = try tempPaths()
         let controller = PHPFPMController(paths: paths,

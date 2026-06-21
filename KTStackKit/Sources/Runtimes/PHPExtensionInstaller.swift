@@ -101,6 +101,32 @@ public struct PHPExtensionInstaller: Sendable {
         try body.write(to: extensionDirIniURL(phpVersion: phpVersion), atomically: true, encoding: .utf8)
     }
 
+    public static let baseSharedObjects: [(id: String, directive: PHPExtensionLoadDirective)] = [
+        (id: "opcache", directive: .zendExtension),
+        (id: "intl", directive: .module),
+    ]
+
+    public func baseExtensionIniURL(extID: String, phpVersion: String) -> URL {
+        paths.phpExtConfDir(version: phpVersion).appendingPathComponent("10-\(extID).ini")
+    }
+
+    public func writeBaseExtensionInis(phpVersion: String) {
+        try? FileManager.default.createDirectory(at: paths.phpExtConfDir(version: phpVersion),
+                                                 withIntermediateDirectories: true,
+                                                 attributes: [.posixPermissions: 0o700])
+        for base in Self.baseSharedObjects {
+            let so = soURL(base.id, phpVersion)
+            guard FileManager.default.fileExists(atPath: so.path) else { continue }
+            let body: String
+            switch base.directive {
+            case .module:        body = "extension=\(base.id).so\n"
+            case .zendExtension: body = "zend_extension=\(so.path)\n"
+            }
+            try? body.write(to: baseExtensionIniURL(extID: base.id, phpVersion: phpVersion),
+                            atomically: true, encoding: .utf8)
+        }
+    }
+
     public func placeSharedObject(from local: URL, extID: String, phpVersion: String) throws {
         let modules = paths.phpModulesDir(version: phpVersion)
         try FileManager.default.createDirectory(at: modules, withIntermediateDirectories: true,

@@ -28,6 +28,15 @@ public final class RuntimeManager: ObservableObject {
         self.downloader = RuntimeDownloader(paths: paths)
         loadDefaults()
         refreshInstalled()
+        reconcilePHPExtensionConfig()
+    }
+
+    private func reconcilePHPExtensionConfig() {
+        let installer = PHPExtensionInstaller(paths: paths)
+        for version in installed[.php] ?? [] {
+            try? installer.writeExtensionDirIni(phpVersion: version)
+            installer.writeBaseExtensionInis(phpVersion: version)
+        }
     }
 
     // MARK: - Queries
@@ -76,7 +85,9 @@ public final class RuntimeManager: ObservableObject {
 
                 if lang == .php {
                     PHPModules.invalidate(version: version)
-                    try? PHPExtensionInstaller(paths: paths).writeExtensionDirIni(phpVersion: version)
+                    let installer = PHPExtensionInstaller(paths: paths)
+                    try? installer.writeExtensionDirIni(phpVersion: version)
+                    installer.writeBaseExtensionInis(phpVersion: version)
                 }
                 await self?.finish(lang, error: nil)
             } catch is CancellationError {
