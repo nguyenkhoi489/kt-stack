@@ -8,9 +8,9 @@ Run local sites at **`https://your-project.test`** with trusted HTTPS, automatic
 
 **Open-source. Free forever.** An alternative to Laravel Herd, Valet and Laragon for macOS.
 
-[![Latest release](https://img.shields.io/github/v/release/nguyenkhoi489/kt-stack?style=flat-square&color=b8232c)](https://github.com/nguyenkhoi489/kt-stack/releases)
-[![Downloads](https://img.shields.io/github/downloads/nguyenkhoi489/kt-stack/total?style=flat-square)](https://github.com/nguyenkhoi489/kt-stack/releases)
-[![Stars](https://img.shields.io/github/stars/nguyenkhoi489/kt-stack?style=flat-square)](https://github.com/nguyenkhoi489/kt-stack/stargazers)
+[![Latest release](https://img.shields.io/github/v/release/KTStackAPP/KTStack?style=flat-square&color=b8232c)](https://github.com/KTStackAPP/KTStack/releases)
+[![Downloads](https://img.shields.io/github/downloads/KTStackAPP/KTStack/total?style=flat-square)](https://github.com/KTStackAPP/KTStack/releases)
+[![Stars](https://img.shields.io/github/stars/KTStackAPP/KTStack?style=flat-square)](https://github.com/KTStackAPP/KTStack/stargazers)
 ![Platform](https://img.shields.io/badge/macOS-13%2B-000000?style=flat-square&logo=apple)
 ![Built with Swift](https://img.shields.io/badge/Swift-SwiftUI-fa7343?style=flat-square&logo=swift)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
@@ -76,7 +76,7 @@ The features other tools **lock behind a paid plan or a separate app** — the d
 
 ## Install
 
-1. Download the latest `KTStack.dmg` from the [**Releases**](https://github.com/nguyenkhoi489/kt-stack/releases) page.
+1. Download the latest `KTStack.dmg` from the [**Releases**](https://github.com/KTStackAPP/KTStack/releases) page.
 2. Drag **KTStack** to Applications and launch it.
 3. Approve the privileged helper when prompted (needed only for local DNS, the `/etc/resolver` entry, and installing the local HTTPS CA).
 4. Add a site, open `https://<name>.test`. Done.
