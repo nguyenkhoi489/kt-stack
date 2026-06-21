@@ -33,8 +33,9 @@ if [[ ! -d "$SRC" ]]; then
     tar -xf redis.tgz
 fi
 
-echo "=== make (MALLOC=libc, no TLS) ==="
-make -C "$SRC" -j"$(sysctl -n hw.ncpu)" MALLOC=libc BUILD_TLS=no >/dev/null
+echo "=== make (MALLOC=libc, no TLS, arch=${ARCH}) ==="
+make -C "$SRC" -j"$(sysctl -n hw.ncpu)" MALLOC=libc BUILD_TLS=no \
+    CFLAGS="-arch ${ARCH}" LDFLAGS="-arch ${ARCH}" >/dev/null
 BIN="$BUILD/$SRC/src/redis-server"
 [[ -x "$BIN" ]] || { echo "redis-server not produced at $BIN" >&2; exit 1; }
 

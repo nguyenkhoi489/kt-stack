@@ -26,13 +26,24 @@ ad_hoc_sign() { codesign --force --sign - "$@"; }
 
 sha256_of() { shasum -a 256 "$1" | awk '{print $1}'; }
 
+brew_for_arch() {
+    local a="${ARCH:-$(uname -m)}"
+    if [[ "$a" == "x86_64" && "$(uname -m)" == "arm64" ]]; then
+        echo "arch -x86_64 /usr/local/bin/brew"
+    elif [[ "$a" == "x86_64" ]]; then
+        echo "/usr/local/bin/brew"
+    else
+        echo "brew"
+    fi
+}
+
 # Tar a prepared top-level dir into the artifacts dir + write its sha256. $1 = top dir
 # (named "<name>-<version>" with content under it, e.g. bin/…), $2 = artifacts dir.
 package_dir() {
     local top="$1" artifacts="$2"
     local name arch out sha
     name="$(basename "$top")"
-    arch="$(uname -m)"
+    arch="${ARCH:-$(uname -m)}"
     mkdir -p "$artifacts"
     out="$artifacts/${name}-${arch}.tar.gz"
     tar -czf "$out" -C "$(dirname "$top")" "$name"
@@ -51,7 +62,7 @@ package_dir() {
 package_extension() {
     local so="$1" ext="$2" phpver="$3" artifacts="$4"
     local arch stage top out sha
-    arch="$(uname -m)"
+    arch="${ARCH:-$(uname -m)}"
     mkdir -p "$artifacts"
     stage="$(mktemp -d)"; top="$stage/$ext"; mkdir -p "$top"
     cp "$so" "$top/$ext.so"

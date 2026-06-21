@@ -34,6 +34,7 @@ fi
 if [[ ! -x "$PREFIX/bin/postgres" ]]; then
     echo "=== configure (system-libs only) ==="
     ( cd "$SRC" && ./configure --prefix="$PREFIX" \
+        CFLAGS="-arch ${ARCH}" LDFLAGS="-arch ${ARCH}" \
         --without-icu --without-readline --without-zlib \
         --without-lz4 --without-zstd --without-openssl >/dev/null )
     echo "=== make + install ==="

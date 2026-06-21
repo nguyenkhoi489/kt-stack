@@ -21,8 +21,18 @@ ARCH="${ARCH:-$(uname -m)}"                       # arm64 | x86_64
 OUT="${OUT:-$ROOT/KTStack/Resources/bin}"          # final vendor dir
 BUILD="${BUILD:-$ROOT/.build-cache/nginx-$ARCH}"  # scratch (gitignored)
 
-SSL_PREFIX="$(brew --prefix openssl@3)"
-PCRE_PREFIX="$(brew --prefix pcre2)"
+if [[ -z "${BREW:-}" ]]; then
+    if [[ "$ARCH" == "x86_64" && "$(uname -m)" == "arm64" ]]; then
+        BREW="arch -x86_64 /usr/local/bin/brew"
+    elif [[ "$ARCH" == "x86_64" ]]; then
+        BREW="/usr/local/bin/brew"
+    else
+        BREW="brew"
+    fi
+fi
+
+SSL_PREFIX="$($BREW --prefix openssl@3)"
+PCRE_PREFIX="$($BREW --prefix pcre2)"
 SRC="$BUILD/src/nginx-${NGX_VER}"
 PREFIX="$BUILD/nginx"
 STATICLIBS="$BUILD/staticlibs"

@@ -26,7 +26,8 @@ PREFIX="$BUILD/buildroot"
 source "$ROOT/scripts/lib-relocatable.sh"
 
 command -v cmake >/dev/null || { echo "cmake required (brew install cmake)" >&2; exit 2; }
-OPENSSL_PREFIX="${OPENSSL_PREFIX:-$(brew --prefix openssl@3 2>/dev/null || true)}"
+BREW="$(brew_for_arch)"
+OPENSSL_PREFIX="${OPENSSL_PREFIX:-$($BREW --prefix openssl@3 2>/dev/null || true)}"
 [[ -n "$OPENSSL_PREFIX" ]] || { echo "openssl@3 required (brew install openssl@3)" >&2; exit 2; }
 
 echo "=== MySQL build — ${MYSQL_VER} (${ARCH}) — HEAVY, ~30-90 min ==="
@@ -54,6 +55,7 @@ if [[ ! -x "$PREFIX/bin/mysqld" ]]; then
     fi
     cmake -S "$SRC" -B "$BUILD/cmbuild" \
         -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_OSX_ARCHITECTURES="$ARCH" \
         -DCMAKE_INSTALL_PREFIX="$PREFIX" \
         "${BOOST_FLAGS[@]}" \
         -DWITH_SSL="$OPENSSL_PREFIX" \
