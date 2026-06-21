@@ -132,7 +132,14 @@ public struct RouteIntrospector: Sendable {
         return []
     }
 
+    private static let beginMarker = "__KTSTACK_ROUTES_BEGIN__"
+    private static let endMarker = "__KTSTACK_ROUTES_END__"
+
     static func jsonSlice(from output: String) -> Data? {
+        if let begin = output.range(of: beginMarker),
+           let end = output.range(of: endMarker, range: begin.upperBound..<output.endIndex) {
+            return String(output[begin.upperBound..<end.lowerBound]).data(using: .utf8)
+        }
         guard let start = output.firstIndex(where: { $0 == "{" || $0 == "[" }) else { return nil }
         let opener = output[start]
         let closer: Character = opener == "{" ? "}" : "]"

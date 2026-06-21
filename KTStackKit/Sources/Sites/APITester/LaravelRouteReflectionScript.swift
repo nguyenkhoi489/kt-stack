@@ -4,13 +4,16 @@ enum LaravelRouteReflectionScript {
     static let php = #"""
 <?php
 
+error_reporting(0);
+@ini_set('display_errors', '0');
+@ini_set('display_startup_errors', '0');
+
 function ktstack_emit($payload) {
     $json = json_encode($payload);
     if ($json === false) {
-        echo json_encode(['error' => 'Failed to encode routes as JSON.', 'routes' => []]);
-        return;
+        $json = json_encode(['error' => 'Failed to encode routes as JSON.', 'routes' => []]);
     }
-    echo $json;
+    echo "\n__KTSTACK_ROUTES_BEGIN__" . $json . "__KTSTACK_ROUTES_END__\n";
 }
 
 function ktstack_normalize_rules($rules) {

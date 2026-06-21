@@ -76,6 +76,20 @@ final class RouteIntrospectorParsingTests: XCTestCase {
         XCTAssertTrue(payload.routes.isEmpty)
     }
 
+    func testJsonSliceExtractsBetweenMarkersDespiteBracketNoise() throws {
+        let noisy = """
+        Warning: Unable to load dynamic library (tried: [/opt/x.so] {bad})
+        Deprecated: something {nested} here
+        __KTSTACK_ROUTES_BEGIN__{"error":null,"routes":[{"method":"GET","uri":"a","name":null,"middleware":[],"action":"Closure","fields":[],"rulesResolved":false}]}__KTSTACK_ROUTES_END__
+        trailing junk } ]
+        """
+        let sliced = try XCTUnwrap(RouteIntrospector.jsonSlice(from: noisy))
+        let payload = try RouteIntrospector.parseReflectionPayload(sliced)
+        XCTAssertNil(payload.error)
+        XCTAssertEqual(payload.routes.count, 1)
+        XCTAssertEqual(payload.routes.first?.uri, "a")
+    }
+
     func testSortedOrdersByUriThenMethod() {
         let routes = [
             APIRoute(method: "POST", uri: "api/a", name: nil, middleware: [], action: "x", fields: [], rulesResolved: false),
