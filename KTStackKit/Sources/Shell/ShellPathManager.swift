@@ -28,7 +28,7 @@ public final class ShellPathManager: @unchecked Sendable {
         self.home = home
     }
 
-    private var exportLine: String { "export PATH=\"$PATH:\(paths.shimBinDir.path)\"" }
+    private var exportLine: String { "export PATH=\"\(paths.shimBinDir.path):$PATH\"" }
 
     private var rcFiles: [URL] {
         let fm = FileManager.default

@@ -62,7 +62,8 @@ final class ShellPathManagerTests: XCTestCase {
         }
         let zshrc = try String(contentsOf: home.appendingPathComponent(".zshrc"), encoding: .utf8)
         XCTAssertTrue(zshrc.contains(ShellRCPatcher.startPrefix))
-        XCTAssertTrue(zshrc.contains(paths.shimBinDir.path))
+        XCTAssertTrue(zshrc.contains("export PATH=\"\(paths.shimBinDir.path):$PATH\""),
+                      "shim dir must be prepended so KTStack runtimes win over system PATH")
 
         let status = manager.status()
         XCTAssertTrue(status.enabled)
