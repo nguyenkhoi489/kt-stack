@@ -2,8 +2,7 @@ import SwiftUI
 import KTStackKit
 
 struct LogsSectionView: View {
-
-    var targetSourceID: String?
+    @ObservedObject var nav: DashboardNavigation
 
     @EnvironmentObject private var server: LocalServerController
     @StateObject private var tail = LogTailController()
@@ -30,8 +29,20 @@ struct LogsSectionView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(KTColor.contentBg)
-        .onAppear { selectInitial() }
-        .onChange(of: selectedID) { id in tail.select(sources.first { $0.id == id }) }
+        .onAppear { activate() }
+        .onChange(of: selectedID) { id in
+            guard nav.activeItem == .logs else { return }
+            tail.select(sources.first { $0.id == id })
+        }
+        .onChange(of: nav.activeItem) { item in
+            if item == .logs { activate() } else { tail.select(nil) }
+        }
+        .onChange(of: nav.logTarget) { target in
+            guard nav.activeItem == .logs, let target,
+                  sources.contains(where: { $0.id == target }) else { return }
+            selectedID = target
+            tail.select(sources.first { $0.id == target })
+        }
     }
 
     private var header: some View {
@@ -150,9 +161,10 @@ struct LogsSectionView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func selectInitial() {
+    private func activate() {
+        guard nav.activeItem == .logs else { return }
         let available = sources
-        if let target = targetSourceID, available.contains(where: { $0.id == target }) {
+        if let target = nav.logTarget, available.contains(where: { $0.id == target }) {
             selectedID = target
         } else if selectedID == nil {
             selectedID = available.first?.id

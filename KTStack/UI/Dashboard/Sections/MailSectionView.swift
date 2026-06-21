@@ -2,6 +2,7 @@ import SwiftUI
 import KTStackKit
 
 struct MailSectionView: View {
+    @ObservedObject var nav: DashboardNavigation
     @EnvironmentObject private var mail: MailStore
     @EnvironmentObject private var services: ServiceManager
 
@@ -12,8 +13,10 @@ struct MailSectionView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(KTColor.contentBg)
-        .onAppear { mail.startPolling() }
-        .onDisappear { mail.stopPolling() }
+        .onAppear { if nav.activeItem == .mail { mail.startPolling() } }
+        .onChange(of: nav.activeItem) { item in
+            if item == .mail { mail.startPolling() } else { mail.stopPolling() }
+        }
     }
 
     private var header: some View {
