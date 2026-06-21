@@ -89,8 +89,11 @@ public struct RuntimeCatalog: Sendable {
 
     static let phpRuntimeVersions = ["7.4", "8.0", "8.1", "8.2", "8.3", "8.4"]
 
+    static let releaseBaseURL =
+        URL(string: "https://github.com/KTStackAPP/KTStack/releases/download/binaries-v1")!
+
     private static func phpRelease(_ version: String) -> RuntimeRelease {
-        let base = ServiceBinaryCatalog.releaseBaseURL
+        let base = releaseBaseURL
         return RuntimeRelease(
             language: .php, version: version,
             urlByArch: [
