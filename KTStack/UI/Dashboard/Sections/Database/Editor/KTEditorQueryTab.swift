@@ -3,6 +3,7 @@ import KTStackKit
 
 struct KTEditorQueryTab: View {
     @EnvironmentObject private var vm: DatabaseViewModel
+    let isActive: Bool
 
     private var canRun: Bool {
         guard let tab = vm.activeQueryTab else { return false }
@@ -20,7 +21,10 @@ struct KTEditorQueryTab: View {
             editorPanel
             results
         }
-        .task(id: vm.selectedDatabase) { await vm.ensureSchemaCatalogLoaded() }
+        .task(id: EditorTabTaskKey(value: vm.selectedDatabase, isActive: isActive)) {
+            guard isActive else { return }
+            await vm.ensureSchemaCatalogLoaded()
+        }
         .alert("Run this destructive statement?", isPresented: dangerousBinding,
                presenting: vm.pendingDangerousSQL) { _ in
             Button("Run anyway", role: .destructive) { Task { await vm.runActiveQueryTab(confirmed: true) } }

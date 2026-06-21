@@ -3,6 +3,7 @@ import KTStackKit
 
 struct KTEditorStructureTab: View {
     @EnvironmentObject private var vm: DatabaseViewModel
+    let isActive: Bool
 
     @State private var selectedColumn: String?
     @State private var ddlSheet: DDLActionSheet.Mode?
@@ -31,7 +32,10 @@ struct KTEditorStructureTab: View {
                 }
             }
         }
-        .task(id: vm.selectedTable) { await vm.loadStructure() }
+        .task(id: EditorTabTaskKey(value: vm.selectedTable, isActive: isActive)) {
+            guard isActive else { return }
+            await vm.loadStructure()
+        }
         .onChange(of: vm.selectedTable) { _ in selectedColumn = nil }
         .sheet(item: $ddlSheet) { DDLActionSheet(mode: $0) }
     }

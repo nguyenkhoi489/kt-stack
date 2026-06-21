@@ -122,15 +122,17 @@ struct KTDatabaseEditorModal: View {
         .buttonStyle(.plain)
     }
 
-    @ViewBuilder
     private var tabContent: some View {
-        Group {
-            switch tab {
-            case .data:      KTEditorDataTab(selectedRow: $selectedRow, editor: $rowEditor, pendingDelete: $pendingDelete)
-            case .structure: KTEditorStructureTab()
-            case .query:     KTEditorQueryTab()
-            case .er:        KTEditorERTab()
-            }
+        ZStack {
+            KTEditorDataTab(selectedRow: $selectedRow, editor: $rowEditor,
+                            pendingDelete: $pendingDelete, isActive: tab == .data)
+                .opacity(tab == .data ? 1 : 0).allowsHitTesting(tab == .data)
+            KTEditorStructureTab(isActive: tab == .structure)
+                .opacity(tab == .structure ? 1 : 0).allowsHitTesting(tab == .structure)
+            KTEditorQueryTab(isActive: tab == .query)
+                .opacity(tab == .query ? 1 : 0).allowsHitTesting(tab == .query)
+            KTEditorERTab(isActive: tab == .er)
+                .opacity(tab == .er ? 1 : 0).allowsHitTesting(tab == .er)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -157,4 +159,9 @@ struct KTDatabaseEditorModal: View {
     private var ddlErrorBinding: Binding<Bool> {
         Binding(get: { vm.ddlError != nil }, set: { if !$0 { vm.clearDDLError() } })
     }
+}
+
+struct EditorTabTaskKey<Value: Equatable>: Equatable {
+    let value: Value
+    let isActive: Bool
 }

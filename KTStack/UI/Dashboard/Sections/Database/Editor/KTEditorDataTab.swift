@@ -6,6 +6,7 @@ struct KTEditorDataTab: View {
     @Binding var selectedRow: Int?
     @Binding var editor: RowEditorMode?
     @Binding var pendingDelete: Int?
+    let isActive: Bool
 
     @State private var showFilterPopover = false
     @State private var showDetailPanel = false
@@ -24,8 +25,11 @@ struct KTEditorDataTab: View {
             }
             body(for: vm.selectedTable)
         }
-        .onAppear(perform: reloadIfNeeded)
-        .task(id: vm.selectedTable?.name) { await vm.loadRelationsIfNeeded() }
+        .onAppear { if isActive { reloadIfNeeded() } }
+        .task(id: EditorTabTaskKey(value: vm.selectedTable?.name, isActive: isActive)) {
+            guard isActive else { return }
+            await vm.loadRelationsIfNeeded()
+        }
     }
 
     private var breadcrumbTrail: [String] {

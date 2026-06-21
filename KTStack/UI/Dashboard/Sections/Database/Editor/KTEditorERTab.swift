@@ -6,6 +6,7 @@ import KTStackKit
 struct KTEditorERTab: View {
     @EnvironmentObject private var vm: DatabaseViewModel
     @StateObject private var state = ERDiagramState()
+    let isActive: Bool
 
     @State private var scrollMonitor: Any?
     @State private var hoverCursor: NSCursor?
@@ -19,12 +20,18 @@ struct KTEditorERTab: View {
                 diagram
             }
         }
-        .task(id: vm.selectedDatabase) {
+        .task(id: EditorTabTaskKey(value: vm.selectedDatabase, isActive: isActive)) {
+            guard isActive else { return }
             await vm.ensureDetailedColumnsLoaded()
             await vm.loadRelationsIfNeeded()
             syncState()
         }
         .onChange(of: vm.schemaCatalog) { _ in syncState() }
+        .onChange(of: isActive) { on in
+            if on { attachScrollMonitor() } else { detachScrollMonitor() }
+        }
+        .onAppear { if isActive { attachScrollMonitor() } }
+        .onDisappear { detachScrollMonitor() }
     }
 
     private func syncState() {
@@ -46,7 +53,6 @@ struct KTEditorERTab: View {
                 .overlay(alignment: .bottomTrailing) { toolbar }
                 .onAppear {
                     state.viewportSize = proxy.size
-                    attachScrollMonitor()
                     fitIfNeeded(size: proxy.size)
                 }
                 .onChange(of: proxy.size) { newSize in
@@ -54,7 +60,6 @@ struct KTEditorERTab: View {
                     fitIfNeeded(size: newSize)
                 }
                 .onChange(of: state.needsInitialFit) { _ in fitIfNeeded(size: proxy.size) }
-                .onDisappear { detachScrollMonitor() }
         }
     }
 
