@@ -16,11 +16,20 @@ final class ProjectVersionResolverTests: XCTestCase {
 
     func testValidationAndMajorMinor() {
         XCTAssertTrue(ProjectVersionResolver.isValidVersion("8.4"))
+        XCTAssertTrue(ProjectVersionResolver.isValidVersion("22.22.3"))
         XCTAssertFalse(ProjectVersionResolver.isValidVersion("8.4; rm -rf /"))
         XCTAssertFalse(ProjectVersionResolver.isValidVersion("../../x"))
+        XCTAssertFalse(ProjectVersionResolver.isValidVersion("22.22.3.1"))
         XCTAssertEqual(ProjectVersionResolver.majorMinor(fromConstraint: "^8.3"), "8.3")
         XCTAssertEqual(ProjectVersionResolver.majorMinor(fromConstraint: "8.1.99"), "8.1")
         XCTAssertNil(ProjectVersionResolver.majorMinor(fromConstraint: "nonsense"))
+    }
+
+    func testSelectVersionPicksInstalledNodeSemver() {
+        let resolver = ProjectVersionResolver()
+        let proj = tmp.appendingPathComponent("vongquay")
+        try? FileManager.default.createDirectory(at: proj, withIntermediateDirectories: true)
+        XCTAssertEqual(resolver.selectVersion(.node, forProjectAt: proj, installed: ["22.22.3"]), "22.22.3")
     }
 
     func testWalkUpFindsAncestorMarker() throws {

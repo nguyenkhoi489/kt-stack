@@ -7,7 +7,7 @@ public struct ProjectVersionResolver: Sendable {
     public init(homeOverride: URL? = nil) { self.homeOverride = homeOverride }
 
     public static func isValidVersion(_ value: String) -> Bool {
-        value.range(of: "^[0-9]+\\.[0-9]+$", options: .regularExpression) != nil
+        value.range(of: "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$", options: .regularExpression) != nil
     }
 
     public static func majorMinor(fromConstraint constraint: String) -> String? {
