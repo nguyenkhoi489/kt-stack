@@ -9,37 +9,40 @@ struct DashboardWindow: View {
     @EnvironmentObject private var preferences: AppPreferences
     @EnvironmentObject private var dns: DNSAutomationService
     @EnvironmentObject private var server: LocalServerController
+    @EnvironmentObject private var services: ServiceManager
     @EnvironmentObject private var runtimes: RuntimeManager
+    @EnvironmentObject private var mail: MailStore
     @EnvironmentObject private var caTrust: CATrustService
     @EnvironmentObject private var updater: UpdaterController
     @EnvironmentObject private var uninstaller: UninstallService
+    @EnvironmentObject private var connectionStore: ConnectionStore
+    @EnvironmentObject private var databaseViewModel: DatabaseViewModel
+    @EnvironmentObject private var documentViewModel: DocumentViewModel
+    @EnvironmentObject private var tunnels: TunnelManager
 
-    @State private var selection: SidebarItem = .sites
-
-    @State private var logTarget: String?
+    @StateObject private var nav = DashboardNavigation()
     @StateObject private var overlay = KTOverlayCenter()
 
-
-    private func openLogs(_ sourceID: String?) {
-        logTarget = sourceID
-        selection = .logs
+    private var dashboardEnv: DashboardEnv {
+        DashboardEnv(preferences: preferences, server: server, dns: dns, services: services,
+                     runtimes: runtimes, mail: mail, caTrust: caTrust, updater: updater,
+                     uninstaller: uninstaller, connectionStore: connectionStore,
+                     databaseViewModel: databaseViewModel, documentViewModel: documentViewModel,
+                     tunnels: tunnels, overlay: overlay)
     }
 
     var body: some View {
-        KTDashboardShell(
-            selection: $selection,
-            siteCount: server.registry.sites.count,
-            serverStatus: sidebarServerStatus,
-            version: versionText) {
-            detail(for: selection)
-        }
-        .environmentObject(overlay)
-        .overlay { windowModals }
-        .animation(.easeOut(duration: 0.15), value: overlay.databaseEditorPresented)
-        .animation(.easeOut(duration: 0.15), value: overlay.newSitePresented)
-        .animation(.easeOut(duration: 0.15), value: overlay.connectPresented)
-        .animation(.easeOut(duration: 0.15), value: overlay.newDatabasePresented)
-        .ktOverlayHost(overlay)
+        DashboardSplitRepresentable(nav: nav, env: dashboardEnv)
+            .frame(minWidth: 720, minHeight: 460)
+            .environmentObject(overlay)
+            .overlay { windowModals }
+            .animation(.easeOut(duration: 0.15), value: overlay.databaseEditorPresented)
+            .animation(.easeOut(duration: 0.15), value: overlay.newSitePresented)
+            .animation(.easeOut(duration: 0.15), value: overlay.connectPresented)
+            .animation(.easeOut(duration: 0.15), value: overlay.newDatabasePresented)
+            .ktOverlayHost(overlay)
+            .ignoresSafeArea(.container, edges: .top)
+            .background(KTWindowChrome())
     }
 
     @ViewBuilder
@@ -78,34 +81,6 @@ struct DashboardWindow: View {
         }
     }
 
-    private var versionText: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.0"
-    }
-
-    private var sidebarServerStatus: ServiceStatus {
-        if server.nginxStatus == .starting || server.nginxStatus == .error || server.nginxStatus == .warning {
-            return server.nginxStatus
-        }
-        return server.isRunning ? .running : .stopped
-    }
-
-    @ViewBuilder
-    private func detail(for item: SidebarItem) -> some View {
-        switch item {
-        case .sites:    KTSitesScreen(onOpenLogs: openLogs)
-        case .services: KTServicesScreen(onNavigate: { selection = $0 }, onOpenLogs: openLogs)
-        case .runtimes: KTRuntimesScreen()
-        case .logs:     LogsSectionView(targetSourceID: logTarget)
-        case .mail:     MailSectionView()
-        case .settings: SettingsView(preferences: preferences, dns: dns, server: server,
-                                     runtimes: runtimes, caTrust: caTrust, updater: updater,
-                                     uninstaller: uninstaller)
-                            .navigationTitle("Settings")
-        case .about:    AboutSettingsView().navigationTitle("About")
-        case .database: KTDatabaseScreen()
-        case .dumps:    DumpsPanelView()
-        }
-    }
 }
 
 enum SidebarSection: String, CaseIterable, Identifiable {
