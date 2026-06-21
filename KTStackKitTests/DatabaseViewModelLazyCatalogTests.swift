@@ -96,6 +96,21 @@ final class DatabaseViewModelLazyCatalogTests: XCTestCase {
         XCTAssertEqual(vm.schemaCatalog.relations.count, 1)
     }
 
+    func testEnsureSchemaCatalogPreservesDetailedColumns() async {
+        let driver = CatalogStub()
+        let vm = makeVM(driver)
+        await vm.select(profile: .managedMySQL)
+        await vm.select(database: "db")
+
+        await vm.ensureDetailedColumnsLoaded()
+        XCTAssertEqual(vm.schemaCatalog.detailedColumnsByTable["users"]?.map(\.name), ["id"])
+
+        await vm.ensureSchemaCatalogLoaded()
+        XCTAssertEqual(vm.schemaCatalog.detailedColumnsByTable["users"]?.map(\.name), ["id"],
+                       "loading name-only columns must not wipe the detailed columns the ER tab depends on")
+        XCTAssertEqual(vm.schemaCatalog.columns(of: "users"), ["id", "name"])
+    }
+
     func testReselectingDatabaseReintrospectsColumns() async {
         let driver = CatalogStub()
         let vm = makeVM(driver)

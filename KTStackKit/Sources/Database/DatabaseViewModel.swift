@@ -239,6 +239,7 @@ public final class DatabaseViewModel: ObservableObject {
             guard token == generation else { schemaColumnsLoaded = false; return }
             schemaCatalog = SchemaCatalog(tables: schemaCatalog.tables,
                                           columnsByTable: map,
+                                          detailedColumnsByTable: schemaCatalog.detailedColumnsByTable,
                                           relations: schemaCatalog.relations)
         } catch {
             schemaColumnsLoaded = false
