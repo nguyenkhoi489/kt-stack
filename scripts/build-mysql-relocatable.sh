@@ -53,11 +53,17 @@ if [[ ! -x "$PREFIX/bin/mysqld" ]]; then
     else
         BOOST_FLAGS=(-DWITH_BOOST="$BUILD/boost-dl" -DDOWNLOAD_BOOST=1)
     fi
+    XLIB_FLAGS=()
+    if [[ "$ARCH" != "$(uname -m)" ]]; then
+        XLIB_FLAGS=(-DWITH_ZSTD=system -DWITH_LZ4=system
+                    -DCMAKE_PREFIX_PATH="$($BREW --prefix zstd);$($BREW --prefix lz4)")
+    fi
     cmake -S "$SRC" -B "$BUILD/cmbuild" \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_OSX_ARCHITECTURES="$ARCH" \
+        -DCMAKE_SYSTEM_PROCESSOR="$ARCH" \
         -DCMAKE_INSTALL_PREFIX="$PREFIX" \
-        "${BOOST_FLAGS[@]}" \
+        "${BOOST_FLAGS[@]}" "${XLIB_FLAGS[@]}" \
         -DWITH_SSL="$OPENSSL_PREFIX" \
         -DWITH_UNIT_TESTS=OFF -DWITH_ROUTER=OFF -DWITH_MYSQLX=OFF >/dev/null
     echo "=== make + install (this is the long part) ==="
