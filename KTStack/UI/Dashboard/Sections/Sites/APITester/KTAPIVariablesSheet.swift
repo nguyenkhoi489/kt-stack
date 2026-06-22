@@ -13,11 +13,11 @@ struct KTAPIVariablesSheet: View {
             columnHeader
             Rectangle().fill(KTColor.sep).frame(height: 0.5)
             rows
-            Spacer(minLength: 0)
             Rectangle().fill(KTColor.sep).frame(height: 0.5)
             footer
         }
-        .frame(width: 720, height: 520, alignment: .top)
+        .frame(width: 720)
+        .frame(minHeight: 360, maxHeight: 620, alignment: .top)
         .background(Color.white)
         .onChange(of: vm.variables) { _ in vm.saveVariables() }
     }
@@ -66,7 +66,7 @@ struct KTAPIVariablesSheet: View {
             addButton
         }
         .padding(.horizontal, 18).padding(.vertical, 14)
-        .frame(maxWidth: .infinity, alignment: .top)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func row(_ variable: Binding<EditablePair>) -> some View {
