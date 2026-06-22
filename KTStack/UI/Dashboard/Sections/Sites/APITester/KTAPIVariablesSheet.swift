@@ -45,7 +45,7 @@ struct KTAPIVariablesSheet: View {
                 .font(.jbMono(12)).foregroundStyle(KTColor.faint)
             Spacer()
         }
-        .padding(.horizontal, 18).padding(.vertical, 11)
+        .padding(.horizontal, 18).padding(.top, 11).padding(.bottom, 3)
     }
 
     private var columnHeader: some View {
