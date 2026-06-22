@@ -7,6 +7,7 @@ struct LogsSectionView: View {
     @EnvironmentObject private var server: LocalServerController
     @StateObject private var tail = LogTailController()
     @State private var selectedID: String?
+    @State private var pickerOpen = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let paths = AppSupportPaths()
@@ -29,6 +30,9 @@ struct LogsSectionView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(KTColor.contentBg)
+        .sheet(isPresented: $pickerOpen) {
+            KTLogSourcePicker(sources: sources, selectedID: $selectedID) { pickerOpen = false }
+        }
         .onAppear { activate() }
         .onChange(of: selectedID) { id in
             guard nav.activeItem == .logs else { return }
@@ -63,14 +67,10 @@ struct LogsSectionView: View {
     }
 
     private var sourceMenu: some View {
-        KTDropdown(width: 240, maxHeight: 320, compact: true,
-                   options: sources.map { source in
-                       KTDropdownOption(label: source.displayName, active: source.id == selectedID) {
-                           selectedID = source.id
-                       }
-                   }) {
+        Button { pickerOpen = true } label: {
             KTDropdownChevronLabel(text: currentSourceName)
         }
+        .buttonStyle(.plain)
         .fixedSize()
     }
 
