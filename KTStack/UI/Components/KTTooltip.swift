@@ -20,14 +20,28 @@ private struct KTTooltipModifier: ViewModifier {
                     visible = false
                 }
             }
-            .popover(isPresented: $visible, arrowEdge: .top) {
-                Text(text)
-                    .font(.jbMono(11.5))
-                    .foregroundStyle(KTColor.ink)
-                    .lineLimit(1)
-                    .fixedSize()
-                    .padding(.horizontal, 11).padding(.vertical, 7)
+            .overlay(alignment: .top) {
+                if visible {
+                    bubble
+                        .alignmentGuide(.top) { $0[.bottom] }
+                        .offset(y: -6)
+                        .transition(.opacity)
+                        .allowsHitTesting(false)
+                }
             }
+            .zIndex(visible ? 1000 : 0)
+            .animation(.easeOut(duration: 0.12), value: visible)
+    }
+
+    private var bubble: some View {
+        Text(text)
+            .font(.jbMono(11))
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .fixedSize()
+            .padding(.horizontal, 9).padding(.vertical, 5)
+            .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Color.black.opacity(0.88)))
+            .shadow(color: .black.opacity(0.22), radius: 6, y: 2)
     }
 }
 
