@@ -53,19 +53,30 @@ struct KTAPIRouteSidebar: View {
                 Text(vm.siteDomain).font(.jbMono(10)).foregroundStyle(KTColor.faint).lineLimit(1)
             }
             .padding(.horizontal, 12).padding(.top, 10).padding(.bottom, 8)
-            ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
-                    KTEditablePairList(pairs: $vm.variables,
-                                       keyPlaceholder: "Name", valuePlaceholder: "Value")
-                        .onChange(of: vm.variables) { _ in vm.saveVariables() }
-                    Text("Use {{name}} in URL, params, headers, or body.")
-                        .font(.jbMono(10.5)).foregroundStyle(KTColor.faint)
-                }
-                .padding(.horizontal, 12).padding(.bottom, 12)
-            }
-            .frame(maxHeight: 180)
+            manageButton
         }
         .background(Color.white)
+    }
+
+    private var manageButton: some View {
+        Button { vm.isEditingVariables = true } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "slider.horizontal.3").font(.system(size: 13))
+                Text("Manage variables").font(.jbMono(12.5, .medium))
+                Spacer()
+                Text("\(vm.activeVariableCount)")
+                    .font(.jbMono(11, .bold)).foregroundStyle(KTColor.accent)
+                    .padding(.horizontal, 7).padding(.vertical, 2)
+                    .background(Capsule().fill(Color.white))
+            }
+            .foregroundStyle(KTColor.accent)
+            .padding(.horizontal, 10).padding(.vertical, 9)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(KTColor.accentSoft))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 12).padding(.bottom, 12)
     }
 
     private var newRequestButton: some View {

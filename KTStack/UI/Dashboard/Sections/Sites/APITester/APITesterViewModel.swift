@@ -40,6 +40,7 @@ final class APITesterViewModel: ObservableObject {
     @Published var bodyDisplayLimitKB: Int = 200
     @Published var requestDraft = RequestDraft()
     @Published var variables: [EditablePair] = []
+    @Published var isEditingVariables = false
     @Published var response: APIResponseResult?
     @Published var isLoadingRoutes = false
     @Published var isSending = false
@@ -60,6 +61,10 @@ final class APITesterViewModel: ObservableObject {
     private var siteKey = ""
 
     var siteDomain: String { siteKey }
+
+    var activeVariableCount: Int {
+        variables.filter { $0.enabled && !$0.key.trimmingCharacters(in: .whitespaces).isEmpty }.count
+    }
 
     var webRoutes: [APIRoute] { filtered(routes.filter { !$0.isApi }) }
     var apiRoutes: [APIRoute] { filtered(routes.filter { $0.isApi }) }
