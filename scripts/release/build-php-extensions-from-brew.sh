@@ -127,27 +127,56 @@ build_one() {
     cp "$so" "$stage/${ext}.so"; chmod u+w "$stage/${ext}.so"
     vendor_extension_so "$stage/${ext}.so" "$runtime_lib"
 
+    if [[ "$ext" == imagick ]]; then
+        bundle_imagick_modules "$stage" "$(brew_prefix imagemagick)" \
+            || { echo "  ✗ imagick@$ver module bundling failed"; return 1; }
+    fi
+
     local m
-    for m in "$stage"/*.so "$stage"/*.dylib; do [[ -e "$m" ]] && ad_hoc_sign "$m" >/dev/null 2>&1; done
+    while IFS= read -r m; do [[ -e "$m" ]] && ad_hoc_sign "$m" >/dev/null 2>&1; done \
+        < <(find "$stage" \( -name '*.so' -o -name '*.dylib' \))
 
     gate_extension_so "$stage" "$runtime_lib" || { echo "  ✗ $ext@$ver failed relocate gate"; return 1; }
+    if [[ "$ext" == imagick ]]; then
+        gate_imagick_modules "$stage" "$runtime_lib" || { echo "  ✗ imagick@$ver failed module relocate gate"; return 1; }
+    fi
 
     local rt="$RUNTIME_STAGE/php-${ver}"
     local php="$rt/bin/php" mod="$rt/modules"
     local directive; directive="$(ext_load_directive "$ext")"
-    local f probe_files=()
+    local f probe_files=() probe_dirs=()
     for f in "$stage"/*.so "$stage"/*.dylib; do
         [[ -e "$f" ]] || continue
         cp "$f" "$mod/$(basename "$f")"; probe_files+=("$mod/$(basename "$f")")
     done
+    if [[ -d "$stage/imagick-magick" ]]; then
+        rm -rf "$mod/imagick-magick"; cp -R "$stage/imagick-magick" "$mod/imagick-magick"
+        probe_dirs+=("$mod/imagick-magick")
+    fi
     local loadarg
     if [[ "$directive" == zend_extension ]]; then loadarg="-d zend_extension=$mod/${ext}.so"
     else loadarg="-d extension=${ext}.so"; fi
     local load_ok=1
     env -i "$php" -d extension_dir="$mod" $loadarg -r 'exit(0);' >/dev/null 2>&1 || load_ok=0
+    if ((load_ok)) && [[ "$ext" == imagick ]]; then
+        env -i \
+            MAGICK_HOME="$mod/imagick-magick" \
+            MAGICK_CODER_MODULE_PATH="$mod/imagick-magick/coders" \
+            MAGICK_CODER_FILTER_PATH="$mod/imagick-magick/filters" \
+            MAGICK_CONFIGURE_PATH="$mod/imagick-magick/config" \
+            "$php" -d extension_dir="$mod" -d extension=imagick.so -r '
+                $i = new Imagick();
+                $i->newImage(4, 4, new ImagickPixel("red"));
+                $i->setImageFormat("png");
+                $blob = $i->getImageBlob();
+                if (strlen($blob) < 8) { exit(1); }
+                (new Imagick())->readImageBlob($blob);
+            ' >/dev/null 2>&1 || load_ok=0
+    fi
     for f in "${probe_files[@]}"; do rm -f "$f"; done
+    for f in "${probe_dirs[@]}"; do rm -rf "$f"; done
     if ((!load_ok)); then
-        echo "  ✗ $ext@$ver did not load under env -i (fail-closed; not published)"; return 1
+        echo "  ✗ $ext@$ver did not load/encode under env -i (fail-closed; not published)"; return 1
     fi
 
     package_extension "$stage/${ext}.so" "$ext" "$ver" "$ARTIFACTS" >/dev/null

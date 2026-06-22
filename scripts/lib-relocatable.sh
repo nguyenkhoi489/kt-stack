@@ -66,9 +66,11 @@ package_extension() {
     mkdir -p "$artifacts"
     stage="$(mktemp -d)"; top="$stage/$ext"; mkdir -p "$top"
     cp "$so" "$top/$ext.so"
-    local sidecar
-    for sidecar in "$(dirname "$so")"/*.dylib; do
-        [[ -e "$sidecar" ]] && cp "$sidecar" "$top/$(basename "$sidecar")"
+    local item
+    for item in "$(dirname "$so")"/*; do
+        [[ -e "$item" ]] || continue
+        [[ "$item" -ef "$so" ]] && continue
+        cp -R "$item" "$top/$(basename "$item")"
     done
     out="$artifacts/php-ext-${ext}-${phpver}-${arch}.tar.gz"
     tar -czf "$out" -C "$stage" "$ext"
@@ -244,6 +246,115 @@ vendor_extension_so() {
             install_name_tool -delete_rpath "$rp" "$staged" 2>/dev/null || true
         done < <(_macho_rpaths "$staged")
     done
+}
+
+# Bundle ImageMagick coder/filter modules and config into <stage>/imagick-magick so Imagick is fully
+# self-contained (no Homebrew at runtime). ImageMagick loads coders via dlopen from a path baked into
+# libMagickCore at compile time (the Cellar path), which install_name_tool cannot rewrite — so the
+# modules are copied here and the app sets MAGICK_CODER_MODULE_PATH / MAGICK_CONFIGURE_PATH at runtime.
+# Every coder's non-system dylib closure (libpng, libjpeg, liblcms2, libfreetype, …) is vendored FLAT
+# into <stage> (the runtime modules dir) and referenced via @loader_path/../../<dylib>; the already
+# staged libMagickCore/libMagickWand are reused, and any of their Homebrew deps not pulled in by a coder
+# are added too. $1 = stage dir (holds imagick.so + the Magick* dylibs), $2 = Homebrew imagemagick prefix.
+bundle_imagick_modules() {
+    local stage="$1" im="$2"
+    local moddir; moddir="$(find "$im/lib/ImageMagick" -maxdepth 1 -type d -name 'modules-*' 2>/dev/null | head -1)"
+    [[ -d "$moddir/coders" ]] || { echo "  ✗ imagick: no coder modules under $im" >&2; return 1; }
+
+    local dest="$stage/imagick-magick"
+    rm -rf "$dest"; mkdir -p "$dest/coders" "$dest/filters" "$dest/config"
+    cp "$moddir/coders/"*.so "$dest/coders/" 2>/dev/null || true
+    cp "$moddir/coders/"*.la "$dest/coders/" 2>/dev/null || true
+    [[ -d "$moddir/filters" ]] && { cp "$moddir/filters/"*.so "$dest/filters/" 2>/dev/null || true; cp "$moddir/filters/"*.la "$dest/filters/" 2>/dev/null || true; }
+    local la
+    for la in "$dest/coders/"*.la "$dest/filters/"*.la; do
+        [[ -e "$la" ]] && /usr/bin/sed -i '' "s#^libdir=.*#libdir=''#" "$la"
+    done
+    local cfg
+    for cfg in "$im/lib/ImageMagick/config-"* "$im/etc/ImageMagick-"* "$im/share/ImageMagick-"*; do
+        [[ -d "$cfg" ]] && cp "$cfg/"*.xml "$dest/config/" 2>/dev/null || true
+    done
+
+    local present=" " f base ref real
+    for f in "$stage"/*.dylib; do [[ -e "$f" ]] && present="${present}$(basename "$f") "; done
+
+    local -a work=()
+    for f in "$dest/coders/"*.so "$dest/filters/"*.so; do
+        [[ -e "$f" ]] || continue
+        chmod u+w "$f"
+        work+=("$f::$(dirname "$(_canonicalize "$f")")::@loader_path/../../")
+    done
+    for f in "$im/lib/libMagickCore"*.dylib "$im/lib/libMagickWand"*.dylib; do
+        [[ -e "$f" ]] || continue
+        while IFS= read -r ref; do
+            case "$ref" in /opt/*|/usr/local/*) ;; *) continue ;; esac
+            base="$(basename "$ref")"
+            [[ "$present" == *" $base "* ]] && continue
+            real="$(_canonicalize "$ref")"; [[ -f "$real" ]] || continue
+            cp "$real" "$stage/$base"; chmod u+w "$stage/$base"
+            install_name_tool -id "@loader_path/$base" "$stage/$base" 2>/dev/null || true
+            present="${present}$base "
+            work+=("$stage/$base::$(dirname "$real")::@loader_path/")
+        done < <(otool -L "$f" | tail -n +2 | awk '{print $1}')
+    done
+
+    local entry staged rest origin prefix obj_id self_real rp
+    while ((${#work[@]})); do
+        entry="${work[0]}"; work=("${work[@]:1}")
+        staged="${entry%%::*}"; rest="${entry#*::}"; origin="${rest%%::*}"; prefix="${rest#*::}"
+        chmod u+w "$staged"
+        obj_id="$(otool -D "$staged" | tail -n +2 | head -1)"
+        self_real="$(_canonicalize "$staged")"
+        while IFS= read -r ref; do
+            [[ "$ref" == "$obj_id" ]] && continue
+            _is_system_path "$ref" && continue
+            case "$ref" in @*|/*) ;; *) continue ;; esac
+            real="$(_resolve_ref "$ref" "$origin" "$staged")" || {
+                echo "  ! imagick: cannot resolve $ref (from $(basename "$staged"))" >&2; continue
+            }
+            [[ "$real" == "$self_real" ]] && continue
+            _is_system_path "$real" && continue
+            base="$(basename "$real")"
+            if [[ "$present" != *" $base "* ]]; then
+                cp "$real" "$stage/$base"; chmod u+w "$stage/$base"
+                install_name_tool -id "@loader_path/$base" "$stage/$base" 2>/dev/null || true
+                present="${present}$base "
+                work+=("$stage/$base::$(dirname "$real")::@loader_path/")
+            fi
+            install_name_tool -change "$ref" "${prefix}$base" "$staged" 2>/dev/null || true
+        done < <(otool -L "$staged" | tail -n +2 | awk '{print $1}')
+        while IFS= read -r rp; do
+            [[ -z "$rp" ]] && continue
+            _is_system_path "$rp" && continue
+            install_name_tool -delete_rpath "$rp" "$staged" 2>/dev/null || true
+        done < <(_macho_rpaths "$staged")
+    done
+}
+
+# Gate the bundled ImageMagick module subtree: every coder/filter .so and every flat dylib at the stage
+# root must reference only /usr/lib, /System, @loader_path targets that exist in the stage, or
+# @loader_path/../lib/<dylib> deps present in the shared runtime lib dir (resolved at install time, where
+# the stage root maps to the runtime modules dir). $1 = stage dir, $2 = runtime lib dir.
+gate_imagick_modules() {
+    local stage="$1" runtime_lib="$2" m ref base bad=0 loader_dir target
+    while IFS= read -r m; do
+        [[ -e "$m" ]] || continue
+        loader_dir="$(dirname "$m")"
+        while IFS= read -r ref; do
+            case "$ref" in
+                /usr/lib/*|/System/*) continue ;;
+                /*) echo "  ✗ $(basename "$m"): absolute ref $ref" >&2; bad=1; continue ;;
+                @loader_path/../lib/*)
+                    base="${ref##*/}"
+                    [[ -f "$runtime_lib/$base" ]] || { echo "  ✗ $(basename "$m"): runtime lib missing $base" >&2; bad=1; }
+                    continue ;;
+                @loader_path/*) target="$loader_dir/${ref#@loader_path/}" ;;
+                *) echo "  ✗ $(basename "$m"): unexpected ref $ref" >&2; bad=1; continue ;;
+            esac
+            [[ -f "$(_canonicalize "$target")" ]] || { echo "  ✗ $(basename "$m"): dangling $ref" >&2; bad=1; }
+        done < <(otool -L "$m" | tail -n +2 | awk '{print $1}')
+    done < <(find "$stage/imagick-magick" -name '*.so' 2>/dev/null; find "$stage" -maxdepth 1 -name '*.dylib' 2>/dev/null)
+    return $bad
 }
 
 # Deep relocatability gate: like relocatable_gate but also rejects @loader_path / @executable_path /
