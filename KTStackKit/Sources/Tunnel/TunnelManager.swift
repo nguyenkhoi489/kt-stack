@@ -182,21 +182,29 @@ public final class TunnelManager: ObservableObject {
     }
 
     private func applyPublicHost(site: Site, port: Int, publicHost: String) {
+        guard sessions[site.id]?.status.isBusy == true else { return }
         guard FileManager.default.fileExists(atPath: tunnelVhostURL(site.id).path) else { return }
         guard (try? writeTunnelVhost(site: site, port: port, publicHost: publicHost)) != nil else { return }
-        try? nginx.reload()
+        Task { await reloadNginxTolerant() }
     }
 
     private func activateTunnelVhost(port: Int) async throws {
-        do {
-            try nginx.reload()
-            if await waitForTunnelPort(port) { return }
-        } catch {
-            try await restartNginxForTunnelPort(port, originalError: error)
-            return
-        }
-
+        if await reloadNginxTolerant(), await waitForTunnelPort(port) { return }
         try await restartNginxForTunnelPort(port, originalError: PreparationError.originPortNotListening(port))
+    }
+
+    @discardableResult
+    private func reloadNginxTolerant() async -> Bool {
+        for attempt in 0..<3 {
+            do {
+                try nginx.reload()
+                return true
+            } catch {
+                if attempt == 2 { return false }
+                try? await Task.sleep(nanoseconds: 150_000_000)
+            }
+        }
+        return false
     }
 
     private func restartNginxForTunnelPort(_ port: Int, originalError: Error) async throws {
@@ -224,7 +232,7 @@ public final class TunnelManager: ObservableObject {
         let url = tunnelVhostURL(siteID)
         guard FileManager.default.fileExists(atPath: url.path) else { return }
         try? FileManager.default.removeItem(at: url)
-        try? nginx.reload()
+        Task { await reloadNginxTolerant() }
     }
 
     private func tunnelVhostURL(_ siteID: UUID) -> URL {
@@ -239,7 +247,7 @@ public final class TunnelManager: ObservableObject {
             try? FileManager.default.removeItem(at: file)
             removed = true
         }
-        if removed { try? nginx.reload() }
+        if removed { Task { await reloadNginxTolerant() } }
     }
 
     private func selectTunnelPort(_ siteID: UUID) -> Int {
