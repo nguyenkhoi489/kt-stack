@@ -96,7 +96,7 @@ struct KTSiteListRow: View {
                 HStack(spacing: 8) {
                     KTBadge(text: site.type.label, tint: KTSiteVisuals.tint(for: site.type), radius: 8)
                     KTToggle(isOn: site.nodeEnabled, action: toggleNode)
-                        .help("Run this Node app and reverse-proxy the site to it")
+                        .ktTip("Run this Node app and reverse-proxy the site to it")
                         .accessibilityLabel("Serve \(site.domain) with Node")
                 }
             } else {
@@ -110,14 +110,14 @@ struct KTSiteListRow: View {
             }
 
             KTToggle(isOn: site.secure, action: { onSetSecure(!site.secure) })
-                .help("Serve over HTTPS with a locally-trusted certificate")
+                .ktTip("Serve over HTTPS with a locally-trusted certificate")
                 .accessibilityLabel("Serve \(site.domain) over HTTPS")
 
             KTSiteShareControls(shareStarting: shareStarting, shareURL: shareURL, onToggleShare: onToggleShare)
 
             KTButton(title: "Open", kind: .secondary, action: onOpen)
                 .disabled(!canOpen)
-                .help("Open \(site.domain) in your browser")
+                .ktTip("Open \(site.domain) in your browser")
 
             KTSiteActionsMenu(site: site, canOpen: canOpen,
                               onOpenLogs: onOpenLogs, onRemove: onRemove, onError: onError)

@@ -14,6 +14,6 @@ struct KTPhpMenu: View {
             KTDropdownChevronLabel(text: "PHP \(current)")
         }
         .fixedSize()
-        .help("Switch the PHP version for this site")
+        .ktTip("Switch the PHP version for this site")
     }
 }

@@ -11,7 +11,7 @@ struct TunnelQRCodeButton: View {
             Image(systemName: "qrcode")
         }
         .buttonStyle(.borderless)
-        .help("Show QR for mobile testing")
+        .ktTip("Show QR for mobile testing")
         .popover(isPresented: $isPresented) {
             QRCodeView(url: url)
         }

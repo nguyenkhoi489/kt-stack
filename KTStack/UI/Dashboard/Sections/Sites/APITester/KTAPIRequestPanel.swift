@@ -87,12 +87,12 @@ struct KTAPIRequestPanel: View {
             HStack(spacing: 7) {
                 Text("Timeout").font(.jbMono(11)).foregroundStyle(KTColor.faint)
                 numberField(value: timeoutBinding, suffix: "s", range: 1...300)
-                    .help("Seconds to wait for a response before the request times out")
+                    .ktTip("Seconds to wait for a response before the request times out")
             }
             HStack(spacing: 7) {
                 Text("Body limit").font(.jbMono(11)).foregroundStyle(KTColor.faint)
                 numberField(value: $vm.bodyDisplayLimitMB, suffix: "MB", range: 1...100)
-                    .help("Maximum response body size rendered in the viewer; larger bodies are truncated")
+                    .ktTip("Maximum response body size rendered in the viewer; larger bodies are truncated")
             }
             Spacer()
             if vm.hasUnresolvedPathParams {

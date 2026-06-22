@@ -36,6 +36,6 @@ struct KTSiteShareControls: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help(help)
+        .ktTip(help)
     }
 }
