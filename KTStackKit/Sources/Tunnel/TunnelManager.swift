@@ -128,15 +128,18 @@ public final class TunnelManager: ObservableObject {
             if Task.isCancelled { clearStart(siteID); return }
             let controller = TunnelController(paths: paths, siteID: siteID)
             controllers[siteID] = controller
-            await controller.start(binary: binary, originPort: originPort, localDomain: site.domain) { [weak self] status in
-                Task { @MainActor [weak self] in
-                    guard let self else { return }
-                    if let host = status.publicURL?.host {
-                        self.applyPublicHost(site: site, port: originPort, publicHost: host)
+            await controller.start(binary: binary, originPort: originPort, localDomain: site.domain,
+                onURL: { [weak self] url in
+                    guard let host = url.host else { return }
+                    await MainActor.run { [weak self] in
+                        self?.applyPublicHost(site: site, port: originPort, publicHost: host)
                     }
-                    self.updateStatus(siteID, status)
-                }
-            }
+                },
+                onStatus: { [weak self] status in
+                    Task { @MainActor [weak self] in
+                        self?.updateStatus(siteID, status)
+                    }
+                })
             startTasks[siteID] = nil
         } catch is CancellationError {
             clearStart(siteID)
@@ -173,12 +176,12 @@ public final class TunnelManager: ObservableObject {
         let config = tunnelWriter.vhost(site: site, port: port, phpFpmSocket: socket,
                                         accessLog: paths.siteAccessLog(site.domain),
                                         errorLog: paths.siteErrorLog(site.domain),
-                                        publicHost: publicHost)
+                                        publicHost: publicHost,
+                                        supportsBodyRewrite: nginx.supportsResponseBodyRewrite())
         try config.write(to: tunnelVhostURL(site.id), atomically: true, encoding: .utf8)
     }
 
     private func applyPublicHost(site: Site, port: Int, publicHost: String) {
-        guard nginx.supportsResponseBodyRewrite() else { return }
         guard FileManager.default.fileExists(atPath: tunnelVhostURL(site.id).path) else { return }
         guard (try? writeTunnelVhost(site: site, port: port, publicHost: publicHost)) != nil else { return }
         try? nginx.reload()

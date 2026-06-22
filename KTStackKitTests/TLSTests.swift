@@ -81,12 +81,39 @@ final class NginxTunnelVhostWriterTests: XCTestCase {
                         domain: "app.test", phpVersion: "8.4", type: .php, secure: true)
         let v = writer.vhost(site: site, port: 45126,
                              phpFpmSocket: URL(fileURLWithPath: "/run/php-fpm-8.4.sock"),
-                             publicHost: "demo.trycloudflare.com")
+                             publicHost: "demo.trycloudflare.com",
+                             supportsBodyRewrite: true)
         XCTAssertTrue(v.contains("sub_filter_once off;"))
         XCTAssertTrue(v.contains("sub_filter_types *;"))
         XCTAssertTrue(v.contains("sub_filter \"https://app.test\" \"https://demo.trycloudflare.com\";"))
         XCTAssertTrue(v.contains("sub_filter \"http://app.test\" \"https://demo.trycloudflare.com\";"))
         XCTAssertTrue(v.contains("sub_filter \"//app.test\" \"//demo.trycloudflare.com\";"))
+    }
+
+    func testTunnelPHPVhostForwardsPublicHostToFastCGI() {
+        let site = Site(name: "App", path: "/site", docroot: "/site/public",
+                        domain: "app.test", phpVersion: "8.4", type: .php, secure: true)
+        let v = writer.vhost(site: site, port: 45127,
+                             phpFpmSocket: URL(fileURLWithPath: "/run/php-fpm-8.4.sock"),
+                             publicHost: "demo.trycloudflare.com")
+
+        XCTAssertTrue(v.contains("fastcgi_param HTTP_HOST                demo.trycloudflare.com;"))
+        XCTAssertTrue(v.contains("fastcgi_param SERVER_NAME              demo.trycloudflare.com;"))
+        XCTAssertTrue(v.contains("fastcgi_param HTTP_X_FORWARDED_HOST    demo.trycloudflare.com;"))
+        XCTAssertTrue(v.contains("fastcgi_param HTTP_X_FORWARDED_PROTO   https;"))
+        XCTAssertTrue(v.contains("fastcgi_param HTTPS                    on;"))
+        XCTAssertFalse(v.contains("app.test"))
+    }
+
+    func testTunnelVhostOmitsSubFilterWhenBodyRewriteUnsupported() {
+        let site = Site(name: "App", path: "/site", docroot: "/site/public",
+                        domain: "app.test", phpVersion: "8.4", type: .php, secure: true)
+        let v = writer.vhost(site: site, port: 45128,
+                             phpFpmSocket: URL(fileURLWithPath: "/run/php-fpm-8.4.sock"),
+                             publicHost: "demo.trycloudflare.com",
+                             supportsBodyRewrite: false)
+        XCTAssertFalse(v.contains("sub_filter"))
+        XCTAssertTrue(v.contains("fastcgi_param HTTP_HOST                demo.trycloudflare.com;"))
     }
 }
 

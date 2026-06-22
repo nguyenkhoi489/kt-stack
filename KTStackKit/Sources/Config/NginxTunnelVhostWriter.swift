@@ -7,11 +7,11 @@ public struct NginxTunnelVhostWriter {
 
     public func vhost(site: Site, port: Int, phpFpmSocket: URL?,
                       accessLog: URL? = nil, errorLog: URL? = nil,
-                      publicHost: String? = nil) -> String {
+                      publicHost: String? = nil, supportsBodyRewrite: Bool = false) -> String {
         let root = URL(fileURLWithPath: site.docroot)
-        let routing = phpFpmSocket.map { phpRouting(socket: $0, localHost: site.domain) } ?? staticRouting()
+        let routing = phpFpmSocket.map { phpRouting(socket: $0, localHost: site.domain, publicHost: publicHost) } ?? staticRouting()
         let index = phpFpmSocket == nil ? "index.html index.htm" : "index.php index.html"
-        let rewrite = publicHostRewrite(localDomain: site.domain, publicHost: publicHost)
+        let rewrite = supportsBodyRewrite ? publicHostRewrite(localDomain: site.domain, publicHost: publicHost) : ""
         return """
         server {
             listen \(Self.listenAddress):\(port);
@@ -36,8 +36,9 @@ public struct NginxTunnelVhostWriter {
         return "\n" + lines.map { "    " + $0 }.joined(separator: "\n")
     }
 
-    private func phpRouting(socket: URL, localHost: String) -> String {
-        """
+    private func phpRouting(socket: URL, localHost: String, publicHost: String?) -> String {
+        let forwardedHost = publicHost ?? localHost
+        return """
             location / {
                 try_files $uri $uri/ /index.php?$query_string;
             }
@@ -57,10 +58,10 @@ public struct NginxTunnelVhostWriter {
                 fastcgi_param GATEWAY_INTERFACE        CGI/1.1;
                 fastcgi_param SERVER_SOFTWARE          nginx;
                 fastcgi_param HTTPS                    on;
-                fastcgi_param HTTP_HOST                \(localHost);
-                fastcgi_param SERVER_NAME              \(localHost);
+                fastcgi_param HTTP_HOST                \(forwardedHost);
+                fastcgi_param SERVER_NAME              \(forwardedHost);
                 fastcgi_param SERVER_PORT              443;
-                fastcgi_param HTTP_X_FORWARDED_HOST    \(localHost);
+                fastcgi_param HTTP_X_FORWARDED_HOST    \(forwardedHost);
                 fastcgi_param HTTP_X_FORWARDED_PROTO   https;
                 fastcgi_param HTTP_X_FORWARDED_PORT    443;
                 fastcgi_param REMOTE_ADDR              $remote_addr;

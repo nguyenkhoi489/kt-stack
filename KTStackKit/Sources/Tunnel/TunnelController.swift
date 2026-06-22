@@ -34,6 +34,7 @@ public actor TunnelController {
     }
 
     public func start(binary: URL, originPort: Int, localDomain: String,
+                      onURL: @escaping @Sendable (URL) async -> Void = { _ in },
                       onStatus: @escaping @Sendable (TunnelStatus) -> Void) async {
         if cancelled { return }
         userStopped = false
@@ -57,7 +58,7 @@ public actor TunnelController {
             onStatus(.error(error.localizedDescription))
             return
         }
-        monitor = Task { await self.awaitURL(localDomain: localDomain, onStatus: onStatus) }
+        monitor = Task { await self.awaitURL(localDomain: localDomain, onURL: onURL, onStatus: onStatus) }
     }
 
     public func stop() {
@@ -68,7 +69,9 @@ public actor TunnelController {
         try? launch.bootout(label)
     }
 
-    private func awaitURL(localDomain: String, onStatus: @escaping @Sendable (TunnelStatus) -> Void) async {
+    private func awaitURL(localDomain: String,
+                          onURL: @escaping @Sendable (URL) async -> Void,
+                          onStatus: @escaping @Sendable (TunnelStatus) -> Void) async {
         let deadline = Date().addingTimeInterval(Self.parseTimeout)
         var buffer = ""
         var poll = 0
@@ -76,6 +79,8 @@ public actor TunnelController {
             if Task.isCancelled || userStopped { return }
             buffer += readNewLogBytes()
             if let url = TrycloudflareURL.first(in: buffer) {
+                await onURL(url)
+                if Task.isCancelled || userStopped { return }
                 await probeThenPublish(url: url, localDomain: localDomain, onStatus: onStatus)
                 return
             }
