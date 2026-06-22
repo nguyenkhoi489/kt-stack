@@ -120,6 +120,10 @@ public struct LaunchAgentManager: Sendable {
         Self.loadedCache.invalidate()
     }
 
+    public func loadedLabels(withPrefix prefix: String) -> [String] {
+        Self.loadedLabels().filter { $0.hasPrefix(prefix) }.sorted()
+    }
+
     public func bootout(matchingPrefix prefix: String) {
         for label in Self.loadedLabels() where label.hasPrefix(prefix) {
             try? run("bootout", ["\(Self.guiDomain)/\(label)"])

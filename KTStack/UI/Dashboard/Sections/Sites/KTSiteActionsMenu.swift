@@ -32,6 +32,9 @@ struct KTSiteActionsMenu: View {
                 row("Open Terminal Here", "terminal", "⌥⌘T") { KTSiteActions.openTerminal(site) }
                 divider
                 row("Logs", "text.alignleft", "⌘L", action: onOpenLogs)
+                if site.type == .node {
+                    row("Node Logs", "shippingbox", "") { KTSiteActions.openNodeLog(site) }
+                }
                 if isLaravel {
                     row("API Tester", "network", "") { overlay.apiTesterSite = site }
                 }

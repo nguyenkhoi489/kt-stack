@@ -148,6 +148,18 @@ public final class SiteRegistry: ObservableObject {
         update(site.id) { $0.secure = secure }
     }
 
+    public func setNodeCommand(_ site: Site, _ command: String?) {
+        let trimmed = command?.trimmingCharacters(in: .whitespacesAndNewlines)
+        update(site.id) { $0.nodeCommand = (trimmed?.isEmpty ?? true) ? nil : trimmed }
+    }
+
+    public func setNodeEnabled(_ site: Site, _ enabled: Bool, port: Int?) {
+        update(site.id) {
+            $0.nodeEnabled = enabled
+            if enabled, $0.nodePort == nil, let port { $0.nodePort = port }
+        }
+    }
+
     public func reinspect(_ site: Site) {
         let info = inspector.inspect(folder: URL(fileURLWithPath: site.path), tld: tld)
         guard info.docroot.path != site.docroot || info.type != site.type else { return }

@@ -16,20 +16,31 @@ public struct SiteConfigGenerator {
         let access = paths.siteAccessLog(site.domain)
         let error = paths.siteErrorLog(site.domain)
 
+        let nodeProxyPort = nodeProxyPort(for: site)
+
         if site.secure, certPresent(for: site) {
             return tls.redirectVhost(domain: site.domain) + "\n\n"
                 + tls.secureVhost(domain: site.domain, root: root,
                                   certFile: paths.siteCert(site.domain), keyFile: paths.siteKey(site.domain),
-                                  phpFpmSocket: socket, accessLog: access, errorLog: error)
+                                  phpFpmSocket: socket, nodeProxyPort: nodeProxyPort,
+                                  accessLog: access, errorLog: error)
         }
         switch site.type {
         case .php:
             return writer.vhost(domain: site.domain, root: root, phpFpmSocket: socket!, port: port,
                                 accessLog: access, errorLog: error)
+        case .node where nodeProxyPort != nil:
+            return writer.vhostNodeProxy(domain: site.domain, nodePort: nodeProxyPort!, port: port,
+                                         accessLog: access, errorLog: error)
         case .staticSite, .node:
             return writer.vhostStatic(domain: site.domain, root: root, port: port,
                                       accessLog: access, errorLog: error)
         }
+    }
+
+    private func nodeProxyPort(for site: Site) -> Int? {
+        guard site.type == .node, site.nodeEnabled, let port = site.nodePort else { return nil }
+        return port
     }
 
    

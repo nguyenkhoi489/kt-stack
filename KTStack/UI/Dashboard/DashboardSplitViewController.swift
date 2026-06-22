@@ -180,7 +180,7 @@ final class DetailContainerViewController: NSViewController {
         let nav = self.nav
         switch item {
         case .sites:
-            KTSitesScreen(onOpenLogs: { nav.openLogs($0) })
+            KTSitesScreen(onOpenLogs: { nav.openLogs($0) }, onNavigate: { nav.selection = $0 })
         case .services:
             KTServicesScreen(onNavigate: { nav.selection = $0 }, onOpenLogs: { nav.openLogs($0) })
         case .runtimes:

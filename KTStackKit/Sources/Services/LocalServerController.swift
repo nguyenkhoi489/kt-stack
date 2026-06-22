@@ -18,6 +18,7 @@ public final class LocalServerController: ObservableObject {
     nonisolated private let agents: LaunchAgentManager
     nonisolated private let nginx: NginxController
     nonisolated private let pools: PHPFPMPoolManager
+    nonisolated private let nodeSites: NodeSiteController
     nonisolated private let generator: SiteConfigGenerator
     nonisolated private let stager: BinaryStager
     nonisolated private let preflight = PortPreflight()
@@ -39,6 +40,7 @@ public final class LocalServerController: ObservableObject {
             installedPHP: { BundledPHP.availableVersions(php: paths.phpRuntimesRoot) })
         self.nginx = NginxController(paths: paths, agents: agents)
         self.pools = PHPFPMPoolManager(paths: paths, agents: agents)
+        self.nodeSites = NodeSiteController(paths: paths, agents: agents)
         self.generator = SiteConfigGenerator(paths: paths)
         self.stager = BinaryStager(bundleBinDir: bundleBinDir, paths: paths)
         self.mkcert = MkcertRunner(mkcert: paths.mkcertBinary, caroot: paths.caDir)
@@ -122,6 +124,42 @@ public final class LocalServerController: ObservableObject {
     }
 
    
+    public func toggleNode(_ site: Site) {
+        let enabling = !site.nodeEnabled
+        guard enabling, site.nodePort == nil else {
+            registry.setNodeEnabled(site, enabling, port: nil)
+            return
+        }
+        let existing = registry.sites.compactMap(\.nodePort)
+        let preflight = self.preflight
+        guard let port = NodePortAllocator().allocate(existing: existing, isFree: {
+            preflight.check(port: $0) == .available
+        }) else {
+            lastError = "No free port available for Node (3000–3999). Stop another Node site and try again."
+            return
+        }
+        registry.setNodeEnabled(site, true, port: port)
+    }
+
+    public func setNodeCommand(_ site: Site, _ command: String) {
+        registry.setNodeCommand(site, command)
+    }
+
+    public func nodeReadiness(_ site: Site) -> NodeSiteController.Readiness {
+        nodeSites.readiness(for: site)
+    }
+
+    public func probeNode(_ site: Site) async -> NodeSiteController.State {
+        await nodeSites.probe(site)
+    }
+
+    public func installNodeDeps(_ site: Site) async throws {
+        let controller = nodeSites
+        try await Task.detached(priority: .userInitiated) {
+            try await controller.installDependencies(site)
+        }.value
+    }
+
     public func reloadPHPPool(version: String) async throws {
         let pools = self.pools
         try await Task.detached(priority: .userInitiated) {
@@ -160,9 +198,10 @@ public final class LocalServerController: ObservableObject {
     public func stop() {
         guard !isBusy else { return }
         isBusy = true; nginxStatus = .stopping; phpStatus = .stopping
-        Task.detached(priority: .userInitiated) { [nginx, pools, self] in
+        Task.detached(priority: .userInitiated) { [nginx, pools, nodeSites, self] in
             nginx.stop()
             pools.stopAll()
+            nodeSites.stopAll()
             await MainActor.run {
                 self.nginxStatus = .stopped; self.phpStatus = .stopped; self.isBusy = false
                 self.watcher.stop()
@@ -332,6 +371,7 @@ public final class LocalServerController: ObservableObject {
         let installedPHP = Set(BundledPHP.availableVersions(php: paths.phpRuntimesRoot))
         let missing = SiteConfigGenerator.requiredVersions(for: sites)
             .subtracting(installedPHP).sorted()
+        await nodeSites.reconcile(sites: sites)
         if startNginx {
             if runPreflight {
                 switch preflight.check(port: port) {

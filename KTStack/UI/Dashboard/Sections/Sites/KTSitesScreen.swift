@@ -4,6 +4,7 @@ import KTStackKit
 
 struct KTSitesScreen: View {
     var onOpenLogs: (String?) -> Void = { _ in }
+    var onNavigate: (SidebarItem) -> Void = { _ in }
 
     @EnvironmentObject private var server: LocalServerController
     @EnvironmentObject private var dns: DNSAutomationService
@@ -12,7 +13,8 @@ struct KTSitesScreen: View {
 
     var body: some View {
         KTSitesContent(server: server, registry: server.registry, dns: dns,
-                       preferences: preferences, tunnels: tunnels, onOpenLogs: onOpenLogs)
+                       preferences: preferences, tunnels: tunnels,
+                       onOpenLogs: onOpenLogs, onNavigate: onNavigate)
     }
 }
 
@@ -23,6 +25,7 @@ private struct KTSitesContent: View {
     @ObservedObject var preferences: AppPreferences
     @ObservedObject var tunnels: TunnelManager
     var onOpenLogs: (String?) -> Void
+    var onNavigate: (SidebarItem) -> Void
 
     @EnvironmentObject private var overlay: KTOverlayCenter
 
@@ -152,7 +155,8 @@ private struct KTSitesContent: View {
                               onOpenLogs: { onOpenLogs("site-\(site.domain)-access") },
                               onToggleShare: { toggleShare(site, $0) },
                               onRemove: { confirmRemove(site) },
-                              onError: { actionError = $0 })
+                              onError: { actionError = $0 },
+                              onOpenRuntimes: { onNavigate(.runtimes) })
                 if index < filteredSites.count - 1 {
                     Rectangle().fill(KTColor.sepFaint).frame(height: 0.5).padding(.leading, 16)
                 }

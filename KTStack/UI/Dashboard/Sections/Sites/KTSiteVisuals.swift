@@ -38,6 +38,16 @@ enum KTSiteActions {
         NSWorkspace.shared.open(url)
     }
 
+    static func openNodeLog(_ site: Site) {
+        let log = AppSupportPaths().nodeOutLog(site.domain)
+        if !FileManager.default.fileExists(atPath: log.path) {
+            try? FileManager.default.createDirectory(at: log.deletingLastPathComponent(),
+                                                     withIntermediateDirectories: true)
+            FileManager.default.createFile(atPath: log.path, contents: Data())
+        }
+        NSWorkspace.shared.open(log)
+    }
+
     @discardableResult
     static func configureVSCode(_ site: Site) throws -> URL {
         let written = try IDEDebugConfigWriter().writeVSCode(

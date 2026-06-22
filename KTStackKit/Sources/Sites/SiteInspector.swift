@@ -45,6 +45,16 @@ public struct SiteInspector {
         return .staticSite
     }
 
+    public func suggestedNodeCommand(at folder: URL, fileManager: FileManager = .default) -> String? {
+        let packageJSON = folder.appendingPathComponent("package.json")
+        guard let data = try? Data(contentsOf: packageJSON),
+              let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let scripts = root["scripts"] as? [String: Any] else { return nil }
+        if scripts["start"] != nil { return "npm run start" }
+        if scripts["dev"] != nil { return "npm run dev" }
+        return nil
+    }
+
     private func containsPHPFile(in dir: URL, fileManager: FileManager) -> Bool {
         guard let entries = try? fileManager.contentsOfDirectory(
             at: dir, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]

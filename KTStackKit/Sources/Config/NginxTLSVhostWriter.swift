@@ -8,8 +8,16 @@ public struct NginxTLSVhostWriter {
 
  
     public func secureVhost(domain: String, root: URL, certFile: URL, keyFile: URL,
-                            phpFpmSocket: URL?, accessLog: URL? = nil, errorLog: URL? = nil) -> String {
-        let routing = phpFpmSocket.map { phpRouting(socket: $0) } ?? staticRouting()
+                            phpFpmSocket: URL?, nodeProxyPort: Int? = nil,
+                            accessLog: URL? = nil, errorLog: URL? = nil) -> String {
+        let routing: String
+        if let nodeProxyPort {
+            routing = NginxConfigWriter.proxyRouting(nodePort: nodeProxyPort)
+        } else if let phpFpmSocket {
+            routing = phpRouting(socket: phpFpmSocket)
+        } else {
+            routing = staticRouting()
+        }
         let index = phpFpmSocket == nil ? "index.html index.htm" : "index.php index.html"
         return """
         server {

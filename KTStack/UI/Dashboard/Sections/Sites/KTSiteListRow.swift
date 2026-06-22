@@ -17,17 +17,23 @@ struct KTSiteListRow: View {
     let onToggleShare: (Bool) -> Void
     let onRemove: () -> Void
     var onError: (String) -> Void = { _ in }
+    var onOpenRuntimes: () -> Void = {}
 
+    @EnvironmentObject private var server: LocalServerController
     @State private var domainDraft: String
     @State private var domainError = false
     @State private var hovering = false
+    @State private var nodeState: NodeSiteController.State = .stopped
+    @State private var nodeCommandDraft: String
+    @State private var nodeInstalling = false
 
     init(site: Site, availableVersions: [String], canOpen: Bool, isSharing: Bool,
          shareStarting: Bool = false, shareURL: URL? = nil,
          onOpen: @escaping () -> Void, onSetVersion: @escaping (String) -> Void,
          onSetSecure: @escaping (Bool) -> Void, onEditDomain: @escaping (String) throws -> Void,
          onOpenLogs: @escaping () -> Void, onToggleShare: @escaping (Bool) -> Void,
-         onRemove: @escaping () -> Void, onError: @escaping (String) -> Void = { _ in }) {
+         onRemove: @escaping () -> Void, onError: @escaping (String) -> Void = { _ in },
+         onOpenRuntimes: @escaping () -> Void = {}) {
         self.site = site
         self.availableVersions = availableVersions
         self.canOpen = canOpen
@@ -42,10 +48,32 @@ struct KTSiteListRow: View {
         self.onToggleShare = onToggleShare
         self.onRemove = onRemove
         self.onError = onError
+        self.onOpenRuntimes = onOpenRuntimes
         _domainDraft = State(initialValue: site.domain)
+        _nodeCommandDraft = State(initialValue: site.nodeCommand ?? "")
     }
 
     var body: some View {
+        VStack(spacing: 0) {
+            mainRow
+            if site.type == .node {
+                KTNodeBanner(state: nodeState, commandDraft: $nodeCommandDraft,
+                             installing: nodeInstalling,
+                             onSaveCommand: saveNodeCommand, onInstall: installNodeDeps,
+                             onOpenRuntimes: onOpenRuntimes)
+            }
+        }
+        .background(hovering ? KTColor.rowHover : Color.clear)
+        .contentShape(Rectangle())
+        .onHover { hovering = $0 }
+        .task(id: nodePollKey) { await pollNodeState() }
+        .onChange(of: site.domain) { new in domainDraft = new; domainError = false }
+        .onChange(of: site.nodeCommand) { new in nodeCommandDraft = new ?? "" }
+    }
+
+    private var nodePollKey: String { "\(site.id)-\(site.nodeEnabled)" }
+
+    private var mainRow: some View {
         HStack(spacing: 14) {
             KTIconTile(tint: KTSiteVisuals.tint(for: site.type)) {
                 KTSiteGlyph(kind: KTSiteVisuals.kind(for: site.type), size: 19,
@@ -64,11 +92,22 @@ struct KTSiteListRow: View {
 
             if site.type == .php {
                 KTPhpMenu(current: site.phpVersion, versions: availableVersions, onSelect: onSetVersion)
+            } else if site.type == .node {
+                HStack(spacing: 8) {
+                    KTBadge(text: site.type.label, tint: KTSiteVisuals.tint(for: site.type), radius: 8)
+                    KTToggle(isOn: site.nodeEnabled, action: toggleNode)
+                        .help("Run this Node app and reverse-proxy the site to it")
+                        .accessibilityLabel("Serve \(site.domain) with Node")
+                }
             } else {
                 KTBadge(text: site.type.label, tint: KTSiteVisuals.tint(for: site.type), radius: 8)
             }
 
-            KTStatusLabel(running: canOpen).frame(width: 92, alignment: .leading)
+            if site.type == .node {
+                KTNodeStatusBadge(state: nodeState)
+            } else {
+                KTStatusLabel(running: canOpen).frame(width: 92, alignment: .leading)
+            }
 
             KTToggle(isOn: site.secure, action: { onSetSecure(!site.secure) })
                 .help("Serve over HTTPS with a locally-trusted certificate")
@@ -84,10 +123,47 @@ struct KTSiteListRow: View {
         }
         .padding(.vertical, 13)
         .padding(.horizontal, 16)
-        .background(hovering ? KTColor.rowHover : Color.clear)
-        .contentShape(Rectangle())
-        .onHover { hovering = $0 }
-        .onChange(of: site.domain) { new in domainDraft = new; domainError = false }
+    }
+
+    private func toggleNode() {
+        server.toggleNode(site)
+        Task { await refreshNodeState() }
+    }
+
+    private func saveNodeCommand() {
+        let command = nodeCommandDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !command.isEmpty else { return }
+        server.setNodeCommand(site, command)
+        Task { await refreshNodeState() }
+    }
+
+    private func installNodeDeps() {
+        guard !nodeInstalling else { return }
+        nodeInstalling = true
+        Task {
+            do { try await server.installNodeDeps(site) }
+            catch { onError(error.localizedDescription) }
+            nodeInstalling = false
+            await refreshNodeState()
+        }
+    }
+
+    private func pollNodeState() async {
+        guard site.type == .node else { return }
+        while !Task.isCancelled {
+            await refreshNodeState()
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
+        }
+    }
+
+    private func refreshNodeState() async {
+        guard site.type == .node, site.nodeEnabled else { nodeState = .stopped; return }
+        switch server.nodeReadiness(site) {
+        case .needsRuntime: nodeState = .needsRuntime
+        case .needsCommand: nodeState = .needsCommand
+        case .needsInstall: nodeState = .needsInstall
+        case .ready:        nodeState = await server.probeNode(site)
+        }
     }
 
     private func commitDomain() {

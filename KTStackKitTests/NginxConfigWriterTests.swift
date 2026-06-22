@@ -43,6 +43,24 @@ final class NginxConfigWriterTests: XCTestCase {
         XCTAssertTrue(vhost.contains("server_name demo.test;"))
     }
 
+    func testNodeProxyVhostProxiesToLoopbackPort() {
+        let vhost = writer.vhostNodeProxy(domain: "app.test", nodePort: 3001)
+        XCTAssertTrue(vhost.contains("listen 0.0.0.0:80;"))
+        XCTAssertTrue(vhost.contains("server_name app.test;"))
+        XCTAssertTrue(vhost.contains("proxy_pass http://127.0.0.1:3001;"))
+        XCTAssertTrue(vhost.contains("proxy_http_version 1.1;"))
+        XCTAssertTrue(vhost.contains("proxy_set_header Upgrade $http_upgrade;"))
+        XCTAssertTrue(vhost.contains("proxy_set_header Connection \"upgrade\";"))
+        XCTAssertFalse(vhost.contains("try_files"))
+        XCTAssertFalse(vhost.contains("fastcgi_pass"))
+    }
+
+    func testNodeProxyVhostHonoursCustomPort() {
+        let vhost = writer.vhostNodeProxy(domain: "app.test", nodePort: 3500, port: 8080)
+        XCTAssertTrue(vhost.contains("listen 0.0.0.0:8080;"))
+        XCTAssertTrue(vhost.contains("proxy_pass http://127.0.0.1:3500;"))
+    }
+
     func testDomainAndPathValidationRejectInjection() {
         XCTAssertTrue(NginxConfigWriter.isValidDomain("demo.test"))
         XCTAssertFalse(NginxConfigWriter.isValidDomain("demo.test;\n} server {"))

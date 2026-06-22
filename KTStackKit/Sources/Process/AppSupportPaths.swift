@@ -159,6 +159,9 @@ public struct AppSupportPaths: Sendable {
     public func siteAccessLog(_ domain: String) -> URL { logsSites.appendingPathComponent("\(domain).access.log") }
     public func siteErrorLog(_ domain: String) -> URL { logsSites.appendingPathComponent("\(domain).error.log") }
 
+    public func nodeOutLog(_ domain: String) -> URL { logsSites.appendingPathComponent("node-\(domain).out.log") }
+    public func nodeErrLog(_ domain: String) -> URL { logsSites.appendingPathComponent("node-\(domain).err.log") }
+
     public func vhost(_ name: String) -> URL {
         sitesEnabled.appendingPathComponent("\(name).conf")
     }
