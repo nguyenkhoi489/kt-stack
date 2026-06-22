@@ -123,6 +123,18 @@ final class ShellPathManagerTests: XCTestCase {
         }
     }
 
+    func testResolvedRuntimePreservesSystemPathInsteadOfResettingIt() throws {
+        let paths = AppSupportPaths(root: tmp.appendingPathComponent("support"))
+        let shims = ShellShimWriter(paths: paths).shims
+        for name in ["node", "php", "composer", "wp"] {
+            let body = try XCTUnwrap(shims[name])
+            XCTAssertFalse(body.contains("export PATH=/usr/bin:/bin"),
+                           "\(name) shim must not wipe system PATH or tools like gh/git/brew disappear for child processes")
+            XCTAssertTrue(body.contains("export PATH=\"${target%/*}:$system_path\""),
+                          "\(name) shim must prepend the runtime bin dir to the shim-stripped system PATH")
+        }
+    }
+
     func testComposerProvisionerRejectsUnverifiedCachedPhar() throws {
         let paths = AppSupportPaths(root: tmp.appendingPathComponent("support"))
         try fm.createDirectory(at: paths.composerPhar.deletingLastPathComponent(),

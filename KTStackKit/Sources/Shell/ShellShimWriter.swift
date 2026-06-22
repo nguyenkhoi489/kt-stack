@@ -19,11 +19,11 @@ struct ShellShimWriter {
         let isolation = lang == "php" ? "\n" + phpConfigIsolation : ""
         return """
         #!/bin/sh
+        system_path="$(printf '%s' "$PATH" | tr ':' '\\n' | grep -vxF "\(shimDir)" | paste -sd ':' -)"
         if target="$("\(helperPath)" \(lang) "$PWD" 2>/dev/null)"; then
-            export PATH=/usr/bin:/bin\(isolation)
+            export PATH="${target%/*}:$system_path"\(isolation)
             exec "$target" "$@"
         fi
-        system_path="$(printf '%s' "$PATH" | tr ':' '\\n' | grep -vxF "\(shimDir)" | paste -sd ':' -)"
         if fallback="$(PATH="$system_path" command -v \(lang) 2>/dev/null)"; then
             exec "$fallback" "$@"
         fi
@@ -35,10 +35,11 @@ struct ShellShimWriter {
     func pharShim(name: String, phar: String) -> String {
         """
         #!/bin/sh
-        export PATH=/usr/bin:/bin
+        system_path="$(printf '%s' "$PATH" | tr ':' '\\n' | grep -vxF "\(shimDir)" | paste -sd ':' -)"
         phar="\(phar)"
         [ -f "$phar" ] || { echo "ktstack: \(name) is not provisioned — open KTStack to install it" >&2; exit 127; }
         target="$("\(helperPath)" php "$PWD")" || { echo "ktstack: php is not installed" >&2; exit 127; }
+        export PATH="${target%/*}:$system_path"
         \(phpConfigIsolation)
         exec "$target" "$phar" "$@"
         """
