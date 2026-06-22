@@ -173,8 +173,8 @@ build_one() {
                 (new Imagick())->readImageBlob($blob);
             ' >/dev/null 2>&1 || load_ok=0
     fi
-    for f in "${probe_files[@]}"; do rm -f "$f"; done
-    for f in "${probe_dirs[@]}"; do rm -rf "$f"; done
+    for f in ${probe_files[@]+"${probe_files[@]}"}; do rm -f "$f"; done
+    for f in ${probe_dirs[@]+"${probe_dirs[@]}"}; do rm -rf "$f"; done
     if ((!load_ok)); then
         echo "  ✗ $ext@$ver did not load/encode under env -i (fail-closed; not published)"; return 1
     fi
