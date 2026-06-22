@@ -56,7 +56,8 @@ struct KTAPIVariablesSheet: View {
             Text("VALUE").font(.jbMono(10.5, .bold)).foregroundStyle(KTColor.ink3).frame(maxWidth: .infinity, alignment: .leading)
             Color.clear.frame(width: 22)
         }
-        .padding(.horizontal, 18).padding(.bottom, 9)
+        .frame(height: 22)
+        .padding(.horizontal, 18).padding(.top, 2).padding(.bottom, 9)
     }
 
     private var rows: some View {
