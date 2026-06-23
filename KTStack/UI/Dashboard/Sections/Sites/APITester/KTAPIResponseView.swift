@@ -78,14 +78,18 @@ struct KTAPIResponseView: View {
                 copyButton
             }
             .padding(.horizontal, 14).padding(.vertical, 7)
-            ScrollView([.vertical, .horizontal]) {
-                Text(displayedBody)
-                    .font(.jbMono(12))
-                    .foregroundStyle(KTColor.ink)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(14)
+            GeometryReader { geo in
+                ScrollView([.vertical, .horizontal]) {
+                    Text(displayedBody)
+                        .font(.jbMono(12))
+                        .foregroundStyle(KTColor.ink)
+                        .textSelection(.enabled)
+                        .multilineTextAlignment(.leading)
+                        .padding(12)
+                        .frame(minWidth: geo.size.width, minHeight: geo.size.height, alignment: .topLeading)
+                }
             }
+            .modifier(ResponsePanel())
         }
     }
 
@@ -102,8 +106,10 @@ struct KTAPIResponseView: View {
                     }
                 }
             }
-            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
         }
+        .modifier(ResponsePanel())
     }
 
     private var copyButton: some View {
@@ -138,6 +144,17 @@ struct KTAPIResponseView: View {
         let body = fullBody
         guard body.count > limitChars else { return body }
         return String(body.prefix(limitChars)) + "\n… (truncated)"
+    }
+
+    private struct ResponsePanel: ViewModifier {
+        func body(content: Content) -> some View {
+            content
+                .background(Color(hex: 0xFBFBFC))
+                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .stroke(KTColor.fieldBorder, lineWidth: 0.5))
+                .padding([.horizontal, .bottom], 14)
+        }
     }
 
     static func prettyJSON(_ data: Data) -> String? {

@@ -7,6 +7,10 @@ struct KTAPIRequestPanel: View {
 
     enum BuilderTab: Hashable { case params, headers, body }
 
+    static let commonHeaders = ["Accept", "Authorization", "Content-Type", "Accept-Language",
+                                "Cache-Control", "Cookie", "Origin", "Referer", "User-Agent",
+                                "X-Requested-With", "X-CSRF-TOKEN", "X-API-Key"]
+
     @State private var builderTab: BuilderTab = .params
 
     var body: some View {
@@ -144,7 +148,9 @@ struct KTAPIRequestPanel: View {
         switch builderTab {
         case .params: paramsTab(route)
         case .headers: KTEditablePairList(pairs: $vm.requestDraft.headers,
-                                          keyPlaceholder: "Header", valuePlaceholder: "Value")
+                                          keyPlaceholder: "Header", valuePlaceholder: "Value",
+                                          keySuggestions: Self.commonHeaders,
+                                          variableNames: vm.variableNames)
         case .body: bodyTab(route)
         }
     }
@@ -155,11 +161,13 @@ struct KTAPIRequestPanel: View {
             if !vm.requestDraft.pathParams.isEmpty {
                 sectionLabel("PATH")
                 KTEditablePairList(pairs: $vm.requestDraft.pathParams,
-                                   keyPlaceholder: "Name", valuePlaceholder: "Value", lockKeys: true)
+                                   keyPlaceholder: "Name", valuePlaceholder: "Value", lockKeys: true,
+                                   variableNames: vm.variableNames)
             }
             sectionLabel("QUERY")
             KTEditablePairList(pairs: $vm.requestDraft.query,
-                               keyPlaceholder: "Key", valuePlaceholder: "Value")
+                               keyPlaceholder: "Key", valuePlaceholder: "Value",
+                               variableNames: vm.variableNames)
             fieldsReference(route)
         }
     }
@@ -169,14 +177,24 @@ struct KTAPIRequestPanel: View {
         VStack(alignment: .leading, spacing: 10) {
             KTSegmentedTabs(items: RequestBodyMode.allCases.map { .init(value: $0, label: $0.label) },
                             selection: $vm.requestDraft.bodyMode)
-            if vm.requestDraft.bodyMode != .none {
-                TextEditor(text: $vm.requestDraft.bodyText)
-                    .font(.jbMono(12))
-                    .frame(minHeight: 120)
-                    .padding(8)
-                    .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Color(hex: 0xFBFBFC)))
-                    .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(KTColor.fieldBorder, lineWidth: 0.5))
+            Group {
+                switch vm.requestDraft.bodyMode {
+                case .none:
+                    Text("No request body").font(.jbMono(11.5)).foregroundStyle(KTColor.faint)
+                case .json:
+                    TextEditor(text: $vm.requestDraft.bodyText)
+                        .font(.jbMono(12))
+                        .frame(minHeight: 120)
+                        .padding(8)
+                        .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Color(hex: 0xFBFBFC)))
+                        .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(KTColor.fieldBorder, lineWidth: 0.5))
+                case .form:
+                    KTEditablePairList(pairs: $vm.requestDraft.formFields,
+                                       keyPlaceholder: "Key", valuePlaceholder: "Value",
+                                       variableNames: vm.variableNames)
+                }
             }
+            .frame(maxWidth: .infinity, minHeight: 140, alignment: .topLeading)
             fieldsReference(route)
         }
     }
@@ -247,14 +265,29 @@ struct KTEditablePairList: View {
     var keyPlaceholder: String
     var valuePlaceholder: String
     var lockKeys: Bool = false
+    var keySuggestions: [String] = []
+    var variableNames: [String] = []
 
     var body: some View {
         VStack(spacing: 6) {
             ForEach($pairs) { $pair in
                 HStack(spacing: 8) {
-                    field(text: $pair.key, placeholder: keyPlaceholder, disabled: lockKeys)
-                        .frame(width: 150)
-                    field(text: $pair.value, placeholder: valuePlaceholder, disabled: false)
+                    fieldBox(disabled: lockKeys) {
+                        field(text: $pair.key, placeholder: keyPlaceholder, disabled: lockKeys)
+                        if !lockKeys, !keySuggestions.isEmpty {
+                            pickerMenu(icon: "chevron.down", items: keySuggestions) { pair.key = $0 }
+                        }
+                    }
+                    .frame(width: 170)
+                    fieldBox(disabled: false) {
+                        if variableNames.isEmpty {
+                            field(text: $pair.value, placeholder: valuePlaceholder, disabled: false)
+                        } else {
+                            KTVariableTextField(text: $pair.value, placeholder: valuePlaceholder,
+                                                variableNames: variableNames)
+                                .frame(maxWidth: .infinity)
+                        }
+                    }
                     if !lockKeys {
                         Button { pairs.removeAll { $0.id == pair.id } } label: {
                             Image(systemName: "minus.circle").font(.system(size: 13)).foregroundStyle(KTColor.muted)
@@ -273,14 +306,31 @@ struct KTEditablePairList: View {
         }
     }
 
+    private func fieldBox<Content: View>(disabled: Bool, @ViewBuilder _ content: () -> Content) -> some View {
+        HStack(spacing: 4) { content() }
+            .padding(.horizontal, 9).padding(.vertical, 6)
+            .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(Color(hex: 0xFBFBFC)))
+            .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous).stroke(KTColor.fieldBorder, lineWidth: 0.5))
+    }
+
     private func field(text: Binding<String>, placeholder: String, disabled: Bool) -> some View {
         TextField(placeholder, text: text)
             .textFieldStyle(.plain)
             .font(.jbMono(12))
             .foregroundStyle(disabled ? KTColor.ink3 : KTColor.ink)
             .disabled(disabled)
-            .padding(.horizontal, 9).padding(.vertical, 6)
-            .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(Color(hex: 0xFBFBFC)))
-            .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous).stroke(KTColor.fieldBorder, lineWidth: 0.5))
+    }
+
+    private func pickerMenu(icon: String, items: [String], onPick: @escaping (String) -> Void) -> some View {
+        Menu {
+            ForEach(items, id: \.self) { item in
+                Button(item) { onPick(item) }
+            }
+        } label: {
+            Image(systemName: icon).font(.system(size: 10, weight: .medium)).foregroundStyle(KTColor.muted)
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
     }
 }

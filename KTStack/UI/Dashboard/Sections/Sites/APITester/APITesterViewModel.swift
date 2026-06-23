@@ -28,6 +28,7 @@ struct RequestDraft: Hashable {
     var headers: [EditablePair] = []
     var bodyMode: RequestBodyMode = .none
     var bodyText: String = ""
+    var formFields: [EditablePair] = []
 }
 
 @MainActor
@@ -62,8 +63,12 @@ final class APITesterViewModel: ObservableObject {
 
     var siteDomain: String { siteKey }
 
-    var activeVariableCount: Int {
-        variables.filter { $0.enabled && !$0.key.trimmingCharacters(in: .whitespaces).isEmpty }.count
+    var activeVariableCount: Int { variableNames.count }
+
+    var variableNames: [String] {
+        variables
+            .filter { $0.enabled && !$0.key.trimmingCharacters(in: .whitespaces).isEmpty }
+            .map { $0.key.trimmingCharacters(in: .whitespaces) }
     }
 
     var webRoutes: [APIRoute] { filtered(routes.filter { !$0.isApi }) }
@@ -245,24 +250,21 @@ final class APITesterViewModel: ObservableObject {
             let text = resolved(requestDraft.bodyText)
             return text.isEmpty ? nil : text.data(using: .utf8)
         case .form:
-            return Self.encodeForm(resolved(requestDraft.bodyText))
+            let fields = requestDraft.formFields
+                .filter { $0.enabled && !$0.key.trimmingCharacters(in: .whitespaces).isEmpty }
+                .map { ($0.key.trimmingCharacters(in: .whitespaces), resolved($0.value)) }
+            return Self.encodeForm(fields)
         }
     }
 
-    static func encodeForm(_ text: String) -> Data? {
+    static func encodeForm(_ fields: [(String, String)]) -> Data? {
         let allowed = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~")
-        let pairs = text
-            .split(whereSeparator: { $0 == "\n" || $0 == "&" })
-            .map { line -> String in
-                let parts = line.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
-                let key = String(parts.first ?? "").trimmingCharacters(in: .whitespaces)
-                let value = parts.count > 1 ? String(parts[1]).trimmingCharacters(in: .whitespaces) : ""
-                let encodedKey = key.addingPercentEncoding(withAllowedCharacters: allowed) ?? key
-                let encodedValue = value.addingPercentEncoding(withAllowedCharacters: allowed) ?? value
-                return "\(encodedKey)=\(encodedValue)"
-            }
-            .filter { $0 != "=" }
-        let joined = pairs.joined(separator: "&")
+        let encoded = fields.map { key, value -> String in
+            let encodedKey = key.addingPercentEncoding(withAllowedCharacters: allowed) ?? key
+            let encodedValue = value.addingPercentEncoding(withAllowedCharacters: allowed) ?? value
+            return "\(encodedKey)=\(encodedValue)"
+        }
+        let joined = encoded.joined(separator: "&")
         return joined.isEmpty ? nil : joined.data(using: .utf8)
     }
 
