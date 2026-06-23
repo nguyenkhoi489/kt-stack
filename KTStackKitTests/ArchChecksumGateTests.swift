@@ -17,15 +17,16 @@ final class ArchChecksumGateTests: XCTestCase {
         XCTAssertFalse(ChecksumVerifier.isResolved(String(repeating: "z", count: 64)))
     }
 
-    func testPendingPlaceholderNeverCountsAsArchSupport() throws {
+    func testMongoEngineAndToolsResolveBothArches() throws {
         let mongo = try XCTUnwrap(ServiceBinaryCatalog.manifest.first { $0.kind == .mongodb })
-        XCTAssertTrue(ChecksumVerifier.isResolved(mongo.sha256ByArch["arm64"]))
-        XCTAssertFalse(ChecksumVerifier.isResolved(mongo.sha256ByArch["x86_64"]),
-                       "x86_64 mongod is still a PENDING placeholder and must not gate as supported")
+        for arch in ["arm64", "x86_64"] {
+            XCTAssertTrue(ChecksumVerifier.isResolved(mongo.sha256ByArch[arch]), "mongod \(arch)")
+        }
 
         let tools = MongoToolsCatalog.pinned
-        XCTAssertTrue(ChecksumVerifier.isResolved(tools.sha256ByArch["arm64"]))
-        XCTAssertFalse(ChecksumVerifier.isResolved(tools.sha256ByArch["x86_64"]))
+        for arch in ["arm64", "x86_64"] {
+            XCTAssertTrue(ChecksumVerifier.isResolved(tools.sha256ByArch[arch]), "mongo tools \(arch)")
+        }
     }
 
     func testPHPExtensionReleaseGatesByCurrentArchChecksum() {

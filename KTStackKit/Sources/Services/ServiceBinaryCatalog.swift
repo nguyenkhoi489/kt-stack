@@ -71,7 +71,7 @@ public struct ServiceBinaryCatalog: Sendable {
             kind: .mongodb, version: "7.0",
             sha256ByArch: [
                 "arm64":  "097af3e0486422fc5a3e2e3365d5f23ac53867a408d8eecfa1103c374a8c96de",
-                "x86_64": "PENDING_x86_64_MONGOD_SHA256",
+                "x86_64": "661200efa742cb67f82a61d857b57e7321959c1ac2a4e53dc0aca65fe60ab876",
             ],
             urlOverridesByArch: [
                 "arm64":  URL(string: "https://fastdl.mongodb.org/osx/mongodb-macos-arm64-7.0.37.tgz")!,

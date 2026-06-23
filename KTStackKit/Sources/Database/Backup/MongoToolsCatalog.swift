@@ -27,7 +27,7 @@ public struct MongoToolsCatalog: Sendable {
         version: "100.10.0",
         sha256ByArch: [
             "arm64":  "946177e469ef8744bd36aa38809926beb3c97a56e4c1d637dc052a1f18f57515",
-            "x86_64": "PENDING_x86_64_MONGO_TOOLS_SHA256",
+            "x86_64": "089dabbda45cd0dcc169395c8e4d2fdcc8b2ccf55d0bc450037455876c4b632b",
         ],
         urlByArch: [
             "arm64":  URL(string: "https://fastdl.mongodb.org/tools/db/mongodb-database-tools-macos-arm64-100.10.0.zip")!,
