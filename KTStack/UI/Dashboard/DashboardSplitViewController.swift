@@ -79,6 +79,7 @@ final class DashboardSplitViewController: NSSplitViewController {
     private let nav: DashboardNavigation
     private let env: DashboardEnv
     private let detailContainer: DetailContainerViewController
+    private var modalHost: KTModalHostController?
 
     init(nav: DashboardNavigation, env: DashboardEnv) {
         self.nav = nav
@@ -89,6 +90,12 @@ final class DashboardSplitViewController: NSSplitViewController {
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+
+    override func viewDidAppear() {
+        super.viewDidAppear()
+        guard modalHost == nil, let window = view.window else { return }
+        modalHost = KTModalHostController(parent: window, env: env)
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()

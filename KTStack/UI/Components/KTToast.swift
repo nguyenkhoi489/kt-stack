@@ -20,6 +20,11 @@ final class KTOverlayCenter: ObservableObject {
     @Published var newDatabasePresented = false
     @Published var apiTesterSite: Site?
 
+    var anyModalPresented: Bool {
+        databaseEditorPresented || newSitePresented || connectPresented
+            || newDatabasePresented || apiTesterSite != nil
+    }
+
     private var dismissTask: Task<Void, Never>?
 
     func toast(_ text: String) {
