@@ -19,7 +19,7 @@ public final class RegisteredSiteWatcher: @unchecked Sendable {
     }
 
     public func watch(_ folders: [URL]) {
-        queue.sync {
+        queue.async { [self] in
             let wanted = Set(folders.map(\.path))
             for (path, w) in watches where !wanted.contains(path) {
                 w.source.cancel(); watches[path] = nil
@@ -31,13 +31,15 @@ public final class RegisteredSiteWatcher: @unchecked Sendable {
     }
 
     public func stop() {
-        queue.sync {
-            for (_, w) in watches { w.source.cancel() }
-            watches.removeAll()
-        }
+        queue.async { [self] in cancelAllWatches() }
     }
 
-    deinit { stop() }
+    deinit { cancelAllWatches() }
+
+    private func cancelAllWatches() {
+        for (_, w) in watches { w.source.cancel() }
+        watches.removeAll()
+    }
 
     private func arm(_ folder: URL) {
         let fd = open(folder.path, O_EVTONLY)

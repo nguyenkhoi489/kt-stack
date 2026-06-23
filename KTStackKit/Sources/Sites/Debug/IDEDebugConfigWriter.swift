@@ -4,9 +4,12 @@ public struct IDEDebugConfigWriter: Sendable {
     public init() {}
 
     public static func launchJSON(docroot: String, port: Int = XdebugController.clientPort) -> String {
-        let data = try! JSONSerialization.data(withJSONObject: launchDocument(docroot: docroot, port: port),
-                                               options: [.prettyPrinted, .sortedKeys])
-        return String(data: data, encoding: .utf8)! + "\n"
+        guard let data = try? JSONSerialization.data(withJSONObject: launchDocument(docroot: docroot, port: port),
+                                                     options: [.prettyPrinted, .sortedKeys]),
+              let json = String(data: data, encoding: .utf8) else {
+            return "{\n  \"configurations\" : [\n\n  ],\n  \"version\" : \"0.2.0\"\n}\n"
+        }
+        return json + "\n"
     }
 
     @discardableResult
