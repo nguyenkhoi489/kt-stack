@@ -72,6 +72,9 @@ public enum KTIconTint {
     public static let globe = KTTint(fg: Color(hex: 0x1FA463), bg: Color(hex: 0xE7F8EE))
     public static let mail = KTTint(fg: Color(hex: 0xE0467C), bg: Color(hex: 0xFFEDF3))
     public static let neutral = KTTint(fg: Color(hex: 0x86868F), bg: Color(hex: 0xEFEFF3))
+    public static let wordpress = KTTint(fg: Color(hex: 0x1E6A8D), bg: Color(hex: 0xE3F1F8))
+    public static let laravel = KTTint(fg: Color(hex: 0xD8412F), bg: Color(hex: 0xFDE9E6))
+    public static let php = KTTint(fg: Color(hex: 0x6C72B8), bg: Color(hex: 0xECEDF8))
 }
 
 public enum KTEngineTint {

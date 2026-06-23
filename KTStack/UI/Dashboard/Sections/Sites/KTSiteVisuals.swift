@@ -18,6 +18,14 @@ enum KTSiteVisuals {
         case .staticSite: return KTIconTint.db
         }
     }
+
+    static func tint(for framework: PHPFramework) -> KTTint {
+        switch framework {
+        case .wordpress: return KTIconTint.wordpress
+        case .laravel:   return KTIconTint.laravel
+        case .plain:     return KTIconTint.php
+        }
+    }
 }
 
 enum KTSiteActions {

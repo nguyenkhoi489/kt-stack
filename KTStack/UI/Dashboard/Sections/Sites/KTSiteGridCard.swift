@@ -16,6 +16,8 @@ struct KTSiteGridCard: View {
     let onRemove: () -> Void
     var onError: (String) -> Void = { _ in }
 
+    @State private var phpFramework: PHPFramework = .plain
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
@@ -35,6 +37,7 @@ struct KTSiteGridCard: View {
                 KTStatusLabel(running: canOpen)
                 Spacer()
                 if site.type == .php {
+                    KTBadge(text: phpFramework.label, tint: KTSiteVisuals.tint(for: phpFramework), radius: 7)
                     KTPhpMenu(current: site.phpVersion, versions: availableVersions, onSelect: onSetVersion)
                 } else {
                     KTBadge(text: site.type.label, tint: KTSiteVisuals.tint(for: site.type), radius: 7)
@@ -60,5 +63,13 @@ struct KTSiteGridCard: View {
                     .strokeBorder(KTColor.sep, lineWidth: 1))
         )
         .compositingGroup()
+        .task(id: site.path) { detectFramework() }
+    }
+
+    private func detectFramework() {
+        guard site.type == .php else { return }
+        phpFramework = PHPFrameworkDetector().detect(
+            siteAt: URL(fileURLWithPath: site.path),
+            docroot: URL(fileURLWithPath: site.docroot))
     }
 }

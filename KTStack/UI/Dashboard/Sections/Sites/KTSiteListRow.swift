@@ -26,6 +26,7 @@ struct KTSiteListRow: View {
     @State private var nodeState: NodeSiteController.State = .stopped
     @State private var nodeCommandDraft: String
     @State private var nodeInstalling = false
+    @State private var phpFramework: PHPFramework = .plain
 
     init(site: Site, availableVersions: [String], canOpen: Bool, isSharing: Bool,
          shareStarting: Bool = false, shareURL: URL? = nil,
@@ -67,6 +68,7 @@ struct KTSiteListRow: View {
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
         .task(id: nodePollKey) { await pollNodeState() }
+        .task(id: site.path) { detectFramework() }
         .onChange(of: site.domain) { new in domainDraft = new; domainError = false }
         .onChange(of: site.nodeCommand) { new in nodeCommandDraft = new ?? "" }
     }
@@ -92,6 +94,7 @@ struct KTSiteListRow: View {
             .layoutPriority(-1)
 
             if site.type == .php {
+                KTBadge(text: phpFramework.label, tint: KTSiteVisuals.tint(for: phpFramework), radius: 8)
                 KTPhpMenu(current: site.phpVersion, versions: availableVersions, onSelect: onSetVersion)
             } else if site.type == .node {
                 HStack(spacing: 8) {
@@ -166,6 +169,13 @@ struct KTSiteListRow: View {
         case .needsInstall: nodeState = .needsInstall
         case .ready:        nodeState = await server.probeNode(site)
         }
+    }
+
+    private func detectFramework() {
+        guard site.type == .php else { return }
+        phpFramework = PHPFrameworkDetector().detect(
+            siteAt: URL(fileURLWithPath: site.path),
+            docroot: URL(fileURLWithPath: site.docroot))
     }
 
     private func commitDomain() {
