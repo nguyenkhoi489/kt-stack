@@ -262,7 +262,6 @@ struct SchemaHeaderButton: View {
                     )
                     .fixedSize()
                     .offset(y: 26)
-                    .shadow(color: .black.opacity(0.18), radius: 8, y: 4)
                     .allowsHitTesting(false)
                     .zIndex(200)
             }

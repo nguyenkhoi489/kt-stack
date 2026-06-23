@@ -48,7 +48,6 @@ struct KTDatabaseEditorModal: View {
         }
         .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.white))
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .shadow(color: .black.opacity(0.55), radius: 36, y: 18)
         .background(escCatcher)
         .onChange(of: vm.selectedTable) { _ in selectedRow = nil; pendingDelete = nil }
         .sheet(item: $rowEditor) { RowEditorView(mode: $0) }

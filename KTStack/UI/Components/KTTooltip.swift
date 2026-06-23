@@ -49,7 +49,6 @@ private struct KTTooltipBubble: View {
             .fixedSize()
             .padding(.horizontal, 9).padding(.vertical, 5)
             .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Color.black.opacity(0.9)))
-            .shadow(color: .black.opacity(0.22), radius: 6, y: 2)
     }
 }
 

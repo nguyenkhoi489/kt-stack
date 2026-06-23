@@ -54,7 +54,6 @@ struct KTToast: View {
         }
         .padding(.horizontal, 18).padding(.vertical, 11)
         .background(Capsule().fill(KTColor.ink))
-        .shadow(color: .black.opacity(0.5), radius: 30, y: 12)
     }
 }
 

@@ -58,7 +58,6 @@ struct KTConfirmModal: View {
         .padding(24)
         .frame(width: 400)
         .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.white))
-        .shadow(color: .black.opacity(0.5), radius: 30, y: 15)
         .background(escCatcher)
     }
 

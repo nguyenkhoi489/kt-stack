@@ -33,7 +33,6 @@ struct KTAPITesterModal: View {
         .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.white))
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .ktTooltipHost()
-        .shadow(color: .black.opacity(0.55), radius: 36, y: 18)
         .background(escCatcher)
         .sheet(isPresented: $vm.isEditingVariables) {
             KTAPIVariablesSheet(vm: vm, site: site)
