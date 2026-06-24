@@ -106,6 +106,12 @@ public struct AppSupportPaths: Sendable {
         backups.appendingPathComponent(id.uuidString, isDirectory: true)
     }
 
+    public var restoreStagingRoot: URL { dir("restore-staging") }
+
+    public func restoreStaging(id: String) -> URL {
+        restoreStagingRoot.appendingPathComponent(id, isDirectory: true)
+    }
+
     public func toolsDir(_ name: String) -> URL {
         tools.appendingPathComponent(name, isDirectory: true)
     }
