@@ -12,6 +12,7 @@ final class RestoreBackupModel: ObservableObject {
     @Published private(set) var kind: WordPressBackupKind?
     @Published var phpVersion: String
     @Published var secure: Bool
+    @Published var repairEncoding = true
     @Published var trusted = false
     @Published private(set) var stage: Stage = .idle
     @Published private(set) var phase: RestorePhase?
@@ -58,7 +59,8 @@ final class RestoreBackupModel: ObservableObject {
         let request = RestoreRequest(backupFile: backupFile,
                                      siteFolder: URL(fileURLWithPath: site.path, isDirectory: true),
                                      siteDomain: site.domain,
-                                     phpVersion: phpVersion, secure: secure)
+                                     phpVersion: phpVersion, secure: secure,
+                                     repairEncoding: repairEncoding)
         let paths = AppSupportPaths()
         let mysql = MySQLController(paths: paths, agents: LaunchAgentManager(paths: paths))
         let mkcert = MkcertRunner(mkcert: paths.mkcertBinary, caroot: paths.caDir)

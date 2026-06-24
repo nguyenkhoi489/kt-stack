@@ -78,6 +78,15 @@ public final class WordPressRestoreService: Sendable {
             try await dumpService.importDump(profile: .managedMySQL, password: nil,
                                              database: database, from: payload.sqlDump)
 
+            if request.repairEncoding {
+                try Task.checkCancellation()
+                emit(RestoreEvent(phase: .repairingEncoding, message: "Repairing text encoding…"))
+                try WordPressEncodingRepair(php: php, phpIni: phpIni)
+                    .repair(database: database, tablePrefix: payload.tablePrefix, workDir: stagingRoot) {
+                        emit(RestoreEvent(phase: .repairingEncoding, message: $0))
+                    }
+            }
+
             try Task.checkCancellation()
             emit(RestoreEvent(phase: .writingConfig, message: "Writing wp-config.php…"))
             try WPConfigWriter(php: php, phpIni: phpIni, wpCliPhar: wpCliPhar)

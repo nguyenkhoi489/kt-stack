@@ -6,6 +6,7 @@ public enum RestorePhase: String, Sendable, Equatable {
     case reconcilingCore
     case creatingDatabase
     case importingDatabase
+    case repairingEncoding
     case writingConfig
     case searchReplace
     case installingFiles
@@ -29,13 +30,16 @@ public struct RestoreRequest: Sendable {
     public let siteDomain: String
     public let phpVersion: String
     public let secure: Bool
+    public let repairEncoding: Bool
 
-    public init(backupFile: URL, siteFolder: URL, siteDomain: String, phpVersion: String, secure: Bool) {
+    public init(backupFile: URL, siteFolder: URL, siteDomain: String, phpVersion: String,
+                secure: Bool, repairEncoding: Bool) {
         self.backupFile = backupFile
         self.siteFolder = siteFolder
         self.siteDomain = siteDomain
         self.phpVersion = phpVersion
         self.secure = secure
+        self.repairEncoding = repairEncoding
     }
 }
 

@@ -51,6 +51,7 @@ struct RestoreBackupSheet: View {
             if model.kind != nil {
                 phpPicker
                 Toggle("Serve over HTTPS", isOn: $model.secure)
+                Toggle("Fix Vietnamese / legacy text encoding", isOn: $model.repairEncoding)
                 replaceNotice
                 trustNotice
             }
