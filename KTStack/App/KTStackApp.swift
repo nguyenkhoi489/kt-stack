@@ -157,6 +157,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         registerHelperIfSigned()
 
         _ = services
+        refreshShellShim()
         tunnels.reapStaleJobs()
         server.onSitesChanged = { [tunnels] sites in tunnels.reconcile(sites: sites) }
         applyStartupPreferences()
@@ -170,6 +171,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     
+    private func refreshShellShim() {
+        let helper = Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/ktstack-resolve")
+        let manager = ShellPathManager(paths: AppSupportPaths(), helperSource: helper)
+        do { try manager.refreshStagedShimIfEnabled() }
+        catch { NSLog("KTStack: shell shim refresh skipped — \(error.localizedDescription)") }
+    }
+
     private func registerHelperIfSigned() {
         guard HelperIdentity.hasSigningIdentity else {
             NSLog("KTStack: SMAppService helper registration deferred (no signing identity).")

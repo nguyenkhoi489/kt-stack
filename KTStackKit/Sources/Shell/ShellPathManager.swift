@@ -51,6 +51,13 @@ public final class ShellPathManager: @unchecked Sendable {
         for rc in rcFiles { try patch(rc, with: patcher) }
     }
 
+    public func refreshStagedShimIfEnabled() throws {
+        guard FileManager.default.fileExists(
+            atPath: paths.shimBinDir.appendingPathComponent("ktstack-resolve").path) else { return }
+        try prepareShimDir()
+        try ShellShimWriter(paths: paths).writeShims()
+    }
+
     public func disable() throws {
         let patcher = ShellRCPatcher(exportLine: exportLine)
         let fm = FileManager.default

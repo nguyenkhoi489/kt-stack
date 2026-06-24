@@ -99,6 +99,32 @@ final class ShellPathManagerTests: XCTestCase {
         XCTAssertFalse(manager.status().enabled)
     }
 
+    func testRefreshDoesNothingWhenIntegrationNotEnabled() throws {
+        let paths = AppSupportPaths(root: tmp.appendingPathComponent("support"))
+        let manager = ShellPathManager(paths: paths, helperSource: try makeHelper(),
+                                       home: tmp.appendingPathComponent("home"))
+        try manager.refreshStagedShimIfEnabled()
+        XCTAssertFalse(fm.fileExists(atPath: paths.shimBinDir.path),
+                       "refresh must not opt the user into shell integration")
+    }
+
+    func testRefreshRestagesUpdatedResolverBinary() async throws {
+        let home = tmp.appendingPathComponent("home")
+        try fm.createDirectory(at: home, withIntermediateDirectories: true)
+        let paths = AppSupportPaths(root: tmp.appendingPathComponent("support"))
+        let helper = try makeHelper()
+        try await ShellPathManager(paths: paths, helperSource: helper, home: home)
+            .enable(provisionComposer: false)
+
+        try "#!/bin/sh\necho v2\n".write(to: helper, atomically: true, encoding: .utf8)
+        try ShellPathManager(paths: paths, helperSource: helper, home: home)
+            .refreshStagedShimIfEnabled()
+
+        let staged = try String(
+            contentsOf: paths.shimBinDir.appendingPathComponent("ktstack-resolve"), encoding: .utf8)
+        XCTAssertTrue(staged.contains("echo v2"), "launch refresh must restage the updated resolver")
+    }
+
     func testPHPShimsIsolateConfigButNodeDoesNot() throws {
         let paths = AppSupportPaths(root: tmp.appendingPathComponent("support"))
         let shims = ShellShimWriter(paths: paths).shims
