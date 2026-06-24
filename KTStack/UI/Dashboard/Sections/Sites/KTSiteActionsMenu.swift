@@ -4,7 +4,6 @@ import KTStackKit
 struct KTSiteActionsMenu: View {
     let site: Site
     let canOpen: Bool
-    let isWordPress: Bool
     let onOpenLogs: () -> Void
     let onRemove: () -> Void
     var onRestore: () -> Void = {}
@@ -43,8 +42,6 @@ struct KTSiteActionsMenu: View {
                             do { try KTSiteActions.configureVSCode(site) }
                             catch { onError(error.localizedDescription) }
                         }
-                    }
-                    if isWordPress {
                         row("Restore from Backup…", "arrow.uturn.backward.circle", "", action: onRestore)
                     }
                 }

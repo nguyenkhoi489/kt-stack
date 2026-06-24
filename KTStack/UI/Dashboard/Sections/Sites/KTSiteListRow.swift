@@ -125,7 +125,7 @@ struct KTSiteListRow: View {
                 .disabled(!canOpen)
                 .ktTip("Open \(site.domain) in your browser")
 
-            KTSiteActionsMenu(site: site, canOpen: canOpen, isWordPress: phpFramework == .wordpress,
+            KTSiteActionsMenu(site: site, canOpen: canOpen,
                               onOpenLogs: onOpenLogs, onRemove: onRemove,
                               onRestore: onRestore, onError: onError)
         }

@@ -51,7 +51,7 @@ struct KTSiteGridCard: View {
                     .disabled(!canOpen)
                     .frame(maxWidth: .infinity)
                 KTSiteShareControls(shareStarting: shareStarting, shareURL: shareURL, onToggleShare: onToggleShare)
-                KTSiteActionsMenu(site: site, canOpen: canOpen, isWordPress: phpFramework == .wordpress,
+                KTSiteActionsMenu(site: site, canOpen: canOpen,
                                   onOpenLogs: onOpenLogs, onRemove: onRemove,
                                   onRestore: onRestore, onError: onError)
             }
