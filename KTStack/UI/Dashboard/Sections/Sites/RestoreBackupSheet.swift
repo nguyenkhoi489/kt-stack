@@ -3,11 +3,19 @@ import UniformTypeIdentifiers
 import KTStackKit
 
 struct RestoreBackupSheet: View {
+    let site: Site
     @ObservedObject var registry: SiteRegistry
     @ObservedObject var server: LocalServerController
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var model = RestoreBackupModel()
+    @StateObject private var model: RestoreBackupModel
     @State private var showPicker = false
+
+    init(site: Site, registry: SiteRegistry, server: LocalServerController) {
+        self.site = site
+        self.registry = registry
+        self.server = server
+        _model = StateObject(wrappedValue: RestoreBackupModel(site: site))
+    }
 
     private var allowedTypes: [UTType] {
         [.zip, UTType(filenameExtension: "wpress") ?? .data]
@@ -15,7 +23,7 @@ struct RestoreBackupSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: KDSpacing.space3) {
-            Text("Restore from Backup").font(KDFont.title)
+            Text("Restore into \(site.domain)").font(KDFont.title)
 
             switch model.stage {
             case .idle, .ready, .failed:
@@ -41,9 +49,9 @@ struct RestoreBackupSheet: View {
         VStack(alignment: .leading, spacing: KDSpacing.space3) {
             filePicker
             if model.kind != nil {
-                nameField
                 phpPicker
                 Toggle("Serve over HTTPS", isOn: $model.secure)
+                replaceNotice
                 trustNotice
             }
             if let error = model.error {
@@ -69,14 +77,6 @@ struct RestoreBackupSheet: View {
         }
     }
 
-    private var nameField: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text("Site name").font(KDFont.footnote).foregroundStyle(.secondary)
-            TextField("my-site", text: $model.siteName)
-                .textFieldStyle(.roundedBorder)
-        }
-    }
-
     private var phpPicker: some View {
         HStack {
             Text("PHP version").font(KDFont.footnote).foregroundStyle(.secondary)
@@ -95,6 +95,12 @@ struct RestoreBackupSheet: View {
                     .font(KDFont.footnote).foregroundStyle(Color.KDStatus.warning)
             }
         }
+    }
+
+    private var replaceNotice: some View {
+        Label("This replaces everything in \(site.path) with the restored site.",
+              systemImage: "trash")
+            .font(KDFont.footnote).foregroundStyle(Color.KDStatus.warning)
     }
 
     private var trustNotice: some View {
@@ -123,7 +129,7 @@ struct RestoreBackupSheet: View {
 
     private var successView: some View {
         VStack(alignment: .leading, spacing: KDSpacing.space3) {
-            Label("Restored \(model.resultSite?.domain ?? "site")", systemImage: "checkmark.seal")
+            Label("Restored \(site.domain)", systemImage: "checkmark.seal")
                 .font(KDFont.headline).foregroundStyle(Color.KDStatus.running)
             ForEach(model.warnings, id: \.self) { warning in
                 Label(warning, systemImage: "exclamationmark.triangle")
@@ -131,9 +137,7 @@ struct RestoreBackupSheet: View {
             }
             HStack {
                 Spacer()
-                if let site = model.resultSite {
-                    Button("Open Site") { KTSiteActions.openInBrowser(site) }
-                }
+                Button("Open Site") { KTSiteActions.openInBrowser(site) }
                 Button("Done") { dismiss() }.keyboardShortcut(.defaultAction)
             }
         }

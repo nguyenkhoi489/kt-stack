@@ -7,8 +7,8 @@ public enum RestorePhase: String, Sendable, Equatable {
     case creatingDatabase
     case importingDatabase
     case writingConfig
-    case registeringSite
     case searchReplace
+    case installingFiles
     case configuringServer
     case done
 }
@@ -25,24 +25,26 @@ public struct RestoreEvent: Sendable, Equatable {
 
 public struct RestoreRequest: Sendable {
     public let backupFile: URL
-    public let siteName: String
+    public let siteFolder: URL
+    public let siteDomain: String
     public let phpVersion: String
     public let secure: Bool
 
-    public init(backupFile: URL, siteName: String, phpVersion: String, secure: Bool) {
+    public init(backupFile: URL, siteFolder: URL, siteDomain: String, phpVersion: String, secure: Bool) {
         self.backupFile = backupFile
-        self.siteName = siteName
+        self.siteFolder = siteFolder
+        self.siteDomain = siteDomain
         self.phpVersion = phpVersion
         self.secure = secure
     }
 }
 
 public struct RestoreOutcome: Sendable {
-    public let site: Site
+    public let domain: String
     public let warnings: [String]
 
-    public init(site: Site, warnings: [String]) {
-        self.site = site
+    public init(domain: String, warnings: [String]) {
+        self.domain = domain
         self.warnings = warnings
     }
 }

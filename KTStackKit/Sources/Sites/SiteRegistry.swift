@@ -132,6 +132,10 @@ public final class SiteRegistry: ObservableObject {
         update(site.id) { $0.phpVersion = version }
     }
 
+    public func setDatabaseName(_ site: Site, _ name: String?) {
+        update(site.id) { $0.databaseName = name }
+    }
+
     private func knownPHPVersions() -> [String] {
         let installed = installedPHP()
         return installed.isEmpty ? [BundledPHP.defaultVersion] : installed

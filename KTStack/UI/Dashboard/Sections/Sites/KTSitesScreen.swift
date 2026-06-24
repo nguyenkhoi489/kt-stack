@@ -33,7 +33,7 @@ private struct KTSitesContent: View {
     @State private var gridView = false
     @State private var showScan = false
     @State private var showImport = false
-    @State private var showRestore = false
+    @State private var restoreSite: Site?
     @State private var removingSiteID: UUID?
     @State private var actionError: String?
 
@@ -83,7 +83,7 @@ private struct KTSitesContent: View {
         .background(KTColor.contentBg)
         .sheet(isPresented: $showScan) { ScanImportSheet(registry: registry, sitesRoot: preferences.sitesRootURL) }
         .sheet(isPresented: $showImport) { MigrateImportSheet(registry: registry, availableVersions: server.availableVersions) }
-        .sheet(isPresented: $showRestore) { RestoreBackupSheet(registry: registry, server: server) }
+        .sheet(item: $restoreSite) { RestoreBackupSheet(site: $0, registry: registry, server: server) }
     }
 
     private var serverStatusRow: some View {
@@ -157,7 +157,7 @@ private struct KTSitesContent: View {
                               onRemove: { confirmRemove(site) },
                               onError: { actionError = $0 },
                               onOpenRuntimes: { onNavigate(.runtimes) },
-                              onRestore: { showRestore = true })
+                              onRestore: { restoreSite = site })
                 if index < filteredSites.count - 1 {
                     Rectangle().fill(KTColor.sepFaint).frame(height: 0.5).padding(.leading, 16)
                 }
@@ -178,7 +178,7 @@ private struct KTSitesContent: View {
                                onToggleShare: { toggleShare(site, $0) },
                                onRemove: { confirmRemove(site) },
                                onError: { actionError = $0 },
-                               onRestore: { showRestore = true })
+                               onRestore: { restoreSite = site })
             }
         }
     }

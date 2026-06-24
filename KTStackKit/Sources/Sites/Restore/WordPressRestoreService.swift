@@ -5,26 +5,23 @@ public final class WordPressRestoreService: Sendable {
     private let dumpService: DumpService
     private let provisioner: DatabaseProvisioner
     private let staging: RestoreStagingArea
-    private let register: @Sendable (URL, String) async throws -> Site
-    private let unregister: @Sendable (Site) async -> Void
     private let applyServerConfig: @Sendable () async throws -> Void
-    private let enableHTTPS: @Sendable (Site) async throws -> Void
+    private let enableHTTPS: @Sendable () async throws -> Void
+    private let finalizeSite: @Sendable (String) async -> Void
 
     public init(paths: AppSupportPaths,
                 dumpService: DumpService = DumpService(),
                 ensureEngine: @escaping @Sendable () async throws -> Void,
-                register: @escaping @Sendable (URL, String) async throws -> Site,
-                unregister: @escaping @Sendable (Site) async -> Void,
                 applyServerConfig: @escaping @Sendable () async throws -> Void,
-                enableHTTPS: @escaping @Sendable (Site) async throws -> Void) {
+                enableHTTPS: @escaping @Sendable () async throws -> Void,
+                finalizeSite: @escaping @Sendable (String) async -> Void) {
         self.paths = paths
         self.dumpService = dumpService
         self.provisioner = DatabaseProvisioner(ensureEngine: ensureEngine)
         self.staging = RestoreStagingArea(paths: paths)
-        self.register = register
-        self.unregister = unregister
         self.applyServerConfig = applyServerConfig
         self.enableHTTPS = enableHTTPS
+        self.finalizeSite = finalizeSite
     }
 
     public func restore(_ request: RestoreRequest,
@@ -54,26 +51,21 @@ public final class WordPressRestoreService: Sendable {
 
             try await preflight(request: request, wpCliPhar: wpCliPhar)
 
-            let baseLabel = RestoreNaming.label(from: request.siteName)
-            let label = try await RestoreNaming.uniqueName(base: baseLabel, separator: "-") { candidate in
-                FileManager.default.fileExists(atPath: paths.sites.appendingPathComponent(candidate).path)
-            }
-            let targetDocroot = paths.sites.appendingPathComponent(label, isDirectory: true)
+            let prepared = stagingRoot.appendingPathComponent("prepared", isDirectory: true)
 
             try Task.checkCancellation()
             emit(RestoreEvent(phase: .reconcilingCore, message: "Preparing WordPress files…"))
-            let reconciler = WordPressCoreReconciler(php: php, phpIni: phpIni, wpCliPhar: wpCliPhar)
-            let reconcileResult = try await reconciler.reconcile(payload: payload, targetDocroot: targetDocroot) {
-                emit(RestoreEvent(phase: .reconcilingCore, message: $0))
-            }
-            undo.append { try? FileManager.default.removeItem(at: targetDocroot) }
-            WordPressPayloadMetadata.stripInstallerScaffolding(docroot: targetDocroot)
+            let reconcileResult = try await WordPressCoreReconciler(php: php, phpIni: phpIni, wpCliPhar: wpCliPhar)
+                .reconcile(payload: payload, targetDocroot: prepared) {
+                    emit(RestoreEvent(phase: .reconcilingCore, message: $0))
+                }
+            WordPressPayloadMetadata.stripInstallerScaffolding(docroot: prepared)
             if reconcileResult.usedLatestFallback, let requested = reconcileResult.requestedVersion {
                 warnings.append("WordPress \(requested) was unavailable; the latest stable release was installed instead.")
             }
 
             try Task.checkCancellation()
-            let databaseBase = RestoreNaming.databaseBase(from: label)
+            let databaseBase = RestoreNaming.databaseBase(from: RestoreNaming.label(from: request.siteDomain))
             let database = try await RestoreNaming.uniqueName(base: databaseBase) {
                 try await provisioner.exists($0)
             }
@@ -89,39 +81,55 @@ public final class WordPressRestoreService: Sendable {
             try Task.checkCancellation()
             emit(RestoreEvent(phase: .writingConfig, message: "Writing wp-config.php…"))
             try WPConfigWriter(php: php, phpIni: phpIni, wpCliPhar: wpCliPhar)
-                .write(into: targetDocroot, database: database, tablePrefix: payload.tablePrefix) {
+                .write(into: prepared, database: database, tablePrefix: payload.tablePrefix) {
                     emit(RestoreEvent(phase: .writingConfig, message: $0))
                 }
 
             try Task.checkCancellation()
-            emit(RestoreEvent(phase: .registeringSite, message: "Registering site…"))
-            let site = try await register(targetDocroot, database)
-            undo.append { await self.unregister(site); try? await self.applyServerConfig() }
-
-            try Task.checkCancellation()
             let searchReplace = WordPressSearchReplaceRunner(php: php, phpIni: phpIni, wpCliPhar: wpCliPhar)
-            let newURL = "https://\(site.domain)"
-            guard let oldURL = payload.sourceURL ?? searchReplace.currentSiteURL(docroot: targetDocroot) else {
+            let newURL = "https://\(request.siteDomain)"
+            guard let oldURL = payload.sourceURL ?? searchReplace.currentSiteURL(docroot: prepared) else {
                 throw RestoreServiceError.sourceURLUnresolved
             }
             emit(RestoreEvent(phase: .searchReplace, message: "Rewriting site address…"))
-            try await searchReplace.run(docroot: targetDocroot, oldURL: oldURL, newURL: newURL) {
+            try await searchReplace.run(docroot: prepared, oldURL: oldURL, newURL: newURL) {
                 emit(RestoreEvent(phase: .searchReplace, message: $0))
             }
+
+            try Task.checkCancellation()
+            emit(RestoreEvent(phase: .installingFiles, message: "Installing files into \(request.siteDomain)…"))
+            try swapIntoSite(prepared: prepared, siteFolder: request.siteFolder, stagingRoot: stagingRoot)
+
+            await finalizeSite(database)
 
             try Task.checkCancellation()
             emit(RestoreEvent(phase: .configuringServer, message: "Configuring web server…"))
             try await applyServerConfig()
             if request.secure {
-                try await enableHTTPS(site)
+                try await enableHTTPS()
                 try await applyServerConfig()
             }
 
             warnings.append("Hardcoded URLs inside PHP files are not rewritten automatically.")
-            emit(RestoreEvent(phase: .done, message: "Site ready at \(newURL)"))
-            return RestoreOutcome(site: site, warnings: warnings)
+            emit(RestoreEvent(phase: .done, message: "Restored at \(newURL)"))
+            return RestoreOutcome(domain: request.siteDomain, warnings: warnings)
         } catch {
             await rollback()
+            throw error
+        }
+    }
+
+    private func swapIntoSite(prepared: URL, siteFolder: URL, stagingRoot: URL) throws {
+        let fm = FileManager.default
+        let replaced = stagingRoot.appendingPathComponent("replaced-site", isDirectory: true)
+        let hadFolder = fm.fileExists(atPath: siteFolder.path)
+        if hadFolder { try fm.moveItem(at: siteFolder, to: replaced) }
+        do {
+            try fm.moveItem(at: prepared, to: siteFolder)
+        } catch {
+            if hadFolder, !fm.fileExists(atPath: siteFolder.path) {
+                try? fm.moveItem(at: replaced, to: siteFolder)
+            }
             throw error
         }
     }
