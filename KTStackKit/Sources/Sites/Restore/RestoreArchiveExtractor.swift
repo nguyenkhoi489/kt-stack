@@ -8,6 +8,7 @@ public protocol RestoreArchiveExtractor: Sendable {
 public enum RestoreArchiveError: LocalizedError, Equatable {
     case unsupportedFormat(String)
     case notWordPressBackup
+    case missingDuplicatorInstaller
     case pathEscape(String)
     case symlinkRejected(String)
     case dumpNotFound
@@ -23,6 +24,8 @@ public enum RestoreArchiveError: LocalizedError, Equatable {
             return "Unsupported backup format “.\(ext)”. Use a Duplicator .zip or All-in-One WP Migration .wpress file."
         case .notWordPressBackup:
             return "This archive does not look like a supported WordPress backup."
+        case .missingDuplicatorInstaller:
+            return "A Duplicator backup needs its installer.php in the same folder as the .zip archive."
         case .pathEscape(let entry):
             return "Refused archive entry that escapes the extraction directory: \(entry)"
         case .symlinkRejected(let entry):

@@ -8,6 +8,10 @@ public struct WordPressBackupInspector: Sendable {
         case "wpress":
             return .aioWpress
         case "zip":
+            let installer = file.deletingLastPathComponent().appendingPathComponent("installer.php")
+            guard FileManager.default.fileExists(atPath: installer.path) else {
+                throw RestoreArchiveError.missingDuplicatorInstaller
+            }
             guard try looksLikeDuplicator(file) else { throw RestoreArchiveError.notWordPressBackup }
             return .duplicatorZip
         case let other:
