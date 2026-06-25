@@ -12,6 +12,8 @@ struct KTEditorQueryTab: View {
             && !tab.sql.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private var isBusy: Bool { vm.activeQueryTab?.isBusy ?? false }
+
     private var sqlBinding: Binding<String> {
         Binding(get: { vm.activeQueryTab?.sql ?? "" }, set: { vm.updateActiveQuerySQL($0) })
     }
@@ -30,8 +32,16 @@ struct KTEditorQueryTab: View {
             Button("Run anyway", role: .destructive) { Task { await vm.runActiveQueryTab(confirmed: true) } }
             Button("Cancel", role: .cancel) { vm.cancelDangerousSQL() }
         } message: { sql in
-            Text(DestructiveGuard.evaluate(sql).reason ?? "This statement may change or remove many rows.")
+            Text(destructiveMessage(for: sql))
         }
+    }
+
+    private func destructiveMessage(for sql: String) -> String {
+        var message = DestructiveGuard.evaluate(sql).reason ?? "This statement may change or remove many rows."
+        if vm.activeQueryTab?.result?.truncated == true {
+            message += "\n\nThe last result was truncated to \(SQLAutoLimit.defaultMax) rows, so it may not reflect every row this statement affects."
+        }
+        return message
     }
 
     private var editorPanel: some View {
@@ -45,6 +55,7 @@ struct KTEditorQueryTab: View {
                 .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous).stroke(KTColor.fieldBorder, lineWidth: 0.5))
             HStack(spacing: 10) {
                 runButton
+                if isBusy { stopButton }
                 Button("Format") { sqlBinding.wrappedValue = KTSQLFormatter.format(sqlBinding.wrappedValue) }
                     .buttonStyle(SecondaryQueryButton())
                 Spacer()
@@ -75,15 +86,50 @@ struct KTEditorQueryTab: View {
         .opacity(canRun ? 1 : 0.5)
     }
 
+    private var stopButton: some View {
+        Button { Task { await vm.cancelRunningQuery() } } label: {
+            HStack(spacing: 7) {
+                Image(systemName: "stop.fill").font(.system(size: 11))
+                Text("Stop").font(.jbMono(13, .regular))
+            }
+            .foregroundStyle(KTColor.ink2)
+            .padding(.horizontal, 14).padding(.vertical, 8)
+            .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Color.white))
+            .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(KTColor.btnBorder, lineWidth: 0.5))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .keyboardShortcut(".", modifiers: .command)
+    }
+
     @ViewBuilder
     private var results: some View {
         if let error = vm.activeQueryTab?.resultError {
             messageState(icon: "exclamationmark.triangle", title: "SQL error", message: error)
+        } else if let notice = vm.activeQueryTab?.resultNotice {
+            messageState(icon: "stop.circle", title: "Query cancelled", message: notice)
         } else if let result = vm.activeQueryTab?.result {
-            KTDataGrid(result: result)
+            VStack(spacing: 0) {
+                if result.truncated { truncationBanner }
+                KTDataGrid(result: result)
+            }
         } else {
             messageState(icon: "terminal", title: "Run a query", message: "Type SQL above and press ⌘↩ to see results here.")
         }
+    }
+
+    private var truncationBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 12))
+                .foregroundStyle(KTIconTint.db.fg)
+            Text("Showing the first \(SQLAutoLimit.defaultMax) rows — result truncated (LIMIT applied). Add your own LIMIT or refine the query to see more.")
+                .font(.jbMono(12.5)).foregroundStyle(KTColor.ink2)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 14).padding(.vertical, 9)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(KTIconTint.db.bg)
+        .overlay(alignment: .bottom) { Rectangle().fill(KTColor.sep).frame(height: 0.5) }
     }
 
     private func messageState(icon: String, title: String, message: String) -> some View {

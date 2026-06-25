@@ -27,6 +27,8 @@ final class ConnectionSessionTests: XCTestCase {
 
         var isLive: Bool { live }
 
+        func useDatabase(_ database: String) async throws {}
+
         func runText(_ sql: String) async throws -> QueryResult {
             probe.enter()
             defer { probe.leave() }

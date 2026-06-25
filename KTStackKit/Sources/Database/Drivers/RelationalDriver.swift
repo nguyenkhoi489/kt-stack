@@ -26,6 +26,8 @@ public protocol RelationalDriver: DatabaseDriver {
 
     func closeSession() async
 
+    func cancelCurrentQuery() async
+
     func runSelect(_ statement: DMLStatement, database: String?) async throws -> QueryResult
 
     func insert(database: String, table: String, values: [ColumnValue]) async throws
@@ -33,4 +35,8 @@ public protocol RelationalDriver: DatabaseDriver {
     func update(database: String, table: String, values: [ColumnValue], key: [ColumnValue]) async throws
 
     func delete(database: String, table: String, key: [ColumnValue]) async throws
+}
+
+public extension RelationalDriver {
+    func cancelCurrentQuery() async {}
 }

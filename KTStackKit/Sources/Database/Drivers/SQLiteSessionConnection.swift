@@ -10,6 +10,8 @@ final class SQLiteSessionConnection: SessionConnection, @unchecked Sendable {
 
     var isLive: Bool { true }
 
+    func useDatabase(_ database: String) async throws {}
+
     func runText(_ sql: String) async throws -> QueryResult {
         do {
             return try await queue.read { try SQLiteDriver.fetch($0, sql: sql, binds: []) }

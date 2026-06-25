@@ -33,14 +33,23 @@ public struct ColumnMeta: Sendable, Equatable {
 public struct QueryResult: Sendable, Equatable {
     public let columns: [ColumnMeta]
     public let rows: [[Cell]]
+    public let truncated: Bool
+    public let estimatedTotal: Int?
 
-    public init(columns: [ColumnMeta], rows: [[Cell]]) {
+    public init(columns: [ColumnMeta], rows: [[Cell]],
+                truncated: Bool = false, estimatedTotal: Int? = nil) {
         self.columns = columns
         self.rows = rows
+        self.truncated = truncated
+        self.estimatedTotal = estimatedTotal
     }
 
     public var rowCount: Int { rows.count }
     public var columnNames: [String] { columns.map(\.name) }
+
+    public static func == (lhs: QueryResult, rhs: QueryResult) -> Bool {
+        lhs.columns == rhs.columns && lhs.rows == rhs.rows
+    }
 }
 
 

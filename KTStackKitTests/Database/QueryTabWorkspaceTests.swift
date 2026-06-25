@@ -61,13 +61,16 @@ final class QueryTabWorkspaceTests: XCTestCase {
         vm.updateActiveQuerySQL("SELECT 2")
         await vm.runActiveQueryTab()
 
+        let dialect = SQLDialect.forKind(.mysql)
+        let sent1 = SQLAutoLimit.augment("SELECT 1", dialect: dialect).sql
+        let sent2 = SQLAutoLimit.augment("SELECT 2", dialect: dialect).sql
         let first = try! XCTUnwrap(vm.queryTabs.first { $0.id == firstID })
         let second = try! XCTUnwrap(vm.queryTabs.first { $0.id == secondID })
         XCTAssertEqual(first.sql, "SELECT 1")
-        XCTAssertEqual(first.result?.rows.first?.first, .text("SELECT 1"))
+        XCTAssertEqual(first.result?.rows.first?.first, .text(sent1))
         XCTAssertEqual(second.sql, "SELECT 2")
-        XCTAssertEqual(second.result?.rows.first?.first, .text("SELECT 2"))
-        XCTAssertEqual(driver.queryCalls.map(\.sql), ["SELECT 1", "SELECT 2"])
+        XCTAssertEqual(second.result?.rows.first?.first, .text(sent2))
+        XCTAssertEqual(driver.queryCalls.map(\.sql), [sent1, sent2])
     }
 
     func testClosingLastTabLeavesOneEmptyTab() {
@@ -121,9 +124,10 @@ final class QueryTabWorkspaceTests: XCTestCase {
         await vm.select(table: TableInfo(name: "users"))
         await query
 
+        let sent = SQLAutoLimit.augment("SELECT delayed", dialect: SQLDialect.forKind(.mysql)).sql
         XCTAssertTrue(vm.isTableBrowse)
         XCTAssertEqual(vm.result?.rows.first?.first, .int(1))
-        XCTAssertEqual(vm.activeQueryTab?.result?.rows.first?.first, .text("SELECT delayed"))
+        XCTAssertEqual(vm.activeQueryTab?.result?.rows.first?.first, .text(sent))
     }
 
     func testRunSQLRecordsHistoryWithoutUsingQueryTabResult() async {
@@ -132,7 +136,8 @@ final class QueryTabWorkspaceTests: XCTestCase {
 
         await vm.runSQL("SELECT legacy")
 
-        XCTAssertEqual(vm.result?.rows.first?.first, .text("SELECT legacy"))
+        let sent = SQLAutoLimit.augment("SELECT legacy", dialect: SQLDialect.forKind(.mysql)).sql
+        XCTAssertEqual(vm.result?.rows.first?.first, .text(sent))
         XCTAssertNil(vm.activeQueryTab?.result)
         XCTAssertEqual(vm.queryHistoryEntries.map(\.sql), ["SELECT legacy"])
     }

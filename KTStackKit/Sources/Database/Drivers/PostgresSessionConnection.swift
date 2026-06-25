@@ -16,6 +16,16 @@ final class PostgresSessionConnection: SessionConnection, @unchecked Sendable {
 
     var isLive: Bool { !connection.isClosed }
 
+    func useDatabase(_ database: String) async throws {
+        let quoted = try SQLDialect.forKind(.postgres).quoteIdent(database)
+        do {
+            _ = try await connection.query(PostgresQuery(unsafeSQL: "SET search_path TO \(quoted)"),
+                                           logger: logger)
+        } catch {
+            throw PostgresErrorMapper.map(error, isManaged: isManaged)
+        }
+    }
+
     func runText(_ sql: String) async throws -> QueryResult {
         do {
             let rows = try await connection.query(PostgresQuery(unsafeSQL: sql), logger: logger).collect()

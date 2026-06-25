@@ -25,6 +25,7 @@ public final class DatabaseViewModel: ObservableObject {
     @Published public private(set) var selectedTable: TableInfo?
     @Published public internal(set) var result: QueryResult?
     @Published public internal(set) var resultError: String?
+    @Published public internal(set) var resultNotice: String?
     @Published public internal(set) var resultSource: ResultSource = .none
     @Published public internal(set) var queryTabs: [QueryTab] = [QueryTab(title: "Query 1")]
     @Published public internal(set) var activeQueryTabID: UUID?
@@ -137,7 +138,7 @@ public final class DatabaseViewModel: ObservableObject {
         selectedProfile = nil
         driver = nil
         databases = []; tables = []; selectedDatabase = nil; selectedTable = nil
-        result = nil; resultError = nil; resultSource = .none
+        result = nil; resultError = nil; resultNotice = nil; resultSource = .none
         resetQueryWorkspace()
         currentColumns = []; currentIndexes = []
         schemaCatalog = .empty
@@ -150,7 +151,7 @@ public final class DatabaseViewModel: ObservableObject {
     func clearSelectedDatabase() {
         selectedDatabase = nil
         tables = []; selectedTable = nil
-        result = nil; resultError = nil; resultSource = .none
+        result = nil; resultError = nil; resultNotice = nil; resultSource = .none
         clearQueryTabResults()
         currentColumns = []; currentIndexes = []
         schemaCatalog = .empty
@@ -163,7 +164,7 @@ public final class DatabaseViewModel: ObservableObject {
         let token = beginOperation()
         selectedProfile = profile
         databases = []; tables = []; selectedDatabase = nil; selectedTable = nil
-        result = nil; resultError = nil; resultSource = .none; pageOffset = 0; hasMorePages = false
+        result = nil; resultError = nil; resultNotice = nil; resultSource = .none; pageOffset = 0; hasMorePages = false
         clearQueryTabResults()
         schemaCatalog = .empty; schemaColumnsLoaded = false; schemaDetailedLoaded = false
         connection = .connecting

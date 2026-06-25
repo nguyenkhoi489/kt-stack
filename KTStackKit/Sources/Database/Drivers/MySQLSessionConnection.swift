@@ -13,6 +13,15 @@ final class MySQLSessionConnection: SessionConnection, @unchecked Sendable {
 
     var isLive: Bool { !connection.isClosed }
 
+    func useDatabase(_ database: String) async throws {
+        let quoted = try SQLDialect.forKind(.mysql).quoteIdent(database)
+        do {
+            _ = try await connection.simpleQuery("USE \(quoted)").get()
+        } catch {
+            throw MySQLErrorMapper.map(error, isManaged: isManaged)
+        }
+    }
+
     func runText(_ sql: String) async throws -> QueryResult {
         let command = MySQLTextQueryCommand(sql: sql)
         do {

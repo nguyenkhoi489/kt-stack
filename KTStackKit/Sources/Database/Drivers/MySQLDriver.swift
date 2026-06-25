@@ -76,7 +76,12 @@ public struct MySQLDriver: RelationalDriver {
     }
 
     public func query(_ sql: String, database: String?) async throws -> QueryResult {
-        try await runStatement(sql, database: database)
+        try preflightManagedEngine()
+        return try await session.runText(sql, database: database)
+    }
+
+    public func cancelCurrentQuery() async {
+        await session.cancelInFlight()
     }
 
     public func paginatedRows(database: String, table: String,

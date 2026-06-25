@@ -69,6 +69,7 @@ extension DatabaseViewModel {
         for index in queryTabs.indices {
             queryTabs[index].result = nil
             queryTabs[index].resultError = nil
+            queryTabs[index].resultNotice = nil
             queryTabs[index].isBusy = false
         }
         queryGenerations = [:]
@@ -81,6 +82,10 @@ extension DatabaseViewModel {
         queryGenerations = [:]
     }
 
+    public func cancelRunningQuery() async {
+        await driver?.cancelCurrentQuery()
+    }
+
     private func executeSQL(_ sql: String, tabID: UUID?, confirmed: Bool) async {
         guard let driver else { return }
         let trimmed = sql.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -90,19 +95,27 @@ extension DatabaseViewModel {
             return
         }
         pendingDangerousSQL = nil
+        let dialect = SQLDialect.forKind(selectedProfile?.kind ?? .mysql)
+        let limited = SQLAutoLimit.augment(trimmed, dialect: dialect)
         let token = beginQueryOperation(tabID)
         do {
-            let r = try await driver.query(trimmed, database: selectedDatabase)
+            let raw = try await driver.query(limited.sql, database: selectedDatabase)
             guard isCurrentQueryOperation(tabID, token: token) else { return }
+            let r = limited.applied
+                ? QueryResult(columns: raw.columns, rows: raw.rows,
+                              truncated: raw.rowCount >= SQLAutoLimit.defaultMax)
+                : raw
             recordQueryHistory(trimmed)
             if tabID == nil {
                 result = r
                 resultError = nil
+                resultNotice = nil
                 resultSource = .query
             } else {
                 updateQueryTab(tabID) { tab in
                     tab.result = r
                     tab.resultError = nil
+                    tab.resultNotice = nil
                     tab.isBusy = false
                 }
             }
@@ -110,15 +123,18 @@ extension DatabaseViewModel {
         } catch {
             guard isCurrentQueryOperation(tabID, token: token) else { return }
             recordQueryHistory(trimmed)
-            let message = Self.asDatabaseError(error).message
+            let dbError = Self.asDatabaseError(error)
+            let cancelled = dbError == .cancelled
             if tabID == nil {
                 result = nil
-                resultError = message
+                resultError = cancelled ? nil : dbError.message
+                resultNotice = cancelled ? dbError.message : nil
                 resultSource = .none
             } else {
                 updateQueryTab(tabID) { tab in
                     tab.result = nil
-                    tab.resultError = message
+                    tab.resultError = cancelled ? nil : dbError.message
+                    tab.resultNotice = cancelled ? dbError.message : nil
                     tab.isBusy = false
                 }
             }

@@ -17,6 +17,8 @@ public enum DatabaseError: Error, Equatable, Sendable {
 
     case unexpectedResponse(String)
 
+    case cancelled
+
     public var message: String {
         switch self {
         case .engineNotInstalled(let kind): return "The \(kind) engine isn't installed."
@@ -26,6 +28,7 @@ public enum DatabaseError: Error, Equatable, Sendable {
         case .timeout:                      return "The database operation timed out."
         case .connection(let d):            return "Connection failed: \(d)"
         case .unexpectedResponse(let d):    return "Unexpected database response: \(d)"
+        case .cancelled:                    return "Query cancelled."
         }
     }
 }

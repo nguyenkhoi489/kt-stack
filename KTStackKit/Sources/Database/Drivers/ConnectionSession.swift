@@ -2,6 +2,7 @@ import Foundation
 
 protocol SessionConnection: Sendable {
     var isLive: Bool { get }
+    func useDatabase(_ database: String) async throws
     func runText(_ sql: String) async throws -> QueryResult
     func runSelect(_ statement: DMLStatement) async throws -> QueryResult
     func shutdown() async
@@ -13,6 +14,10 @@ public actor ConnectionSession {
     private var connection: SessionConnection?
     private var gateHeld = false
     private var waiters: [CheckedContinuation<Void, Never>] = []
+    private var currentDatabase: String?
+    private var databaseApplied = false
+    private var epoch = 0
+    private var cancelRequested = false
 
     init(factory: @escaping @Sendable () async throws -> SessionConnection) {
         self.factory = factory
@@ -27,14 +32,51 @@ public actor ConnectionSession {
         defer { release() }
         await connection?.shutdown()
         connection = nil
+        databaseApplied = false
     }
 
     func runText(_ sql: String) async throws -> QueryResult {
         try await withConnection { try await $0.runText(sql) }
     }
 
+    func runText(_ sql: String, database: String?) async throws -> QueryResult {
+        await acquire()
+        defer { release() }
+        cancelRequested = false
+        let live = try await ensureConnection()
+        let myEpoch = epoch
+        try await applyDatabaseIfNeeded(database, on: live)
+        do {
+            let result = try await live.runText(sql)
+            cancelRequested = false
+            return result
+        } catch {
+            if cancelRequested && myEpoch == epoch {
+                cancelRequested = false
+                throw DatabaseError.cancelled
+            }
+            throw error
+        }
+    }
+
     func runSelect(_ statement: DMLStatement) async throws -> QueryResult {
         try await withConnection { try await $0.runSelect(statement) }
+    }
+
+    func cancelInFlight() {
+        cancelRequested = true
+        let dead = connection
+        connection = nil
+        databaseApplied = false
+        Task { await dead?.shutdown() }
+    }
+
+    private func applyDatabaseIfNeeded(_ database: String?, on connection: SessionConnection) async throws {
+        guard let database, !database.isEmpty else { return }
+        if databaseApplied && database == currentDatabase { return }
+        try await connection.useDatabase(database)
+        currentDatabase = database
+        databaseApplied = true
     }
 
     private func withConnection<R>(_ body: (SessionConnection) async throws -> R) async throws -> R {
@@ -49,6 +91,8 @@ public actor ConnectionSession {
         if let stale = connection { await stale.shutdown() }
         let fresh = try await factory()
         connection = fresh
+        epoch += 1
+        databaseApplied = false
         return fresh
     }
 
