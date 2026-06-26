@@ -53,7 +53,7 @@ struct KTDatabaseScreen: View {
     private var header: some View {
         HStack(spacing: 12) {
             Text("Database").font(KTType.screenTitle).tracking(KTType.screenTitleTracking).foregroundStyle(KTColor.ink)
-            KTPill(text: "\(connectionStore.allProfiles.count) connections")
+            KTPill(text: "\(visibleProfiles.count) connections")
             if vm.connection == .connected, let active = vm.selectedProfile {
                 KTBadge(text: "Active · \(active.name)", tint: KTEngineTint.of(active.kind.rawValue), radius: 6)
             }
@@ -84,7 +84,7 @@ struct KTDatabaseScreen: View {
 
     @ViewBuilder
     private var serversTab: some View {
-        if connectionStore.allProfiles.isEmpty {
+        if visibleProfiles.isEmpty {
             emptyState(icon: "cylinder.split.1x2", title: "No connections yet",
                        message: "Add a database server to browse it. Bundled MySQL / PostgreSQL / MongoDB appear here once their engine is running.",
                        cta: ("Connect a server", "link", { overlay.connectPresented = true }))
@@ -102,10 +102,19 @@ struct KTDatabaseScreen: View {
         }
     }
 
+    private var visibleProfiles: [ConnectionProfile] {
+        var seen = Set<String>()
+        return connectionStore.allProfiles.filter { profile in
+            let key = [profile.kind.rawValue, profile.name, profile.host, String(profile.port),
+                       profile.user, profile.database, profile.filePath ?? ""].joined(separator: "\u{1F}")
+            return seen.insert(key).inserted
+        }
+    }
+
     private var filteredProfiles: [ConnectionProfile] {
         let query = serverSearch.trimmingCharacters(in: .whitespaces)
-        guard !query.isEmpty else { return connectionStore.allProfiles }
-        return connectionStore.allProfiles.filter {
+        guard !query.isEmpty else { return visibleProfiles }
+        return visibleProfiles.filter {
             $0.name.range(of: query, options: .caseInsensitive) != nil
                 || $0.host.range(of: query, options: .caseInsensitive) != nil
         }
