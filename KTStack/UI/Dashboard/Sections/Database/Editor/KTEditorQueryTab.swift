@@ -49,23 +49,22 @@ struct KTEditorQueryTab: View {
 
     private var editorPanel: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SQLCodeEditor(text: sqlBinding,
-                          catalog: vm.schemaCatalog,
-                          keywords: SQLKeywords.forKind(vm.selectedProfile?.kind ?? .mysql))
-                .frame(minHeight: 96, maxHeight: 160)
-                .padding(6)
-                .background(RoundedRectangle(cornerRadius: 11, style: .continuous).fill(KTEditorTheme.content2))
-                .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous).stroke(KTEditorTheme.separator, lineWidth: 0.5))
             HStack(spacing: 10) {
                 runButton
                 if isBusy { stopButton }
                 Button("Format") { sqlBinding.wrappedValue = KTSQLFormatter.format(sqlBinding.wrappedValue) }
                     .buttonStyle(SecondaryQueryButton())
+                CSVExportButton(defaultName: "query-result", result: vm.activeQueryTab?.result)
+                    .buttonStyle(SecondaryQueryButton())
                 Spacer()
-                if let result = vm.activeQueryTab?.result {
-                    CSVExportButton(defaultName: "query-result", result: result)
-                }
             }
+            SQLCodeEditor(text: sqlBinding,
+                          catalog: vm.schemaCatalog,
+                          keywords: SQLKeywords.forKind(vm.selectedProfile?.kind ?? .mysql))
+                .frame(minHeight: 96, maxHeight: 160)
+                .padding(6)
+                .background(RoundedRectangle(cornerRadius: 11, style: .continuous).fill(KTEditorTheme.content))
+                .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous).stroke(KTEditorTheme.separator, lineWidth: 1))
         }
         .padding(.horizontal, 16).padding(.vertical, 14)
         .overlay(alignment: .bottom) { Rectangle().fill(KTEditorTheme.separator).frame(height: 0.5) }
