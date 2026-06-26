@@ -4,10 +4,10 @@ final class SQLSyntaxHighlighter: NSObject, NSTextStorageDelegate {
 
     var keywords: Set<String> = []
 
-    private let keywordColor = NSColor(editorHex: 0xFF7AB2)
-    private let stringColor = NSColor(editorHex: 0x6BD968)
-    private let numberColor = NSColor(editorHex: 0xFFB454)
-    private let commentColor = NSColor(editorHex: 0x6C7086)
+    private let keywordColor = NSColor(editorHex: 0x0000FF)
+    private let stringColor = NSColor(editorHex: 0xA31515)
+    private let numberColor = NSColor(editorHex: 0x098658)
+    private let commentColor = NSColor(editorHex: 0x008000)
 
     private static let wordPattern = try? NSRegularExpression(pattern: "[A-Za-z_][A-Za-z0-9_]*")
     private static let numberPattern = try? NSRegularExpression(pattern: "\\b\\d+(?:\\.\\d+)?\\b")
