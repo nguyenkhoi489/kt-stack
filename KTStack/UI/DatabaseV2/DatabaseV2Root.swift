@@ -130,10 +130,12 @@ struct V2TableSidebar: View {
                     .font(.system(size: 10))
                     .foregroundStyle(KTEditorTheme.label3)
             }
+            .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
+        .fixedSize(horizontal: false, vertical: true)
         .disabled(databases.isEmpty)
     }
 
