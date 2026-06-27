@@ -17,24 +17,30 @@ struct KTServerRow: View {
     let status: ServerStatus
     let databaseCount: Int?
     let onOpen: () -> Void
+    let onOpenV2: () -> Void
     let onBackup: () -> Void
     let onRestore: () -> Void
 
     @State private var hovering = false
 
     private var isOnline: Bool { status == .online }
+    private var engineTint: KTTint { KTEngineTint.of(profile.kind.rawValue) }
 
     var body: some View {
         HStack(spacing: 14) {
-            KTIconTile(tint: KTEngineTint.of(profile.kind.rawValue), size: 44, radius: 11) {
-                Image(systemName: profile.kind == .mongodb ? "leaf.fill" : "cylinder.split.1x2")
-                    .font(.system(size: 18, weight: .medium))
-            }
+            RoundedRectangle(cornerRadius: 11)
+                .fill(engineTint.bg)
+                .frame(width: 44, height: 44)
+                .overlay(
+                    Image(systemName: "cylinder.split.1x2")
+                        .font(.system(size: 16))
+                        .foregroundStyle(engineTint.fg)
+                )
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
                     Text(profile.name).font(KTType.rowName).foregroundStyle(KTColor.ink)
                     KTBadge(text: KTDatabaseVisuals.engineLabel(profile.kind),
-                            tint: KTEngineTint.of(profile.kind.rawValue), radius: 5)
+                            tint: engineTint, radius: 5)
                     if profile.isManaged {
                         Text("bundled").font(KTType.sub).foregroundStyle(KTColor.muted)
                     }
@@ -43,6 +49,7 @@ struct KTServerRow: View {
             }
             Spacer(minLength: 8)
             KTButton(title: "Open", kind: .primary, action: onOpen).disabled(!isOnline)
+            KTButton(title: "v2", kind: .secondary, action: onOpenV2).disabled(!isOnline)
             ghostIcon("tray.and.arrow.down", help: "Backup now", action: onBackup)
                 .disabled(!isOnline)
                 .opacity(isOnline ? 1 : 0.4)

@@ -127,6 +127,7 @@ struct KTDatabaseScreen: View {
                             status: reachability.currentStatus(for: profile.id),
                             databaseCount: databaseCount(for: profile),
                             onOpen: { open(profile) },
+                            onOpenV2: { DatabaseV2WindowController.shared.present(profile: profile) },
                             onBackup: { backupServer(profile) },
                             onRestore: { tab = .backups })
             }
