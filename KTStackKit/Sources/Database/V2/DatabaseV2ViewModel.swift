@@ -46,6 +46,7 @@ public final class DatabaseV2ViewModel: ObservableObject {
     public var schemaCatalog: SchemaCatalog {
         SchemaCatalog(
             tables: tables.map(\.name),
+            columnsByTable: diagramColumns.mapValues { $0.map(\.name) },
             detailedColumnsByTable: diagramColumns,
             relations: foreignKeys
         )
