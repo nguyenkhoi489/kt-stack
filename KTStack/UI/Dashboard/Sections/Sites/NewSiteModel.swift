@@ -81,6 +81,8 @@ final class NewSiteModel: ObservableObject {
         case .laravel:
             let phar = try await ComposerProvisioner(paths: paths).provision()
             return LaravelInstaller(php: php, phpIni: phpIni, composerPhar: phar)
+        case .empty:
+            return EmptySiteInstaller()
         }
     }
 }

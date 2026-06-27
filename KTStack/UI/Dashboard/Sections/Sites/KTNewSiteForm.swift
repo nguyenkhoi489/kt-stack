@@ -12,12 +12,12 @@ struct KTNewSiteForm: View {
 
     @StateObject private var model = NewSiteModel()
     @State private var name = ""
-    @State private var kind: NewSiteKind = .wordpress
+    @State private var kind: NewSiteKind = .empty
     @State private var phpVersion = BundledPHP.defaultVersion
     @State private var adminPassword = KTNewSiteForm.randomPassword()
     @State private var advanced = false
     @State private var serveHTTPS = true
-    @State private var createDatabase = true
+    @State private var createDatabase = false
 
     private var slug: String { SiteInspector.slug(name) }
     private var domain: String { "\(slug).\(tld)" }
@@ -36,6 +36,7 @@ struct KTNewSiteForm: View {
             footer
         }
         .onAppear { serveHTTPS = defaultHTTPS }
+        .onChange(of: kind) { newKind in createDatabase = newKind != .empty }
     }
 
     private var form: some View {
@@ -65,19 +66,21 @@ struct KTNewSiteForm: View {
                              leading: { phpBadge },
                              value: "PHP \(phpVersion)")
             }
-            row("Admin Password", topAligned: true) {
-                VStack(alignment: .leading, spacing: 7) {
-                    fieldBox {
-                        Image(systemName: "lock").font(.system(size: 14, weight: .regular)).foregroundStyle(KTColor.muted)
-                        Text(adminPassword).font(.jbMono(14)).foregroundStyle(KTColor.ink)
-                        Spacer(minLength: 0)
-                        iconButton("arrow.clockwise") { adminPassword = KTNewSiteForm.randomPassword() }
-                        iconButton("doc.on.doc") {
-                            NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString(adminPassword, forType: .string)
+            if kind != .empty {
+                row("Admin Password", topAligned: true) {
+                    VStack(alignment: .leading, spacing: 7) {
+                        fieldBox {
+                            Image(systemName: "lock").font(.system(size: 14, weight: .regular)).foregroundStyle(KTColor.muted)
+                            Text(adminPassword).font(.jbMono(14)).foregroundStyle(KTColor.ink)
+                            Spacer(minLength: 0)
+                            iconButton("arrow.clockwise") { adminPassword = KTNewSiteForm.randomPassword() }
+                            iconButton("doc.on.doc") {
+                                NSPasteboard.general.clearContents()
+                                NSPasteboard.general.setString(adminPassword, forType: .string)
+                            }
                         }
+                        helper("This password will be used for the \(kindLabel(kind)) admin account.")
                     }
-                    helper("This password will be used for the \(kindLabel(kind)) admin account.")
                 }
             }
 
@@ -213,10 +216,26 @@ struct KTNewSiteForm: View {
         }
     }
 
-    private func kindLabel(_ k: NewSiteKind) -> String { k == .wordpress ? "WordPress" : "Laravel" }
-    private func kindBadge(_ k: NewSiteKind) -> String { k == .wordpress ? "WP" : "LV" }
+    private func kindLabel(_ k: NewSiteKind) -> String {
+        switch k {
+        case .wordpress: return "WordPress"
+        case .laravel: return "Laravel"
+        case .empty: return "Empty Site"
+        }
+    }
+    private func kindBadge(_ k: NewSiteKind) -> String {
+        switch k {
+        case .wordpress: return "WP"
+        case .laravel: return "LV"
+        case .empty: return "PHP"
+        }
+    }
     private func kindTint(_ k: NewSiteKind) -> KTTint {
-        k == .wordpress ? KTIconTint.code : KTTint(fg: Color(hex: 0xFF2D20), bg: Color(hex: 0xFFE9E7))
+        switch k {
+        case .wordpress: return KTIconTint.code
+        case .laravel: return KTTint(fg: Color(hex: 0xFF2D20), bg: Color(hex: 0xFFE9E7))
+        case .empty: return KTIconTint.php
+        }
     }
 
     static func randomPassword() -> String {

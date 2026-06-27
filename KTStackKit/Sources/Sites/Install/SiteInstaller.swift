@@ -1,9 +1,15 @@
 import Foundation
 
 public enum NewSiteKind: String, Sendable, CaseIterable, Identifiable {
-    case wordpress, laravel
+    case wordpress, laravel, empty
     public var id: String { rawValue }
-    public var label: String { self == .wordpress ? "WordPress" : "Laravel" }
+    public var label: String {
+        switch self {
+        case .wordpress: return "WordPress"
+        case .laravel: return "Laravel"
+        case .empty: return "Empty Site"
+        }
+    }
 }
 
 public struct NewSiteRequest: Sendable {
