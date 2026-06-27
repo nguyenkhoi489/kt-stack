@@ -55,8 +55,10 @@ struct V2ConnectionPill: View {
 
 struct V2TableSidebar: View {
     let schemaName: String
+    let databases: [DatabaseInfo]
     let tables: [TableInfo]
     let selectedTable: TableInfo?
+    let onSelectDatabase: (String) -> Void
     let onSelect: (TableInfo) -> Void
 
     @State private var filterText = ""
@@ -68,20 +70,10 @@ struct V2TableSidebar: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 7) {
-                Image(systemName: "cylinder.split.1x2")
-                    .foregroundStyle(KTEditorTheme.switcherIcon)
-                Text(schemaName.isEmpty ? "—" : schemaName)
-                    .font(.jbMono(12.5, .semibold))
-                    .foregroundStyle(KTEditorTheme.label)
-                Spacer()
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 10))
-                    .foregroundStyle(KTEditorTheme.label3)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .overlay(alignment: .bottom) { Divider().overlay(KTEditorTheme.separator) }
+            databaseSwitcher
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .overlay(alignment: .bottom) { Divider().overlay(KTEditorTheme.separator) }
 
             HStack(spacing: 8) {
                 Text("TABLES")
@@ -111,6 +103,38 @@ struct V2TableSidebar: View {
         .frame(width: 248)
         .background(KTEditorTheme.sidebar)
         .overlay(alignment: .trailing) { Divider().overlay(KTEditorTheme.separator) }
+    }
+
+    private var databaseSwitcher: some View {
+        Menu {
+            ForEach(databases, id: \.name) { db in
+                Button {
+                    onSelectDatabase(db.name)
+                } label: {
+                    if db.name == schemaName {
+                        Label(db.name, systemImage: "checkmark")
+                    } else {
+                        Text(db.name)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 7) {
+                Image(systemName: "cylinder.split.1x2")
+                    .foregroundStyle(KTEditorTheme.switcherIcon)
+                Text(schemaName.isEmpty ? "—" : schemaName)
+                    .font(.jbMono(12.5, .semibold))
+                    .foregroundStyle(KTEditorTheme.label)
+                Spacer()
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 10))
+                    .foregroundStyle(KTEditorTheme.label3)
+            }
+            .contentShape(Rectangle())
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .disabled(databases.isEmpty)
     }
 
     private var filterField: some View {
@@ -173,8 +197,10 @@ struct DatabaseV2Root: View {
             HStack(spacing: 0) {
                 V2TableSidebar(
                     schemaName: vm.schemaName,
+                    databases: vm.databases,
                     tables: vm.tables,
                     selectedTable: vm.selectedTable,
+                    onSelectDatabase: { name in Task { await vm.select(database: name) } },
                     onSelect: { vm.select(table: $0) }
                 )
                 tabContent
