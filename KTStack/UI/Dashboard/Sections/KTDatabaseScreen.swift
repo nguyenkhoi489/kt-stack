@@ -37,7 +37,7 @@ struct KTDatabaseScreen: View {
             }
         }
         .task {
-            reachability.configure(profiles: { connectionStore.allProfiles },
+            reachability.configure(profiles: { connectionStore.profiles },
                                    managedRunning: { managedEngineRunning($0) })
             reachability.start()
             await reloadBackups()
@@ -84,7 +84,7 @@ struct KTDatabaseScreen: View {
     private var serversTab: some View {
         if visibleProfiles.isEmpty {
             emptyState(icon: "cylinder.split.1x2", title: "No connections yet",
-                       message: "Add a database server to browse it. Bundled MySQL / PostgreSQL / MongoDB appear here once their engine is running.",
+                       message: "Connect a database server to browse it here.",
                        cta: ("Connect a server", "link", { overlay.connectPresented = true }))
         } else {
             VStack(spacing: 14) {
@@ -102,7 +102,7 @@ struct KTDatabaseScreen: View {
 
     private var visibleProfiles: [ConnectionProfile] {
         var seen = Set<String>()
-        return connectionStore.allProfiles.filter { profile in
+        return connectionStore.profiles.filter { profile in
             let key = [profile.kind.rawValue, profile.name, profile.host, String(profile.port),
                        profile.user, profile.database, profile.filePath ?? ""].joined(separator: "\u{1F}")
             return seen.insert(key).inserted
