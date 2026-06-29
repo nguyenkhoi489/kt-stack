@@ -272,11 +272,20 @@ struct KTConnectModal: View {
     }
 
     private static func defaultUser(_ kind: DatabaseKind) -> String {
-        kind == .mongodb ? "" : "root"
+        switch kind {
+        case .postgres: "postgres"
+        case .mysql: "root"
+        case .mongodb, .sqlite: ""
+        }
     }
 
     private var usernamePlaceholder: String {
-        kind == .mongodb ? "leave blank (no auth)" : "root"
+        switch kind {
+        case .postgres: "postgres"
+        case .mysql: "root"
+        case .mongodb: "leave blank (no auth)"
+        case .sqlite: "root"
+        }
     }
 }
 
