@@ -288,14 +288,6 @@ public struct AppSupportPaths: Sendable {
         logsSites.appendingPathComponent("\(domain).error.log")
     }
 
-    public func nodeOutLog(_ domain: String) -> URL {
-        logsSites.appendingPathComponent("node-\(domain).out.log")
-    }
-
-    public func nodeErrLog(_ domain: String) -> URL {
-        logsSites.appendingPathComponent("node-\(domain).err.log")
-    }
-
     public func vhost(_ name: String) -> URL {
         sitesEnabled.appendingPathComponent("\(name).conf")
     }
