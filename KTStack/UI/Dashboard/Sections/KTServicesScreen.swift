@@ -114,9 +114,12 @@ struct KTServicesScreen: View {
                     version: entry.version,
                     state: entry.state,
                     isEngineRunning: isEngineActive,
+                    isRunning: snap?.status == .running,
+                    isBusy: snap?.isBusy ?? false,
                     downloadFraction: entry.release.flatMap { services.installProgress(for: $0) },
                     isSwitchOrInstallInFlight: inFlight,
                     onSetActive: { handleSetActive(kind: kind, version: entry.version) },
+                    onToggleRunning: { services.toggle(kind) },
                     onInstall: { if let r = entry.release { services.install(r) } },
                     onCancel: { if let r = entry.release { services.cancelInstall(r) } },
                     onUninstall: { handleUninstall(kind: kind, version: entry.version) }

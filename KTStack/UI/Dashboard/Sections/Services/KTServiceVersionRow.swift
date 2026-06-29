@@ -10,9 +10,12 @@ struct KTServiceVersionRow: View {
     let version: String
     let state: KTServiceVersionState
     let isEngineRunning: Bool
+    let isRunning: Bool
+    let isBusy: Bool
     let downloadFraction: Double?
     let isSwitchOrInstallInFlight: Bool
     let onSetActive: () -> Void
+    let onToggleRunning: () -> Void
     let onInstall: () -> Void
     let onCancel: () -> Void
     let onUninstall: () -> Void
@@ -53,10 +56,16 @@ struct KTServiceVersionRow: View {
         } else {
             switch state {
             case .active:
-                Text("Active")
-                    .font(.jbMono(13, .regular)).foregroundStyle(KTColor.online)
-                    .padding(.vertical, 8).padding(.horizontal, 16)
-                    .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(KTColor.onlineBg))
+                if isBusy {
+                    ProgressView().controlSize(.small).frame(width: 40)
+                } else {
+                    HStack(spacing: 12) {
+                        Text(isRunning ? "Running" : "Stopped")
+                            .font(.jbMono(13, .regular))
+                            .foregroundStyle(isRunning ? KTColor.online : KTColor.muted)
+                        KTToggle(isOn: isRunning, action: onToggleRunning)
+                    }
+                }
             case .installed:
                 KTButton(title: "Set Active", kind: .secondary, action: onSetActive)
                     .disabled(isEngineRunning || isSwitchOrInstallInFlight)
@@ -116,7 +125,7 @@ struct KTServiceVersionRow: View {
 
     private var rowNote: String {
         switch state {
-        case .active: "Running from \(kind.rawValue)/\(version)."
+        case .active: isRunning ? "Running from \(kind.rawValue)/\(version)." : "Active version. Stopped."
         case .installed: "Installed, not active."
         case .available: "Not installed. Download to use."
         }
