@@ -106,7 +106,7 @@ public struct RuntimeCatalog: Sendable {
         }
     }
 
-    static let phpRuntimeVersions = ["7.4", "8.0", "8.1", "8.2", "8.3", "8.4"]
+    static let phpRuntimeVersions = ["7.4", "8.0", "8.1", "8.2", "8.3", "8.4", "8.5"]
 
     static let releaseBaseURL =
         URL(string: "https://github.com/KTStackAPP/KTStack/releases/download/binaries-v1")!
@@ -147,6 +147,7 @@ public struct RuntimeCatalog: Sendable {
         "8.2": "3ba0e36b504bf202b6764d07a4c3d1f086eb5fa6ecfe037e222cbc269733f2d8",
         "8.3": "7eab0f81067d4cbdcc274df6fa18684f6d2fb73bfc2599573c7a02e4e96064a8",
         "8.4": "5451afde00d8dcbec3d3bdd6136d4a45fb0004d463d2e980d8fdd1340dcab029",
+        "8.5": "46eae14c1a5af7defd459027947a5ec6bbd55548612050bc8a2832b040145ece",
     ]
 
     static let phpArtifactChecksumsX86: [String: String] = [
@@ -156,5 +157,6 @@ public struct RuntimeCatalog: Sendable {
         "8.2": "403cdbe93092e65e0943c20ad6c3fe788cd083a2c10ab9cc60d4bd8f4b43a4ce",
         "8.3": "cc697e9be26ccea7d821d41daec21d0e6f54c9ebdcaf41ce5a9a2721863b85bf",
         "8.4": "81a36b2cc6d7ab3ddac4966863363680653144cf566744dfb40381ee0b30327a",
+        "8.5": "7928b49138fb32a8135561dc757593473dac61416b1a2e156a600ab302477ad8",
     ]
 }
