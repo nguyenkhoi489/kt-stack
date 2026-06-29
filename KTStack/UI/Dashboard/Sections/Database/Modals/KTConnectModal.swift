@@ -78,6 +78,8 @@ struct KTConnectModal: View {
                 ) {
                     kind = engine
                     port = Self.defaultPort(engine)
+                    user = Self.defaultUser(engine)
+                    password = ""
                     resetTest()
                 }
             }
@@ -96,7 +98,7 @@ struct KTConnectModal: View {
             }
             KTModalLabeledRow(label: "Database") { KTModalField(placeholder: "my_app", text: $database, mono: true) }
             HStack(spacing: 14) {
-                KTModalLabeledRow(label: "Username") { KTModalField(placeholder: "root", text: $user, mono: true) }
+                KTModalLabeledRow(label: "Username") { KTModalField(placeholder: usernamePlaceholder, text: $user, mono: true) }
                 HStack(spacing: 10) {
                     Text("Password").font(.jbMono(13.5, .regular)).foregroundStyle(KTColor.ink)
                     KTModalField(placeholder: "••••••", text: $password, isSecure: true)
@@ -267,6 +269,14 @@ struct KTConnectModal: View {
         case .mongodb: "27017"
         case .sqlite: ""
         }
+    }
+
+    private static func defaultUser(_ kind: DatabaseKind) -> String {
+        kind == .mongodb ? "" : "root"
+    }
+
+    private var usernamePlaceholder: String {
+        kind == .mongodb ? "leave blank (no auth)" : "root"
     }
 }
 
