@@ -48,6 +48,10 @@ final class DocumentWindowController: NSObject, NSWindowDelegate {
         w.makeKeyAndOrderFront(nil)
     }
 
+    func close() {
+        window?.close()
+    }
+
     func windowWillClose(_: Notification) {
         window = nil
     }

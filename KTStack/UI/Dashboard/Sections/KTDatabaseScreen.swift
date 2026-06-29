@@ -147,9 +147,11 @@ struct KTDatabaseScreen: View {
                     profile: profile,
                     status: reachability.currentStatus(for: profile.id),
                     databaseCount: databaseCount(for: profile),
+                    isConnected: isConnected(profile),
                     onOpen: { open(profile) },
                     onBackup: { backupServer(profile) },
-                    onRestore: { tab = .backups }
+                    onRestore: { tab = .backups },
+                    onDisconnect: { disconnect(profile) }
                 )
             }
         }
@@ -257,6 +259,23 @@ struct KTDatabaseScreen: View {
                 }
                 DatabaseV2WindowController.shared.present(profile: profile)
             }
+        }
+    }
+
+    private func isConnected(_ profile: ConnectionProfile) -> Bool {
+        if profile.kind == .mongodb {
+            return documentVM.connection == .connected && documentVM.selectedProfile?.id == profile.id
+        }
+        return vm.connection == .connected && vm.selectedProfile?.id == profile.id
+    }
+
+    private func disconnect(_ profile: ConnectionProfile) {
+        if profile.kind == .mongodb {
+            DocumentWindowController.shared.close()
+            documentVM.deselect()
+        } else {
+            DatabaseV2WindowController.shared.close()
+            vm.deselect()
         }
     }
 

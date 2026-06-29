@@ -49,7 +49,7 @@ final class DatabaseV2WindowController: NSObject, NSWindowDelegate {
         Task { await self.viewModel.connect(profile: profile) }
     }
 
-    private func close() {
+    func close() {
         window?.close()
     }
 
