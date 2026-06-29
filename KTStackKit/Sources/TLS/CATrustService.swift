@@ -1,13 +1,13 @@
-import Foundation
 import Combine
 import CryptoKit
+import Foundation
 
 @MainActor
 public final class CATrustService: ObservableObject {
     public enum Status: Equatable, Sendable {
-        case notInstalled        // no CA generated yet
-        case untrusted           // CA exists on disk but not trusted in the System Keychain
-        case trusted             // CA present in the System Keychain
+        case notInstalled // no CA generated yet
+        case untrusted // CA exists on disk but not trusted in the System Keychain
+        case trusted // CA present in the System Keychain
     }
 
     @Published public private(set) var status: Status = .notInstalled
@@ -16,16 +16,18 @@ public final class CATrustService: ObservableObject {
 
     public let usesHelper = HelperIdentity.hasSigningIdentity
 
-    nonisolated public let runner: MkcertRunner
-    nonisolated private let paths: AppSupportPaths
+    public nonisolated let runner: MkcertRunner
+    private nonisolated let paths: AppSupportPaths
 
     public init(paths: AppSupportPaths, mkcertBinary: URL) {
         self.paths = paths
-        self.runner = MkcertRunner(mkcert: mkcertBinary, caroot: paths.caDir)
+        runner = MkcertRunner(mkcert: mkcertBinary, caroot: paths.caDir)
         refresh()
     }
 
-    public var isTrusted: Bool { status == .trusted }
+    public var isTrusted: Bool {
+        status == .trusted
+    }
 
     public func refresh() {
         guard runner.caExists else { status = .notInstalled; return }
@@ -39,10 +41,13 @@ public final class CATrustService: ObservableObject {
         status = trusted ? .trusted : .untrusted
     }
 
-    public func install() { run { try self.runner.install() } }
+    public func install() {
+        run { try self.runner.install() }
+    }
 
-   
-    public func untrust() { run { try self.runner.uninstall() } }
+    public func untrust() {
+        run { try self.runner.uninstall() }
+    }
 
     public func ensureTrusted() throws {
         if !isTrusted { try runner.install() }
@@ -61,8 +66,6 @@ public final class CATrustService: ObservableObject {
             }
         }
     }
-
-    // MARK: - Trust query
 
     public nonisolated static func isTrustedInSystemKeychain(caCert: URL) -> Bool {
         guard let pem = try? Data(contentsOf: caCert),

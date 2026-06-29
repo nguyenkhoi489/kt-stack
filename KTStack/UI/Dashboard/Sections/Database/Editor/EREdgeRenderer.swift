@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 enum EREdgeRenderer {
     private struct ResolvedEdge {
@@ -8,9 +8,11 @@ enum EREdgeRenderer {
         let toRect: CGRect
     }
 
-    static func drawEdges(context: GraphicsContext,
-                          edges: [ERSchemaEdge],
-                          rects: [String: CGRect]) {
+    static func drawEdges(
+        context: GraphicsContext,
+        edges: [ERSchemaEdge],
+        rects: [String: CGRect]
+    ) {
         let strokeColor = KTEditorTheme.Status.stopped
         let strokeStyle = StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round)
 
@@ -42,10 +44,14 @@ enum EREdgeRenderer {
         var srcPortIndex: [String: Int] = [:]
         var dstPortIndex: [String: Int] = [:]
         for (_, group) in edgesBySource {
-            for (idx, item) in group.enumerated() { srcPortIndex[item.edge.id] = idx }
+            for (idx, item) in group.enumerated() {
+                srcPortIndex[item.edge.id] = idx
+            }
         }
         for (_, group) in edgesByDest {
-            for (idx, item) in group.enumerated() { dstPortIndex[item.edge.id] = idx }
+            for (idx, item) in group.enumerated() {
+                dstPortIndex[item.edge.id] = idx
+            }
         }
 
         for item in resolved {
@@ -54,7 +60,8 @@ enum EREdgeRenderer {
             let (srcPort, dstPort, verticalPorts) = computePorts(
                 from: item.fromRect, to: item.toRect,
                 srcIdx: si, srcTotal: srcCounts[item.edge.fromTable] ?? 1,
-                dstIdx: di, dstTotal: dstCounts[item.edge.toTable] ?? 1)
+                dstIdx: di, dstTotal: dstCounts[item.edge.toTable] ?? 1
+            )
             let (path, cp1, cp2) = bezierPath(from: srcPort, to: dstPort, verticalPorts: verticalPorts)
             context.stroke(path, with: .color(strokeColor), style: strokeStyle)
             drawCrowFoot(context: context, at: srcPort, toward: cp1, color: strokeColor)
@@ -62,9 +69,14 @@ enum EREdgeRenderer {
         }
     }
 
-    private static func computePorts(from fromRect: CGRect, to toRect: CGRect,
-                                     srcIdx: Int, srcTotal: Int,
-                                     dstIdx: Int, dstTotal: Int) -> (CGPoint, CGPoint, Bool) {
+    private static func computePorts(
+        from fromRect: CGRect,
+        to toRect: CGRect,
+        srcIdx: Int,
+        srcTotal: Int,
+        dstIdx: Int,
+        dstTotal: Int
+    ) -> (CGPoint, CGPoint, Bool) {
         let fromCenter = CGPoint(x: fromRect.midX, y: fromRect.midY)
         let toCenter = CGPoint(x: toRect.midX, y: toRect.midY)
         let verticalGap = fromCenter.y < toCenter.y

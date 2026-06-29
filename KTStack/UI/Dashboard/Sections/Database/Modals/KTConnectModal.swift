@@ -1,6 +1,6 @@
+import KTStackKit
 import SwiftUI
 import UniformTypeIdentifiers
-import KTStackKit
 
 struct KTConnectModal: View {
     @EnvironmentObject private var store: ConnectionStore
@@ -25,17 +25,21 @@ struct KTConnectModal: View {
     private static let engines: [DatabaseKind] = [.mysql, .postgres, .sqlite, .mongodb]
 
     var body: some View {
-        KTModalCard(icon: "cylinder.split.1x2", tint: KTIconTint.code,
-                    title: "Connect to Database",
-                    subtitle: "Choose an engine and enter your connection details.",
-                    width: 640, onClose: onClose) {
+        KTModalCard(
+            icon: "cylinder.split.1x2",
+            tint: KTIconTint.code,
+            title: "Connect to Database",
+            subtitle: "Choose an engine and enter your connection details.",
+            width: 640,
+            onClose: onClose
+        ) {
             VStack(alignment: .leading, spacing: 0) {
                 formBody
                 footer
             }
             .onChange(of: fieldSignature) { _ in resetTest() }
             .fileImporter(isPresented: $importingFile, allowedContentTypes: [.data]) { result in
-                if case .success(let url) = result {
+                if case let .success(url) = result {
                     filePath = url.path
                     if name.isEmpty { name = url.deletingPathExtension().lastPathComponent }
                     resetTest()
@@ -67,10 +71,15 @@ struct KTConnectModal: View {
     private var engineGrid: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4), spacing: 10) {
             ForEach(Self.engines, id: \.self) { engine in
-                KTEngineCard(name: engineDisplay(engine), tint: KTEngineTint.of(engine.rawValue),
-                             active: kind == engine) {
+                KTEngineCard(
+                    name: engineDisplay(engine),
+                    tint: KTEngineTint.of(engine.rawValue),
+                    active: kind == engine
+                ) {
                     kind = engine
                     port = Self.defaultPort(engine)
+                    user = Self.defaultUser(engine)
+                    password = ""
                     resetTest()
                 }
             }
@@ -89,7 +98,7 @@ struct KTConnectModal: View {
             }
             KTModalLabeledRow(label: "Database") { KTModalField(placeholder: "my_app", text: $database, mono: true) }
             HStack(spacing: 14) {
-                KTModalLabeledRow(label: "Username") { KTModalField(placeholder: "root", text: $user, mono: true) }
+                KTModalLabeledRow(label: "Username") { KTModalField(placeholder: usernamePlaceholder, text: $user, mono: true) }
                 HStack(spacing: 10) {
                     Text("Password").font(.jbMono(13.5, .regular)).foregroundStyle(KTColor.ink)
                     KTModalField(placeholder: "••••••", text: $password, isSecure: true)
@@ -169,14 +178,26 @@ struct KTConnectModal: View {
         guard isValid else { return nil }
         if kind == .sqlite {
             let path = filePath.trimmingCharacters(in: .whitespaces)
-            return ConnectionProfile(name: name.isEmpty ? URL(fileURLWithPath: path).lastPathComponent : name,
-                                     kind: .sqlite, host: "", port: 0, user: "",
-                                     database: SQLiteDriver.mainDatabase, filePath: path)
+            return ConnectionProfile(
+                name: name.isEmpty ? URL(fileURLWithPath: path).lastPathComponent : name,
+                kind: .sqlite,
+                host: "",
+                port: 0,
+                user: "",
+                database: SQLiteDriver.mainDatabase,
+                filePath: path
+            )
         }
         let trimmedHost = host.trimmingCharacters(in: .whitespaces)
         guard let portNum = Int(port) else { return nil }
-        return ConnectionProfile(name: name.isEmpty ? trimmedHost : name, kind: kind,
-                                 host: trimmedHost, port: portNum, user: user, database: database)
+        return ConnectionProfile(
+            name: name.isEmpty ? trimmedHost : name,
+            kind: kind,
+            host: trimmedHost,
+            port: portNum,
+            user: user,
+            database: database
+        )
     }
 
     private func runTest() {
@@ -209,7 +230,7 @@ struct KTConnectModal: View {
                 testing = false
                 switch documentVM.connection {
                 case .connected: onConnected(profile.name)
-                case .failed(let error): testError = error.message
+                case let .failed(error): testError = error.message
                 default: testError = "Could not connect."
                 }
             } else {
@@ -217,14 +238,16 @@ struct KTConnectModal: View {
                 testing = false
                 switch vm.connection {
                 case .connected: onConnected(profile.name)
-                case .failed(let error): testError = error.message
+                case let .failed(error): testError = error.message
                 default: testError = "Could not connect."
                 }
             }
         }
     }
 
-    private func resetTest() { tested = false; testError = nil }
+    private func resetTest() {
+        tested = false; testError = nil
+    }
 
     private var fieldSignature: String {
         "\(host)|\(port)|\(user)|\(password)|\(database)|\(filePath)"
@@ -232,20 +255,28 @@ struct KTConnectModal: View {
 
     private func engineDisplay(_ kind: DatabaseKind) -> String {
         switch kind {
-        case .mysql: return "MySQL"
-        case .postgres: return "PostgreSQL"
-        case .sqlite: return "SQLite"
-        case .mongodb: return "MongoDB"
+        case .mysql: "MySQL"
+        case .postgres: "PostgreSQL"
+        case .sqlite: "SQLite"
+        case .mongodb: "MongoDB"
         }
     }
 
     private static func defaultPort(_ kind: DatabaseKind) -> String {
         switch kind {
-        case .postgres: return "5432"
-        case .mysql: return "3306"
-        case .mongodb: return "27017"
-        case .sqlite: return ""
+        case .postgres: "5432"
+        case .mysql: "3306"
+        case .mongodb: "27017"
+        case .sqlite: ""
         }
+    }
+
+    private static func defaultUser(_ kind: DatabaseKind) -> String {
+        kind == .mongodb ? "" : "root"
+    }
+
+    private var usernamePlaceholder: String {
+        kind == .mongodb ? "leave blank (no auth)" : "root"
     }
 }
 

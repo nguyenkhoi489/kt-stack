@@ -3,14 +3,20 @@ import Security
 
 public enum HelperIdentity {
     public static let machServiceName = "com.ktstack.helper"
-    public static let helperBundleID  = "com.ktstack.helper"
-    public static let appBundleID     = "com.ktstack.app"
+    public static let helperBundleID = "com.ktstack.helper"
+    public static let appBundleID = "com.ktstack.app"
 
-    public static var hasSigningIdentity: Bool { resolvedTeamID() != nil }
+    public static var hasSigningIdentity: Bool {
+        resolvedTeamID() != nil
+    }
 
-    public static var clientRequirement: String { requirement(for: appBundleID, team: resolvedTeamID()) }
+    public static var clientRequirement: String {
+        requirement(for: appBundleID, team: resolvedTeamID())
+    }
 
-    public static var helperRequirement: String { requirement(for: helperBundleID, team: resolvedTeamID()) }
+    public static var helperRequirement: String {
+        requirement(for: helperBundleID, team: resolvedTeamID())
+    }
 
     public static func resolvedTeamID() -> String? {
         var selfCode: SecCode?
@@ -37,9 +43,9 @@ public enum HelperIdentity {
     static func requirement(for identifier: String, team: String?) -> String {
         if let strong = strongRequirement(for: identifier, team: team) { return strong }
         #if DEBUG
-        return "identifier \"\(identifier)\""
+            return "identifier \"\(identifier)\""
         #else
-        return unsatisfiableRequirement
+            return unsatisfiableRequirement
         #endif
     }
 

@@ -2,7 +2,6 @@ import XCTest
 @testable import KTStackKit
 
 final class ServerListAndLastUsedDatabaseTests: XCTestCase {
-
     private func makeDefaults() -> UserDefaults {
         let suite = "ktstack.tests." + UUID().uuidString
         let defaults = UserDefaults(suiteName: suite)!
@@ -43,16 +42,25 @@ final class ServerListAndLastUsedDatabaseTests: XCTestCase {
 
     func testManagedProfileResolvesViaServiceState() {
         let outcome = ServerReachabilityService.outcome(
-            for: .managedMySQL, managedRunning: false, tcpReachable: true, fileExists: false)
+            for: .managedMySQL, managedRunning: false, tcpReachable: true, fileExists: false
+        )
         XCTAssertEqual(outcome, .managed(running: false))
         XCTAssertEqual(ServerReachabilityService.map(outcome), .offline)
     }
 
     func testSQLiteProfileResolvesViaFileExistence() {
-        let profile = ConnectionProfile(name: "local", kind: .sqlite, host: "", port: 0,
-                                        user: "", database: "main", filePath: "/tmp/missing.sqlite")
+        let profile = ConnectionProfile(
+            name: "local",
+            kind: .sqlite,
+            host: "",
+            port: 0,
+            user: "",
+            database: "main",
+            filePath: "/tmp/missing.sqlite"
+        )
         let outcome = ServerReachabilityService.outcome(
-            for: profile, managedRunning: true, tcpReachable: true, fileExists: false)
+            for: profile, managedRunning: true, tcpReachable: true, fileExists: false
+        )
         XCTAssertEqual(outcome, .file(exists: false))
     }
 
@@ -60,8 +68,14 @@ final class ServerListAndLastUsedDatabaseTests: XCTestCase {
     func testResolvePreferredDatabasePrecedence() {
         let store = LastUsedDatabaseStore(defaults: makeDefaults())
         let vm = DatabaseViewModel(lastUsedStore: store)
-        let profile = ConnectionProfile(name: "srv", kind: .mysql, host: "127.0.0.1", port: 3306,
-                                        user: "root", database: "app")
+        let profile = ConnectionProfile(
+            name: "srv",
+            kind: .mysql,
+            host: "127.0.0.1",
+            port: 3306,
+            user: "root",
+            database: "app"
+        )
         vm.databases = [DatabaseInfo(name: "alpha"), DatabaseInfo(name: "app"), DatabaseInfo(name: "shop")]
 
         XCTAssertEqual(vm.resolvePreferredDatabase(for: profile), "app")
@@ -77,10 +91,17 @@ final class ServerListAndLastUsedDatabaseTests: XCTestCase {
     }
 
     func testRemoteProfileResolvesViaTCP() {
-        let profile = ConnectionProfile(name: "remote", kind: .mysql, host: "db.example.com", port: 3306,
-                                        user: "root", database: "app")
+        let profile = ConnectionProfile(
+            name: "remote",
+            kind: .mysql,
+            host: "db.example.com",
+            port: 3306,
+            user: "root",
+            database: "app"
+        )
         let outcome = ServerReachabilityService.outcome(
-            for: profile, managedRunning: true, tcpReachable: false, fileExists: true)
+            for: profile, managedRunning: true, tcpReachable: false, fileExists: true
+        )
         XCTAssertEqual(outcome, .tcp(reachable: false))
         XCTAssertEqual(ServerReachabilityService.map(outcome), .offline)
     }

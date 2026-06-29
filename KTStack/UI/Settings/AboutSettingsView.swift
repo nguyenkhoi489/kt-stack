@@ -1,6 +1,6 @@
-import SwiftUI
 import AppKit
 import KTStackKit
+import SwiftUI
 
 struct AboutSettingsView: View {
     @EnvironmentObject private var updater: UpdaterController
@@ -69,4 +69,3 @@ struct AboutSettingsView: View {
         .buttonStyle(.plain)
     }
 }
-

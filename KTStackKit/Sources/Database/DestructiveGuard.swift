@@ -1,7 +1,6 @@
 import Foundation
 
 public enum DestructiveGuard {
-
     public struct Verdict: Equatable {
         public let isDestructive: Bool
         public let reason: String?
@@ -34,10 +33,10 @@ public enum DestructiveGuard {
             return "DROP/TRUNCATE permanently removes data or schema objects."
         }
         let hasWhere = matches(#"\bWHERE\b"#)
-        if matches(#"^\s*DELETE\b"#) && !hasWhere {
+        if matches(#"^\s*DELETE\b"#), !hasWhere {
             return "DELETE without a WHERE clause removes every row in the table."
         }
-        if matches(#"^\s*UPDATE\b"#) && !hasWhere {
+        if matches(#"^\s*UPDATE\b"#), !hasWhere {
             return "UPDATE without a WHERE clause changes every row in the table."
         }
         return nil

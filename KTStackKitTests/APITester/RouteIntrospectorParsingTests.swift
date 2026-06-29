@@ -2,7 +2,9 @@ import XCTest
 @testable import KTStackKit
 
 final class RouteIntrospectorParsingTests: XCTestCase {
-    private func data(_ string: String) -> Data { Data(string.utf8) }
+    private func data(_ string: String) -> Data {
+        Data(string.utf8)
+    }
 
     func testParsesReflectionPayloadWithFormRequestFields() throws {
         let json = """
@@ -97,6 +99,6 @@ final class RouteIntrospectorParsingTests: XCTestCase {
             APIRoute(method: "GET", uri: "api/b", name: nil, middleware: [], action: "x", fields: [], rulesResolved: false),
         ]
         let sorted = RouteIntrospector.sorted(routes)
-        XCTAssertEqual(sorted.map { $0.id }, ["GET api/a", "POST api/a", "GET api/b"])
+        XCTAssertEqual(sorted.map(\.id), ["GET api/a", "POST api/a", "GET api/b"])
     }
 }

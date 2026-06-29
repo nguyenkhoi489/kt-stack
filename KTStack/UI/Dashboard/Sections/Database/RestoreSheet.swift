@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 /// Restore picker for a single backup set. Target is `.overwrite` (typed-name confirmation gates the
 /// destructive path — DestructiveGuard never sees the provider DROP) or `.newDatabase`, where the
@@ -19,8 +19,11 @@ struct RestoreSheet: View {
     @State private var typedConfirmation: String = ""
     @State private var submitting = false
 
-    init(set: BackupSet, isReadOnly: Bool,
-         onConfirm: @escaping @MainActor (_ database: String, _ target: RestoreTarget) async -> Void) {
+    init(
+        set: BackupSet,
+        isReadOnly: Bool,
+        onConfirm: @escaping @MainActor (_ database: String, _ target: RestoreTarget) async -> Void
+    ) {
         self.set = set
         self.isReadOnly = isReadOnly
         self.onConfirm = onConfirm
@@ -48,7 +51,6 @@ struct RestoreSheet: View {
         .padding(KDSpacing.space3)
     }
 
-    @ViewBuilder
     private var content: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: KDSpacing.space3) {
@@ -125,16 +127,15 @@ struct RestoreSheet: View {
         guard !isReadOnly, !selectedDatabase.isEmpty else { return false }
         switch mode {
         case .newDatabase: return !newDatabaseName.trimmingCharacters(in: .whitespaces).isEmpty
-        case .overwrite:   return typedConfirmation == selectedDatabase
+        case .overwrite: return typedConfirmation == selectedDatabase
         }
     }
 
     private func run() {
         let database = selectedDatabase
-        let target: RestoreTarget
-        switch mode {
-        case .newDatabase: target = .newDatabase(newDatabaseName.trimmingCharacters(in: .whitespaces))
-        case .overwrite:   target = .overwrite
+        let target: RestoreTarget = switch mode {
+        case .newDatabase: .newDatabase(newDatabaseName.trimmingCharacters(in: .whitespaces))
+        case .overwrite: .overwrite
         }
         submitting = true
         Task {

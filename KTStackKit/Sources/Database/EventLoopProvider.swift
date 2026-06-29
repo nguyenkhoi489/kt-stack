@@ -6,9 +6,8 @@ public final class EventLoopProvider: @unchecked Sendable {
     public static let shared = EventLoopProvider()
 
     public enum ProviderError: Error {
-      
         case shutDown
- 
+
         case shutdownTimedOut
     }
 

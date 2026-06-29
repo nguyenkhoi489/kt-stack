@@ -1,14 +1,15 @@
 import Foundation
 
-
 public struct VersionSwitcher: Sendable {
     private let paths: AppSupportPaths
     private let catalog: RuntimeCatalog
     private let resolver: VersionResolver
 
-    public init(paths: AppSupportPaths,
-                catalog: RuntimeCatalog? = nil,
-                resolver: VersionResolver = VersionResolver()) {
+    public init(
+        paths: AppSupportPaths,
+        catalog: RuntimeCatalog? = nil,
+        resolver: VersionResolver = VersionResolver()
+    ) {
         self.paths = paths
         self.catalog = catalog ?? RuntimeCatalog(paths: paths)
         self.resolver = resolver

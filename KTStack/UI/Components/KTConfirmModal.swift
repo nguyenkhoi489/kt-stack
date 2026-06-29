@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct KTConfirmModal: View {
     let title: String
@@ -11,7 +11,7 @@ struct KTConfirmModal: View {
 
     private var tint: KTTint {
         danger ? KTTint(fg: KTColor.danger, bg: KTColor.dangerBg)
-               : KTTint(fg: KTColor.online, bg: KTColor.onlineBg)
+            : KTTint(fg: KTColor.online, bg: KTColor.onlineBg)
     }
 
     var body: some View {
@@ -47,8 +47,10 @@ struct KTConfirmModal: View {
                 Button(action: onConfirm) {
                     Text(okLabel).font(.jbMono(14, .regular)).foregroundStyle(.white)
                         .frame(maxWidth: .infinity).padding(.vertical, 11)
-                        .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(danger ? AnyShapeStyle(KTColor.danger) : AnyShapeStyle(KTColor.accentGradient)))
+                        .background(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(danger ? AnyShapeStyle(KTColor.danger) : AnyShapeStyle(KTColor.accentGradient))
+                        )
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)

@@ -6,7 +6,9 @@ final class PHPExtensionsModel: ObservableObject {
     struct Row: Identifiable {
         let ext: PHPExtension
         let status: PHPExtensionStatus
-        var id: String { ext.id }
+        var id: String {
+            ext.id
+        }
     }
 
     let version: String
@@ -22,13 +24,13 @@ final class PHPExtensionsModel: ObservableObject {
     init(version: String, paths: AppSupportPaths = AppSupportPaths()) {
         self.version = version
         self.paths = paths
-        self.installer = PHPExtensionInstaller(paths: paths)
-        self.catalog = PHPExtensionCatalog(paths: paths)
+        installer = PHPExtensionInstaller(paths: paths)
+        catalog = PHPExtensionCatalog(paths: paths)
     }
 
     func refresh() async {
-        let catalog = self.catalog
-        let version = self.version
+        let catalog = catalog
+        let version = version
 
         let (installed, onDisk): (Set<String>, [String: Bool]) = await Task.detached(priority: .utility) {
             let installed = catalog.installedExtensions(version)
@@ -40,10 +42,14 @@ final class PHPExtensionsModel: ObservableObject {
         }.value
         rows = PHPExtensionCatalog.descriptors
             .filter { $0.id != "xdebug" }
-            .map { Row(ext: $0, status: catalog.status($0, phpVersion: version,
-                                                        installed: installed, soOnDisk: onDisk[$0.id] ?? false)) }
+            .map { Row(ext: $0, status: catalog.status(
+                $0,
+                phpVersion: version,
+                installed: installed,
+                soOnDisk: onDisk[$0.id] ?? false
+            )) }
             .sorted { a, b in
-                if a.ext.isBuiltIn != b.ext.isBuiltIn { return !a.ext.isBuiltIn }   // optional first
+                if a.ext.isBuiltIn != b.ext.isBuiltIn { return !a.ext.isBuiltIn } // optional first
                 return a.ext.displayName.localizedCaseInsensitiveCompare(b.ext.displayName) == .orderedAscending
             }
     }
@@ -58,8 +64,8 @@ final class PHPExtensionsModel: ObservableObject {
             try await reloadPool(version)
             PHPModules.invalidate(version: version)
             await refresh()
-           
-            if case .installedButFailedToLoad(let warning) = result {
+
+            if case let .installedButFailedToLoad(warning) = result {
                 errors[extID] = warning ?? "Installed but the extension failed to load."
             }
         } catch {
@@ -73,7 +79,7 @@ final class PHPExtensionsModel: ObservableObject {
         begin(extID)
         do {
             try installer.uninstall(extID, phpVersion: version)
-            try await reloadPool(version)          // RESTART, not reload — unloads the live .so
+            try await reloadPool(version) // RESTART, not reload — unloads the live .so
             PHPModules.invalidate(version: version)
             await refresh()
         } catch {
@@ -82,6 +88,11 @@ final class PHPExtensionsModel: ObservableObject {
         end(extID)
     }
 
-    private func begin(_ extID: String) { busy.insert(extID); errors[extID] = nil; progress[extID] = nil }
-    private func end(_ extID: String) { busy.remove(extID); progress[extID] = nil }
+    private func begin(_ extID: String) {
+        busy.insert(extID); errors[extID] = nil; progress[extID] = nil
+    }
+
+    private func end(_ extID: String) {
+        busy.remove(extID); progress[extID] = nil
+    }
 }

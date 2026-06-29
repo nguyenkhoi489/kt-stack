@@ -2,7 +2,6 @@ import XCTest
 @testable import KTStackKit
 
 final class AllColumnsIntrospectionTests: XCTestCase {
-
     private var tempDir: URL!
 
     override func setUpWithError() throws {
@@ -17,18 +16,27 @@ final class AllColumnsIntrospectionTests: XCTestCase {
 
     private func makeDriver() -> SQLiteDriver {
         let path = tempDir.appendingPathComponent("test.db").path
-        let profile = ConnectionProfile(name: "t", kind: .sqlite, host: "", port: 0,
-                                        user: "", database: SQLiteDriver.mainDatabase,
-                                        filePath: path, readOnly: false)
+        let profile = ConnectionProfile(
+            name: "t",
+            kind: .sqlite,
+            host: "",
+            port: 0,
+            user: "",
+            database: SQLiteDriver.mainDatabase,
+            filePath: path,
+            readOnly: false
+        )
         return SQLiteDriver(profile: profile)
     }
 
     func testAllColumnsMapsEveryTableToItsColumnsInOrder() async throws {
         let driver = makeDriver()
         _ = try await driver.query(
-            "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, email TEXT)", database: nil)
+            "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, email TEXT)", database: nil
+        )
         _ = try await driver.query(
-            "CREATE TABLE orders (id INTEGER PRIMARY KEY, user_id INTEGER, total REAL)", database: nil)
+            "CREATE TABLE orders (id INTEGER PRIMARY KEY, user_id INTEGER, total REAL)", database: nil
+        )
 
         let map = try await driver.allColumns(database: "main")
 

@@ -11,7 +11,9 @@ final class MySQLSessionConnection: SessionConnection, @unchecked Sendable {
         self.isManaged = isManaged
     }
 
-    var isLive: Bool { !connection.isClosed }
+    var isLive: Bool {
+        !connection.isClosed
+    }
 
     func useDatabase(_ database: String) async throws {
         let quoted = try SQLDialect.forKind(.mysql).quoteIdent(database)

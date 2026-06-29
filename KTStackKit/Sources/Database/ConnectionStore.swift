@@ -1,13 +1,10 @@
-import Foundation
 import Combine
-
+import Foundation
 
 @MainActor
 public final class ConnectionStore: ObservableObject {
-    
     @Published public private(set) var profiles: [ConnectionProfile] = []
 
-   
     public var onChange: (() -> Void)?
 
     private let storeURL: URL
@@ -19,14 +16,10 @@ public final class ConnectionStore: ObservableObject {
         load()
     }
 
-   
     public var allProfiles: [ConnectionProfile] {
         [.managedMySQL, .managedPostgres, .managedMongo] + profiles
     }
 
-    // MARK: - Mutators
-
-   
     public func add(_ profile: ConnectionProfile, password: String? = nil) {
         profiles.append(profile)
         setPassword(password, for: profile)
@@ -49,22 +42,18 @@ public final class ConnectionStore: ObservableObject {
         }
     }
 
-
     public func remove(_ profile: ConnectionProfile) {
         profiles.removeAll { $0.id == profile.id }
         try? keychain.delete(account: profile.id.uuidString)
         persist()
     }
 
-    // MARK: - Persistence
-
     private func load() {
         defer { onChange?() }
-        guard let data = try? Data(contentsOf: storeURL) else { return }   // absent file → fresh
+        guard let data = try? Data(contentsOf: storeURL) else { return } // absent file → fresh
         if let decoded = try? JSONDecoder().decode([ConnectionProfile].self, from: data) {
             profiles = decoded
         } else {
-
             let backup = storeURL.appendingPathExtension("bak")
             try? FileManager.default.removeItem(at: backup)
             try? FileManager.default.copyItem(at: storeURL, to: backup)
@@ -77,7 +66,8 @@ public final class ConnectionStore: ObservableObject {
             try FileManager.default.createDirectory(
                 at: storeURL.deletingLastPathComponent(),
                 withIntermediateDirectories: true,
-                attributes: [.posixPermissions: 0o700])
+                attributes: [.posixPermissions: 0o700]
+            )
             let data = try JSONEncoder().encode(profiles)
             try data.write(to: storeURL, options: .atomic)
         } catch {

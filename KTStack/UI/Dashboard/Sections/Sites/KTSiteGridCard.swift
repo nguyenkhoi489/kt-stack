@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct KTSiteGridCard: View {
     let site: Site
@@ -7,8 +7,8 @@ struct KTSiteGridCard: View {
     let canOpen: Bool
     let isSharing: Bool
     var shareStarting: Bool = false
-    var shareURL: URL? = nil
-    var shareExpiresAt: Date? = nil
+    var shareURL: URL?
+    var shareExpiresAt: Date?
     let onOpen: () -> Void
     let onSetVersion: (String) -> Void
     let onSetSecure: (Bool) -> Void
@@ -24,8 +24,11 @@ struct KTSiteGridCard: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 KTIconTile(tint: KTSiteVisuals.tint(for: site.type), size: 42, radius: KTRadius.iconTile) {
-                    KTSiteGlyph(kind: KTSiteVisuals.kind(for: site.type), size: 21,
-                                color: KTSiteVisuals.tint(for: site.type).fg)
+                    KTSiteGlyph(
+                        kind: KTSiteVisuals.kind(for: site.type),
+                        size: 21,
+                        color: KTSiteVisuals.tint(for: site.type).fg
+                    )
                 }
                 Spacer()
                 KTToggle(isOn: site.secure, action: { onSetSecure(!site.secure) })
@@ -51,11 +54,20 @@ struct KTSiteGridCard: View {
                 KTButton(title: "Open", kind: .secondary, action: onOpen)
                     .disabled(!canOpen)
                     .frame(maxWidth: .infinity)
-                KTSiteShareControls(shareStarting: shareStarting, shareURL: shareURL,
-                                    shareExpiresAt: shareExpiresAt, onToggleShare: onToggleShare)
-                KTSiteActionsMenu(site: site, canOpen: canOpen,
-                                  onOpenLogs: onOpenLogs, onRemove: onRemove,
-                                  onRestore: onRestore, onError: onError)
+                KTSiteShareControls(
+                    shareStarting: shareStarting,
+                    shareURL: shareURL,
+                    shareExpiresAt: shareExpiresAt,
+                    onToggleShare: onToggleShare
+                )
+                KTSiteActionsMenu(
+                    site: site,
+                    canOpen: canOpen,
+                    onOpenLogs: onOpenLogs,
+                    onRemove: onRemove,
+                    onRestore: onRestore,
+                    onError: onError
+                )
             }
             .padding(.top, 14)
         }
@@ -63,8 +75,10 @@ struct KTSiteGridCard: View {
         .background(
             RoundedRectangle(cornerRadius: KTRadius.cardLarge, style: .continuous)
                 .fill(.white)
-                .overlay(RoundedRectangle(cornerRadius: KTRadius.cardLarge, style: .continuous)
-                    .strokeBorder(KTColor.sep, lineWidth: 1))
+                .overlay(
+                    RoundedRectangle(cornerRadius: KTRadius.cardLarge, style: .continuous)
+                        .strokeBorder(KTColor.sep, lineWidth: 1)
+                )
         )
         .compositingGroup()
         .task(id: site.path) { await detectFramework() }

@@ -10,11 +10,11 @@ enum RootCAConstraintError: Error, Equatable {
 
     var message: String {
         switch self {
-        case .notSingleCertificate: return "Expected exactly one PEM certificate."
-        case .unparseable: return "Certificate could not be parsed."
-        case .notSelfSigned: return "Certificate is not self-signed."
-        case .notCertificateAuthority: return "Certificate is not a certificate authority."
-        case .organizationMismatch: return "Certificate is not the KTStack local CA."
+        case .notSingleCertificate: "Expected exactly one PEM certificate."
+        case .unparseable: "Certificate could not be parsed."
+        case .notSelfSigned: "Certificate is not self-signed."
+        case .notCertificateAuthority: "Certificate is not a certificate authority."
+        case .organizationMismatch: "Certificate is not the KTStack local CA."
         }
     }
 }

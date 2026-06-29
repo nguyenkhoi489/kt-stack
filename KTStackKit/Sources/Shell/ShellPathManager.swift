@@ -11,8 +11,8 @@ public final class ShellPathManager: @unchecked Sendable {
         case helperMissing(String)
         public var errorDescription: String? {
             switch self {
-            case .ownership(let path): return "Refusing to use shim directory \(path): it is not owned by the current user."
-            case .helperMissing(let path): return "Resolver helper not found at \(path)."
+            case let .ownership(path): "Refusing to use shim directory \(path): it is not owned by the current user."
+            case let .helperMissing(path): "Resolver helper not found at \(path)."
             }
         }
     }
@@ -21,14 +21,19 @@ public final class ShellPathManager: @unchecked Sendable {
     private let helperSource: URL?
     private let home: URL
 
-    public init(paths: AppSupportPaths, helperSource: URL? = nil,
-                home: URL = FileManager.default.homeDirectoryForCurrentUser) {
+    public init(
+        paths: AppSupportPaths,
+        helperSource: URL? = nil,
+        home: URL = FileManager.default.homeDirectoryForCurrentUser
+    ) {
         self.paths = paths
         self.helperSource = helperSource
         self.home = home
     }
 
-    private var exportLine: String { "export PATH=\"\(paths.shimBinDir.path):$PATH\"" }
+    private var exportLine: String {
+        "export PATH=\"\(paths.shimBinDir.path):$PATH\""
+    }
 
     private var rcFiles: [URL] {
         let fm = FileManager.default
@@ -48,12 +53,15 @@ public final class ShellPathManager: @unchecked Sendable {
             catch { NSLog("KTStack: composer provisioning skipped — \(error.localizedDescription)") }
         }
         let patcher = ShellRCPatcher(exportLine: exportLine)
-        for rc in rcFiles { try patch(rc, with: patcher) }
+        for rc in rcFiles {
+            try patch(rc, with: patcher)
+        }
     }
 
     public func refreshStagedShimIfEnabled() throws {
         guard FileManager.default.fileExists(
-            atPath: paths.shimBinDir.appendingPathComponent("ktstack-resolve").path) else { return }
+            atPath: paths.shimBinDir.appendingPathComponent("ktstack-resolve").path
+        ) else { return }
         try prepareShimDir()
         try ShellShimWriter(paths: paths).writeShims()
     }
@@ -88,15 +96,19 @@ public final class ShellPathManager: @unchecked Sendable {
             }
         }
         let helperReady = FileManager.default.fileExists(
-            atPath: paths.shimBinDir.appendingPathComponent("ktstack-resolve").path)
+            atPath: paths.shimBinDir.appendingPathComponent("ktstack-resolve").path
+        )
         return Status(enabled: helperReady && !patched.isEmpty, shellsPatched: patched)
     }
 
     private func prepareShimDir() throws {
         let fm = FileManager.default
         let dir = paths.shimBinDir
-        try fm.createDirectory(at: dir, withIntermediateDirectories: true,
-                               attributes: [.posixPermissions: 0o755])
+        try fm.createDirectory(
+            at: dir,
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o755]
+        )
         try fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: dir.path)
         let attrs = try fm.attributesOfItem(atPath: dir.path)
         if let owner = attrs[.ownerAccountID] as? NSNumber, owner.uint32Value != getuid() {

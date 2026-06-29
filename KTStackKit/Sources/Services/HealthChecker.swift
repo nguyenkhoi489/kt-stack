@@ -1,7 +1,6 @@
 import Foundation
 
 public enum HealthProbe: Sendable {
-
     case tcp(port: Int)
 
     case unixSocket(URL)
@@ -14,20 +13,17 @@ public struct HealthChecker: Sendable {
 
     public func check(_ probe: HealthProbe, timeout: TimeInterval = 0.8) async -> ServiceStatus {
         switch probe {
-        case .tcp(let port):       return Self.tcpConnect(host: "127.0.0.1", port: port, timeout: timeout) ? .running : .stopped
-        case .unixSocket(let url): return Self.unixConnect(path: url.path) ? .running : .stopped
-        case .http(let url):       return await Self.httpReachable(url, timeout: timeout) ? .running : .stopped
+        case let .tcp(port): Self.tcpConnect(host: "127.0.0.1", port: port, timeout: timeout) ? .running : .stopped
+        case let .unixSocket(url): Self.unixConnect(path: url.path) ? .running : .stopped
+        case let .http(url): await Self.httpReachable(url, timeout: timeout) ? .running : .stopped
         }
     }
-
-    // MARK: - TCP
 
     static func tcpConnect(host: String, port: Int, timeout: TimeInterval) -> Bool {
         let fd = socket(AF_INET, SOCK_STREAM, 0)
         guard fd >= 0 else { return false }
         defer { close(fd) }
 
-       
         let flags = fcntl(fd, F_GETFL, 0)
         _ = fcntl(fd, F_SETFL, flags | O_NONBLOCK)
 
@@ -63,7 +59,7 @@ public struct HealthChecker: Sendable {
 
         var addr = sockaddr_un()
         addr.sun_family = sa_family_t(AF_UNIX)
-        let capacity = MemoryLayout.size(ofValue: addr.sun_path)   // computed before the mutation
+        let capacity = MemoryLayout.size(ofValue: addr.sun_path) // computed before the mutation
         guard path.utf8.count < capacity else { return false }
         _ = withUnsafeMutablePointer(to: &addr.sun_path) { tuplePtr in
             tuplePtr.withMemoryRebound(to: CChar.self, capacity: capacity) { dst in
@@ -94,9 +90,42 @@ public struct HealthChecker: Sendable {
     }
 
     private static func fdZero(_ set: inout fd_set) {
-        set.fds_bits = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        set.fds_bits = (
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+        )
     }
+
     private static func fdSet(_ fd: Int32, _ set: inout fd_set) {
         let intOffset = Int(fd) / 32
         let bitOffset = Int(fd) % 32

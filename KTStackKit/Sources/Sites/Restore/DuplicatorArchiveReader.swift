@@ -3,8 +3,11 @@ import Foundation
 public struct DuplicatorArchiveReader: RestoreArchiveExtractor {
     public init() {}
 
-    public func extract(_ file: URL, into staging: URL,
-                        emit: @Sendable (String) -> Void) async throws -> PreparedWordPressPayload {
+    public func extract(
+        _ file: URL,
+        into staging: URL,
+        emit: @Sendable (String) -> Void
+    ) async throws -> PreparedWordPressPayload {
         try RestoreDiskPreflight.ensureSpace(forArchive: file, at: staging)
 
         let extracted = staging.appendingPathComponent("extracted", isDirectory: true)
@@ -36,7 +39,8 @@ public struct DuplicatorArchiveReader: RestoreArchiveExtractor {
             sourceURL: sourceURL,
             wpVersion: nil,
             isContentOnly: false,
-            kind: .duplicatorZip)
+            kind: .duplicatorZip
+        )
     }
 
     private func normalizedDump(_ dump: URL, into staging: URL) throws -> URL {

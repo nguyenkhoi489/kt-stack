@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct KTSidebarRow: View {
     let item: SidebarItem
@@ -32,7 +32,8 @@ struct KTSidebarRow: View {
             .padding(.horizontal, 11)
             .background(
                 RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .fill(isActive ? KTColor.accentSoft : (hovering ? Color.black.opacity(0.045) : .clear)))
+                    .fill(isActive ? KTColor.accentSoft : (hovering ? Color.black.opacity(0.045) : .clear))
+            )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

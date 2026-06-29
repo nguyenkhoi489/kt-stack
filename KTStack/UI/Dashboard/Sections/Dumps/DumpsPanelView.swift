@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct DumpsPanelView: View {
     @EnvironmentObject private var server: LocalServerController
@@ -60,10 +60,14 @@ struct DumpsPanelView: View {
                     .foregroundStyle(model.enabled ? KTColor.online : KTColor.ink2)
             }
             .padding(.horizontal, 14).padding(.vertical, 8)
-            .background(RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .fill(model.enabled ? KTColor.onlineBg : Color.white))
-            .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .stroke(model.enabled ? Color.clear : KTColor.btnBorder, lineWidth: 0.5))
+            .background(
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .fill(model.enabled ? KTColor.onlineBg : Color.white)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .stroke(model.enabled ? Color.clear : KTColor.btnBorder, lineWidth: 0.5)
+            )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -76,10 +80,14 @@ struct DumpsPanelView: View {
                 .font(.system(size: 12.5, weight: .medium))
                 .foregroundStyle(model.autoScroll ? KTColor.accent : KTColor.ink3)
                 .frame(width: 32, height: 30)
-                .background(RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .fill(model.autoScroll ? KTColor.accentSoft : Color.white))
-                .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .stroke(model.autoScroll ? Color.clear : KTColor.btnBorder, lineWidth: 0.5))
+                .background(
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(model.autoScroll ? KTColor.accentSoft : Color.white)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .stroke(model.autoScroll ? Color.clear : KTColor.btnBorder, lineWidth: 0.5)
+                )
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -91,11 +99,14 @@ struct DumpsPanelView: View {
         if let error = model.errorMessage {
             messageState(icon: "exclamationmark.triangle", title: "Capture error", message: error, danger: true)
         } else if model.events.isEmpty {
-            messageState(icon: "curlybraces", title: "No dumps yet",
-                         message: model.enabled
-                            ? "Listening for dump() and dd() calls from your PHP app."
-                            : "Toggle capture on, then call dump() or dd() in your Laravel or Symfony app.",
-                         danger: false)
+            messageState(
+                icon: "curlybraces",
+                title: "No dumps yet",
+                message: model.enabled
+                    ? "Listening for dump() and dd() calls from your PHP app."
+                    : "Toggle capture on, then call dump() or dd() in your Laravel or Symfony app.",
+                danger: false
+            )
         } else {
             ScrollViewReader { proxy in
                 ScrollView {
@@ -146,10 +157,10 @@ struct DumpsPanelView: View {
 
     private func typeInfo(_ node: DumpNode) -> (String, KTTint) {
         switch node {
-        case .scalar: return ("value", KTIconTint.neutral)
-        case .array: return ("array", KTIconTint.code)
-        case .object(let className, _): return (className, KTIconTint.cube)
-        case .reference: return ("ref", KTIconTint.db)
+        case .scalar: ("value", KTIconTint.neutral)
+        case .array: ("array", KTIconTint.code)
+        case let .object(className, _): (className, KTIconTint.cube)
+        case .reference: ("ref", KTIconTint.db)
         }
     }
 

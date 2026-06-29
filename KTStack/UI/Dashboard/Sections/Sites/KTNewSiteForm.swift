@@ -1,6 +1,6 @@
-import SwiftUI
 import AppKit
 import KTStackKit
+import SwiftUI
 
 enum NewSiteMode: Hashable { case create, importFolder }
 
@@ -24,11 +24,25 @@ struct KTNewSiteForm: View {
     @State private var importFolder: URL?
     @State private var importName = ""
 
-    private var slug: String { SiteInspector.slug(name) }
-    private var domain: String { "\(slug).\(tld)" }
-    private var importSlug: String { SiteInspector.slug(importName) }
-    private var importDomain: String { "\(importSlug).\(tld)" }
-    private var hasOverlay: Bool { model.installing || model.finished || model.error != nil }
+    private var slug: String {
+        SiteInspector.slug(name)
+    }
+
+    private var domain: String {
+        "\(slug).\(tld)"
+    }
+
+    private var importSlug: String {
+        SiteInspector.slug(importName)
+    }
+
+    private var importDomain: String {
+        "\(importSlug).\(tld)"
+    }
+
+    private var hasOverlay: Bool {
+        model.installing || model.finished || model.error != nil
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -51,7 +65,7 @@ struct KTNewSiteForm: View {
         HStack {
             KTSegmentedTabs(items: [
                 KTSegmentedTabs.Item(value: .create, label: "Create New"),
-                KTSegmentedTabs.Item(value: .importFolder, label: "Import Folder")
+                KTSegmentedTabs.Item(value: .importFolder, label: "Import Folder"),
             ], selection: $mode, large: true)
             Spacer()
         }
@@ -64,9 +78,14 @@ struct KTNewSiteForm: View {
         case .create:
             createForm
         case .importFolder:
-            KTImportFolderForm(folder: $importFolder, name: $importName,
-                               phpVersion: $phpVersion, serveHTTPS: $serveHTTPS,
-                               createDatabase: $createDatabase, availableVersions: availableVersions)
+            KTImportFolderForm(
+                folder: $importFolder,
+                name: $importName,
+                phpVersion: $phpVersion,
+                serveHTTPS: $serveHTTPS,
+                createDatabase: $createDatabase,
+                availableVersions: availableVersions
+            )
         }
     }
 
@@ -82,20 +101,24 @@ struct KTNewSiteForm: View {
                 }
             }
             row("Type") {
-                formDropdown(width: 220,
-                             options: NewSiteKind.allCases.map { k in
-                                 KTDropdownOption(label: kindLabel(k), active: k == kind) { kind = k }
-                             },
-                             leading: { KTBadge(text: kindBadge(kind), tint: kindTint(kind)) },
-                             value: kindLabel(kind))
+                formDropdown(
+                    width: 220,
+                    options: NewSiteKind.allCases.map { k in
+                        KTDropdownOption(label: kindLabel(k), active: k == kind) { kind = k }
+                    },
+                    leading: { KTBadge(text: kindBadge(kind), tint: kindTint(kind)) },
+                    value: kindLabel(kind)
+                )
             }
             row("PHP Version") {
-                formDropdown(width: 150,
-                             options: availableVersions.map { v in
-                                 KTDropdownOption(label: "PHP \(v)", active: v == phpVersion) { phpVersion = v }
-                             },
-                             leading: { phpBadge },
-                             value: "PHP \(phpVersion)")
+                formDropdown(
+                    width: 150,
+                    options: availableVersions.map { v in
+                        KTDropdownOption(label: "PHP \(v)", active: v == phpVersion) { phpVersion = v }
+                    },
+                    leading: { phpBadge },
+                    value: "PHP \(phpVersion)"
+                )
             }
             if kind != .empty {
                 row("Admin Password", topAligned: true) {
@@ -196,7 +219,7 @@ struct KTNewSiteForm: View {
     private func resolvesLabel(_ value: String) -> some View {
         Text("Resolves at ")
             .font(.jbMono(12.5)).foregroundColor(KTColor.muted)
-        + Text(value.isEmpty ? "" : value)
+            + Text(value.isEmpty ? "" : value)
             .font(.jbMono(12.5, .regular)).foregroundColor(KTColor.accent)
     }
 
@@ -206,41 +229,56 @@ struct KTNewSiteForm: View {
             folder: sitesRoot.appendingPathComponent(slug, isDirectory: true),
             domain: domain, databaseName: createDatabase ? slug : nil,
             siteTitle: slug, adminUser: "admin", adminEmail: "admin@example.com",
-            adminPassword: kind == .wordpress ? adminPassword : "")
+            adminPassword: kind == .wordpress ? adminPassword : ""
+        )
         model.install(request: request, registry: registry, openOnFinish: true, enableHTTPS: serveHTTPS)
     }
 
     private func importSite() {
         guard let importFolder else { return }
-        model.importExisting(folder: importFolder, domain: importDomain, phpVersion: phpVersion,
-                             createDatabase: createDatabase, enableHTTPS: serveHTTPS,
-                             registry: registry, openOnFinish: true)
+        model.importExisting(
+            folder: importFolder,
+            domain: importDomain,
+            phpVersion: phpVersion,
+            createDatabase: createDatabase,
+            enableHTTPS: serveHTTPS,
+            registry: registry,
+            openOnFinish: true
+        )
     }
 
-    private func row<V: View>(_ label: String, topAligned: Bool = false, @ViewBuilder content: () -> V) -> some View {
+    private func row(_ label: String, topAligned: Bool = false, @ViewBuilder content: () -> some View) -> some View {
         KTSiteFormControls.row(label, topAligned: topAligned, content: content)
     }
 
-    private func fieldBox<V: View>(@ViewBuilder content: () -> V) -> some View {
+    private func fieldBox(@ViewBuilder content: () -> some View) -> some View {
         KTSiteFormControls.fieldBox(content: content)
     }
 
-    private func formDropdown<L: View>(width: CGFloat, options: [KTDropdownOption],
-                                       @ViewBuilder leading: () -> L, value: String) -> some View {
+    private func formDropdown(
+        width: CGFloat,
+        options: [KTDropdownOption],
+        @ViewBuilder leading: () -> some View,
+        value: String
+    ) -> some View {
         KTSiteFormControls.formDropdown(width: width, options: options, leading: leading, value: value)
     }
 
-    private func smallTile<V: View>(_ tint: KTTint, @ViewBuilder content: () -> V) -> some View {
+    private func smallTile(_ tint: KTTint, @ViewBuilder content: () -> some View) -> some View {
         KTSiteFormControls.smallTile(tint, content: content)
     }
 
-    private var phpBadge: some View { KTSiteFormControls.phpBadge }
+    private var phpBadge: some View {
+        KTSiteFormControls.phpBadge
+    }
 
     private func iconButton(_ symbol: String, action: @escaping () -> Void) -> some View {
         KTSiteFormControls.iconButton(symbol, action: action)
     }
 
-    private func helper(_ text: String) -> some View { KTSiteFormControls.helper(text) }
+    private func helper(_ text: String) -> some View {
+        KTSiteFormControls.helper(text)
+    }
 
     private func advancedToggle(_ title: String, _ subtitle: String, _ binding: Binding<Bool>) -> some View {
         KTSiteFormControls.advancedToggle(title, subtitle, binding)
@@ -248,23 +286,25 @@ struct KTNewSiteForm: View {
 
     private func kindLabel(_ k: NewSiteKind) -> String {
         switch k {
-        case .wordpress: return "WordPress"
-        case .laravel: return "Laravel"
-        case .empty: return "Empty Site"
+        case .wordpress: "WordPress"
+        case .laravel: "Laravel"
+        case .empty: "Empty Site"
         }
     }
+
     private func kindBadge(_ k: NewSiteKind) -> String {
         switch k {
-        case .wordpress: return "WP"
-        case .laravel: return "LV"
-        case .empty: return "PHP"
+        case .wordpress: "WP"
+        case .laravel: "LV"
+        case .empty: "PHP"
         }
     }
+
     private func kindTint(_ k: NewSiteKind) -> KTTint {
         switch k {
-        case .wordpress: return KTIconTint.code
-        case .laravel: return KTTint(fg: Color(hex: 0xFF2D20), bg: Color(hex: 0xFFE9E7))
-        case .empty: return KTIconTint.php
+        case .wordpress: KTIconTint.code
+        case .laravel: KTTint(fg: Color(hex: 0xFF2D20), bg: Color(hex: 0xFFE9E7))
+        case .empty: KTIconTint.php
         }
     }
 

@@ -2,21 +2,25 @@ import XCTest
 @testable import KTStackKit
 
 final class SQLCompletionEngineTests: XCTestCase {
-
     private let catalog = SchemaCatalog(
         tables: ["users", "orders"],
         columnsByTable: [
             "users": ["id", "name", "email"],
             "orders": ["id", "user_id", "total"],
-        ])
+        ]
+    )
 
     private let keywords = SQLKeywords.forKind(.mysql)
 
-    private func complete(_ text: String, caret: Int? = nil,
-                          catalog: SchemaCatalog? = nil) -> [SQLCompletionItem] {
+    private func complete(
+        _ text: String,
+        caret: Int? = nil,
+        catalog: SchemaCatalog? = nil
+    ) -> [SQLCompletionItem] {
         SQLCompletionEngine.completions(
             text: text, caret: caret ?? text.count,
-            catalog: catalog ?? self.catalog, keywords: keywords)
+            catalog: catalog ?? self.catalog, keywords: keywords
+        )
     }
 
     func testKeywordPrefixMatch() {
@@ -66,7 +70,8 @@ final class SQLCompletionEngineTests: XCTestCase {
         let many = (0..<80).map { "acol\($0)" }
         let big = SchemaCatalog(tables: ["t"], columnsByTable: ["t": many])
         let items = SQLCompletionEngine.completions(
-            text: "a", caret: 1, catalog: big, keywords: [])
+            text: "a", caret: 1, catalog: big, keywords: []
+        )
         XCTAssertLessThanOrEqual(items.count, 50)
     }
 

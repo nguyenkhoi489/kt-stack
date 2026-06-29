@@ -5,8 +5,11 @@ public struct WordPressSiteProbe: Sendable {
 
     public init() {}
 
-    public func isWordPress(siteAt folder: URL, docroot: URL? = nil,
-                            fileManager: FileManager = .default) -> Bool {
+    public func isWordPress(
+        siteAt folder: URL,
+        docroot: URL? = nil,
+        fileManager: FileManager = .default
+    ) -> Bool {
         var directories = [folder]
         if let docroot, docroot.standardizedFileURL != folder.standardizedFileURL {
             directories.append(docroot)

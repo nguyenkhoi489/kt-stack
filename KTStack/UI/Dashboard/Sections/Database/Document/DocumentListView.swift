@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct DocumentListView: View {
     @EnvironmentObject private var vm: DocumentViewModel
@@ -25,19 +25,26 @@ struct DocumentListView: View {
         } message: { Text($0) }
     }
 
-    // MARK: - Content
-
     @ViewBuilder
     private var content: some View {
         if vm.selectedCollection == nil {
-            EmptyStateView(symbol: "doc.text", title: "No collection selected",
-                           message: "Pick a collection on the left to browse its documents.")
+            EmptyStateView(
+                symbol: "doc.text",
+                title: "No collection selected",
+                message: "Pick a collection on the left to browse its documents."
+            )
         } else if let error = vm.resultError {
-            EmptyStateView(symbol: "exclamationmark.triangle", title: "Couldn’t load documents",
-                           message: error)
+            EmptyStateView(
+                symbol: "exclamationmark.triangle",
+                title: "Couldn’t load documents",
+                message: error
+            )
         } else if vm.documents.isEmpty {
-            EmptyStateView(symbol: "tray", title: "No documents",
-                           message: "This query returned no documents.")
+            EmptyStateView(
+                symbol: "tray",
+                title: "No documents",
+                message: "This query returned no documents."
+            )
         } else {
             List(vm.documents, selection: $selectedID) { record in
                 card(record).tag(record.id)
@@ -64,8 +71,6 @@ struct DocumentListView: View {
             }
         }
     }
-
-    // MARK: - Toolbar + filter
 
     private var toolbar: some View {
         HStack(spacing: KDSpacing.space2) {
@@ -117,8 +122,6 @@ struct DocumentListView: View {
                 .disabled(!vm.hasMorePages || vm.isBusy)
         }
     }
-
-    // MARK: - Helpers
 
     private func record(for id: String) -> DocumentRecord? {
         vm.documents.first { $0.id == id }

@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct DocumentSectionContent: View {
     @EnvironmentObject private var vm: DocumentViewModel
@@ -14,7 +14,7 @@ struct DocumentSectionContent: View {
             }
         case .connecting:
             ProgressView("Connecting…").frame(maxWidth: .infinity, maxHeight: .infinity)
-        case .failed(let error):
+        case let .failed(error):
             failureGate(error)
         case .idle:
             EmptyView()
@@ -25,23 +25,29 @@ struct DocumentSectionContent: View {
     private func failureGate(_ error: DatabaseError) -> some View {
         switch error {
         case .engineNotInstalled:
-            EmptyStateView(symbol: "shippingbox",
-                           title: "MongoDB isn’t installed",
-                           message: "Install the managed MongoDB engine, then reconnect.",
-                           actionTitle: "Install MongoDB…",
-                           action: { services.install(.mongodb) })
+            EmptyStateView(
+                symbol: "shippingbox",
+                title: "MongoDB isn’t installed",
+                message: "Install the managed MongoDB engine, then reconnect.",
+                actionTitle: "Install MongoDB…",
+                action: { services.install(.mongodb) }
+            )
         case .engineNotRunning:
-            EmptyStateView(symbol: "play.circle",
-                           title: "MongoDB isn’t running",
-                           message: "Start the MongoDB engine, then reconnect.",
-                           actionTitle: "Start MongoDB",
-                           action: { services.toggle(.mongodb) })
+            EmptyStateView(
+                symbol: "play.circle",
+                title: "MongoDB isn’t running",
+                message: "Start the MongoDB engine, then reconnect.",
+                actionTitle: "Start MongoDB",
+                action: { services.toggle(.mongodb) }
+            )
         default:
-            EmptyStateView(symbol: "exclamationmark.triangle",
-                           title: "Connection failed",
-                           message: error.message,
-                           actionTitle: "Retry",
-                           action: retry)
+            EmptyStateView(
+                symbol: "exclamationmark.triangle",
+                title: "Connection failed",
+                message: error.message,
+                actionTitle: "Retry",
+                action: retry
+            )
         }
     }
 

@@ -1,11 +1,8 @@
 import XCTest
 @testable import KTStackKit
 
-
 @MainActor
 final class DatabaseViewModelTests: XCTestCase {
-
-   
     private final class StubDriver: RelationalDriver, @unchecked Sendable {
         let kind: DatabaseKind = .mysql
         let tag: String
@@ -26,7 +23,7 @@ final class DatabaseViewModelTests: XCTestCase {
 
         init(tag: String) {
             self.tag = tag
-            self.databasesResult = [DatabaseInfo(name: "db_\(tag)")]
+            databasesResult = [DatabaseInfo(name: "db_\(tag)")]
         }
 
         func ping() async throws {}
@@ -36,20 +33,26 @@ final class DatabaseViewModelTests: XCTestCase {
             return databasesResult
         }
 
-        func listTables(database: String) async throws -> [TableInfo] {
+        func listTables(database _: String) async throws -> [TableInfo] {
             [TableInfo(name: "users"), TableInfo(name: "orders")]
         }
 
-        func columns(database: String, table: String) async throws -> [ColumnInfo] { columnsResult }
+        func columns(database _: String, table _: String) async throws -> [ColumnInfo] {
+            columnsResult
+        }
 
         var indexesResult: [IndexInfo] = []
-        func indexes(database: String, table: String) async throws -> [IndexInfo] { indexesResult }
+        func indexes(database _: String, table _: String) async throws -> [IndexInfo] {
+            indexesResult
+        }
 
         var foreignKeysResult: [ForeignKeyRelation] = []
-        func foreignKeys(database: String) async throws -> [ForeignKeyRelation] { foreignKeysResult }
+        func foreignKeys(database _: String) async throws -> [ForeignKeyRelation] {
+            foreignKeysResult
+        }
 
         private(set) var allColumnsCalls = 0
-        func allColumns(database: String) async throws -> [String: [String]] {
+        func allColumns(database _: String) async throws -> [String: [String]] {
             allColumnsCalls += 1
             return ["users": columnsResult.map(\.name), "orders": columnsResult.map(\.name)]
         }
@@ -61,35 +64,48 @@ final class DatabaseViewModelTests: XCTestCase {
             return QueryResult(columns: [ColumnMeta(name: "n")], rows: [[.int(1)]])
         }
 
-        func paginatedRows(database: String, table: String,
-                           limit: Int, offset: Int) async throws -> QueryResult {
+        func paginatedRows(
+            database: String,
+            table: String,
+            limit: Int,
+            offset: Int
+        ) async throws -> QueryResult {
             paginateCalls.append((database, table, limit, offset))
             // Return a full page so the VM reports `hasMorePages`.
             let rows = (0..<limit).map { _ in [Cell.int(Int64(offset))] }
             return QueryResult(columns: [ColumnMeta(name: "id")], rows: rows)
         }
 
-        func openSession() async throws { openSessionCalls += 1 }
-        func closeSession() async { closeSessionCalls += 1 }
+        func openSession() async throws {
+            openSessionCalls += 1
+        }
 
-        func runSelect(_ statement: DMLStatement, database: String?) async throws -> QueryResult {
+        func closeSession() async {
+            closeSessionCalls += 1
+        }
+
+        func runSelect(_ statement: DMLStatement, database _: String?) async throws -> QueryResult {
             runSelectCalls.append(statement)
             if let queryShouldThrow { throw queryShouldThrow }
             return QueryResult(columns: [ColumnMeta(name: "n")], rows: [[.int(1)]])
         }
 
-        func insert(database: String, table: String, values: [ColumnValue]) async throws {
+        func insert(database _: String, table _: String, values: [ColumnValue]) async throws {
             if let writeShouldThrow { throw writeShouldThrow }
             insertCalls.append(values)
         }
 
-        func update(database: String, table: String,
-                    values: [ColumnValue], key: [ColumnValue]) async throws {
+        func update(
+            database _: String,
+            table _: String,
+            values: [ColumnValue],
+            key: [ColumnValue]
+        ) async throws {
             if let writeShouldThrow { throw writeShouldThrow }
             updateCalls.append((values, key))
         }
 
-        func delete(database: String, table: String, key: [ColumnValue]) async throws {
+        func delete(database _: String, table _: String, key: [ColumnValue]) async throws {
             if let writeShouldThrow { throw writeShouldThrow }
             deleteCalls.append(key)
         }
@@ -116,7 +132,7 @@ final class DatabaseViewModelTests: XCTestCase {
         await vm.select(table: TableInfo(name: "users"))
         XCTAssertEqual(vm.pageOffset, 0)
         XCTAssertEqual(vm.result?.rowCount, vm.pageSize)
-        XCTAssertTrue(vm.isTableBrowse)               // single-table browse → grid + pagination
+        XCTAssertTrue(vm.isTableBrowse) // single-table browse → grid + pagination
         XCTAssertTrue(vm.hasMorePages)
     }
 
@@ -126,7 +142,7 @@ final class DatabaseViewModelTests: XCTestCase {
         await vm.runSQL("SELECT 1")
         XCTAssertEqual(vm.result?.columns.map(\.name), ["n"])
         XCTAssertNil(vm.resultError)
-        XCTAssertFalse(vm.isTableBrowse)              // arbitrary query → read-only
+        XCTAssertFalse(vm.isTableBrowse) // arbitrary query → read-only
     }
 
     func testRunningInvalidSQLSurfacesError() async {
@@ -174,8 +190,12 @@ final class DatabaseViewModelTests: XCTestCase {
 
     func testReselectingConnectionResetsSchemaCatalog() async {
         let driver = StubDriver(tag: "a")
-        driver.columnsResult = [ColumnInfo(name: "id", dataType: "int",
-                                           isNullable: false, isPrimaryKey: true)]
+        driver.columnsResult = [ColumnInfo(
+            name: "id",
+            dataType: "int",
+            isNullable: false,
+            isPrimaryKey: true
+        )]
         let vm = makeVM(driver)
         await vm.select(profile: .managedMySQL)
         await vm.select(database: "db_a")
@@ -188,17 +208,25 @@ final class DatabaseViewModelTests: XCTestCase {
     func testUnsupportedEngineFailsCleanly() async {
         // Factory returns nil for a non-MySQL kind → an explicit connection failure, not a crash.
         let vm = DatabaseViewModel(makeDriver: { _, _ in nil }, passwordFor: { _ in nil })
-        let pg = ConnectionProfile(name: "pg", kind: .postgres, host: "h", port: 5432,
-                                   user: "u", database: "d")
+        let pg = ConnectionProfile(
+            name: "pg",
+            kind: .postgres,
+            host: "h",
+            port: 5432,
+            user: "u",
+            database: "d"
+        )
         await vm.select(profile: pg)
         if case .failed = vm.connection {} else { XCTFail("expected failed connection") }
         XCTAssertFalse(vm.isBusy)
     }
 
-    // MARK: - Row CRUD
-
-    private let pkColumn = ColumnInfo(name: "id", dataType: "int",
-                                      isNullable: false, isPrimaryKey: true)
+    private let pkColumn = ColumnInfo(
+        name: "id",
+        dataType: "int",
+        isNullable: false,
+        isPrimaryKey: true
+    )
 
     /// Connect, open a database, and browse a table whose columns are `cols`.
     private func browseTable(_ driver: StubDriver, columns cols: [ColumnInfo]) async -> DatabaseViewModel {
@@ -215,8 +243,10 @@ final class DatabaseViewModelTests: XCTestCase {
         XCTAssertTrue(withPK.canEditRows)
         XCTAssertNil(withPK.editDisabledReason)
 
-        let noPK = await browseTable(StubDriver(tag: "b"),
-            columns: [ColumnInfo(name: "x", dataType: "int", isNullable: true, isPrimaryKey: false)])
+        let noPK = await browseTable(
+            StubDriver(tag: "b"),
+            columns: [ColumnInfo(name: "x", dataType: "int", isNullable: true, isPrimaryKey: false)]
+        )
         XCTAssertFalse(noPK.canEditRows)
         XCTAssertNotNil(noPK.editDisabledReason)
     }
@@ -235,7 +265,7 @@ final class DatabaseViewModelTests: XCTestCase {
         let before = driver.paginateCalls.count
         await vm.insertRow([ColumnValue(column: "id", value: .int(9))])
         XCTAssertEqual(driver.insertCalls.count, 1)
-        XCTAssertEqual(driver.paginateCalls.count, before + 1)   // page reloaded after the write
+        XCTAssertEqual(driver.paginateCalls.count, before + 1) // page reloaded after the write
     }
 
     func testUpdateRowBuildsKeyFromPrimaryKey() async {
@@ -267,12 +297,12 @@ final class DatabaseViewModelTests: XCTestCase {
         let driver = StubDriver(tag: "a")
         let vm = makeVM(driver)
         await vm.select(profile: .managedMySQL)
-        await vm.runSQL("DELETE FROM t")             // keyless → held, not run
+        await vm.runSQL("DELETE FROM t") // keyless → held, not run
         XCTAssertEqual(vm.pendingDangerousSQL, "DELETE FROM t")
         XCTAssertNil(vm.result)
 
         await vm.runSQL("DELETE FROM t", confirmed: true)
-        XCTAssertNil(vm.pendingDangerousSQL)         // cleared once confirmed
+        XCTAssertNil(vm.pendingDangerousSQL) // cleared once confirmed
         XCTAssertNotNil(vm.result)
     }
 
@@ -331,31 +361,43 @@ final class DatabaseViewModelTests: XCTestCase {
         XCTAssertNil(vm.ddlError)
     }
 
-    // MARK: - Read-only gates write/DDL/import paths
-
     func testReadOnlyConnectionRefusesDDL() async {
         let driver = StubDriver(tag: "a")
         let vm = makeVM(driver)
-        let ro = ConnectionProfile(name: "ro", kind: .mysql, host: "db.example.com", port: 3306,
-                                   user: "u", database: "d", readOnly: true)
+        let ro = ConnectionProfile(
+            name: "ro",
+            kind: .mysql,
+            host: "db.example.com",
+            port: 3306,
+            user: "u",
+            database: "d",
+            readOnly: true
+        )
         await vm.select(profile: ro)
         await vm.select(database: "db_a")
         await vm.select(table: TableInfo(name: "users"))
         vm.prepareDropTable()
-        XCTAssertNotNil(vm.pendingDDL)        // staging is allowed (composition is pure)
+        XCTAssertNotNil(vm.pendingDDL) // staging is allowed (composition is pure)
         await vm.confirmDDL()
-        XCTAssertEqual(vm.ddlError, "This connection is read-only.")   // running is refused
+        XCTAssertEqual(vm.ddlError, "This connection is read-only.") // running is refused
     }
 
     func testReadOnlyConnectionRefusesImport() async {
         let driver = StubDriver(tag: "a")
         let vm = makeVM(driver)
-        let ro = ConnectionProfile(name: "ro", kind: .mysql, host: "db.example.com", port: 3306,
-                                   user: "u", database: "d", readOnly: true)
+        let ro = ConnectionProfile(
+            name: "ro",
+            kind: .mysql,
+            host: "db.example.com",
+            port: 3306,
+            user: "u",
+            database: "d",
+            readOnly: true
+        )
         await vm.select(profile: ro)
         let dummy = FileManager.default.temporaryDirectory.appendingPathComponent("x.sql")
         await vm.importDatabase(into: "target", from: dummy)
-        if case .failed(let message) = vm.dumpStatus {
+        if case let .failed(message) = vm.dumpStatus {
             XCTAssertTrue(message.contains("read-only"))
         } else {
             XCTFail("expected a read-only failure status")
@@ -365,12 +407,19 @@ final class DatabaseViewModelTests: XCTestCase {
     func testReadOnlyConnectionRefusesCreateDatabase() async {
         let driver = StubDriver(tag: "a")
         let vm = makeVM(driver)
-        let ro = ConnectionProfile(name: "ro", kind: .mysql, host: "db.example.com", port: 3306,
-                                   user: "u", database: "d", readOnly: true)
+        let ro = ConnectionProfile(
+            name: "ro",
+            kind: .mysql,
+            host: "db.example.com",
+            port: 3306,
+            user: "u",
+            database: "d",
+            readOnly: true
+        )
         await vm.select(profile: ro)
         let created = await vm.createDatabase(named: "target")
         XCTAssertFalse(created)
-        if case .failed(let message) = vm.dumpStatus {
+        if case let .failed(message) = vm.dumpStatus {
             XCTAssertTrue(message.contains("read-only"))
         } else {
             XCTFail("expected a read-only failure status")
@@ -391,7 +440,7 @@ final class DatabaseViewModelTests: XCTestCase {
         await vm.select(profile: .managedMySQL)
         await first
 
-        XCTAssertEqual(vm.databases.map(\.name), ["db_fast"])   // fast won; slow discarded
+        XCTAssertEqual(vm.databases.map(\.name), ["db_fast"]) // fast won; slow discarded
         XCTAssertEqual(vm.connection, .connected)
     }
 }

@@ -12,7 +12,8 @@ final class WordPressArgumentValidatorTests: XCTestCase {
         for hostile in ["--require=/staging/evil.php", "-require=x", "--ssh=evil", "--path=/etc"] {
             XCTAssertThrowsError(try WordPressArgumentValidator.validateURL(hostile)) { error in
                 guard let argError = error as? WordPressArgumentError,
-                      case .invalidURL = argError else {
+                      case .invalidURL = argError
+                else {
                     return XCTFail("expected invalidURL for \(hostile), got \(error)")
                 }
             }

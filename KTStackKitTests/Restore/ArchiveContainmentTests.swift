@@ -24,7 +24,8 @@ final class ArchiveContainmentTests: XCTestCase {
         try FileManager.default.createSymbolicLink(at: link, withDestinationURL: URL(fileURLWithPath: "/etc/hosts"))
         XCTAssertThrowsError(try RestoreContainment.assertNoSymlinksOrEscapes(in: base)) { error in
             guard let restoreError = error as? RestoreArchiveError,
-                  case .symlinkRejected = restoreError else {
+                  case .symlinkRejected = restoreError
+            else {
                 return XCTFail("expected symlinkRejected, got \(error)")
             }
         }

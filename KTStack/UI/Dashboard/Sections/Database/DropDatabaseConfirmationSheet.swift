@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct DropDatabaseConfirmationSheet: View {
     @EnvironmentObject private var vm: DatabaseViewModel
@@ -10,8 +10,13 @@ struct DropDatabaseConfirmationSheet: View {
     @State private var typedName = ""
     @State private var submitting = false
 
-    private var databaseName: String { database.name }
-    private var canRun: Bool { typedName == databaseName && !submitting && !vm.isBusy }
+    private var databaseName: String {
+        database.name
+    }
+
+    private var canRun: Bool {
+        typedName == databaseName && !submitting && !vm.isBusy
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -76,7 +81,7 @@ struct DropDatabaseConfirmationSheet: View {
     }
 
     private func cancel() {
-        guard !submitting && !vm.isBusy else { return }
+        guard !submitting, !vm.isBusy else { return }
         vm.cancelDDL()
         vm.clearDDLError()
         dismiss()

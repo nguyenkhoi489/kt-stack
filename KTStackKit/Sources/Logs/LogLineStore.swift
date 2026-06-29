@@ -16,7 +16,7 @@ public final class LogLineStore: @unchecked Sendable {
     private var lines: [LogLine] = []
     private var nextID = 0
 
-    public init(capacity: Int = 5_000) {
+    public init(capacity: Int = 5000) {
         self.capacity = capacity
         lines.reserveCapacity(capacity)
     }
@@ -51,7 +51,8 @@ public final class LogLineStore: @unchecked Sendable {
     static func severity(of line: String) -> LogSeverity {
         let l = line.lowercased()
         if l.contains("[error]") || l.contains("[emerg]") || l.contains("[crit]") || l.contains("[alert]")
-            || l.contains("fatal") || l.contains("error:") || l.contains(" error ") || l.contains("[error:") {
+            || l.contains("fatal") || l.contains("error:") || l.contains(" error ") || l.contains("[error:")
+        {
             return .error
         }
         if l.contains("[warn]") || l.contains("warning") || l.contains("[notice]") && l.contains("fail") {

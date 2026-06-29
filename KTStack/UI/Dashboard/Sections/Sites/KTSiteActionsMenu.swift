@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct KTSiteActionsMenu: View {
     let site: Site
@@ -33,9 +33,6 @@ struct KTSiteActionsMenu: View {
                     row("Open Terminal Here", "terminal", "⌥⌘T") { KTSiteActions.openTerminal(site) }
                     sectionLabel("Develop")
                     row("Logs", "text.alignleft", "⌘L", action: onOpenLogs)
-                    if site.type == .node {
-                        row("Node Logs", "shippingbox", "") { KTSiteActions.openNodeLog(site) }
-                    }
                     row("API Tester", "network", "") { overlay.apiTesterSite = site }
                     if site.type == .php {
                         row("Configure VS Code Debug", "curlybraces", "") {
@@ -59,8 +56,11 @@ struct KTSiteActionsMenu: View {
     private var header: some View {
         HStack(spacing: 10) {
             KTIconTile(tint: KTSiteVisuals.tint(for: site.type), size: 32) {
-                KTSiteGlyph(kind: KTSiteVisuals.kind(for: site.type), size: 16,
-                            color: KTSiteVisuals.tint(for: site.type).fg)
+                KTSiteGlyph(
+                    kind: KTSiteVisuals.kind(for: site.type),
+                    size: 16,
+                    color: KTSiteVisuals.tint(for: site.type).fg
+                )
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(site.name).font(KTType.label).foregroundStyle(KTColor.ink).lineLimit(1)
@@ -74,8 +74,8 @@ struct KTSiteActionsMenu: View {
 
     private var runtimeLabel: String {
         switch site.type {
-        case .php:  return "PHP \(site.phpVersion)"
-        case .node, .staticSite: return site.type.label
+        case .php: "PHP \(site.phpVersion)"
+        case .node, .staticSite: site.type.label
         }
     }
 
@@ -91,9 +91,14 @@ struct KTSiteActionsMenu: View {
         Rectangle().fill(KTColor.sep).frame(height: 0.5).padding(.horizontal, 8).padding(.vertical, 4)
     }
 
-    private func row(_ title: String, _ symbol: String, _ shortcut: String,
-                     enabled: Bool = true, danger: Bool = false,
-                     action: @escaping () -> Void) -> some View {
+    private func row(
+        _ title: String,
+        _ symbol: String,
+        _ shortcut: String,
+        enabled: Bool = true,
+        danger: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
         KTActionRow(title: title, symbol: symbol, shortcut: shortcut, enabled: enabled, danger: danger) {
             open = false
             action()
@@ -128,8 +133,10 @@ private struct KTActionRow: View {
             }
             .padding(.horizontal, 10).padding(.vertical, 7)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 7, style: .continuous)
-                .fill(hovering && enabled ? (danger ? KTColor.dangerBg : KTColor.accentSoft) : Color.clear))
+            .background(
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(hovering && enabled ? (danger ? KTColor.dangerBg : KTColor.accentSoft) : Color.clear)
+            )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

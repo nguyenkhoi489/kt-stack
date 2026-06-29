@@ -4,7 +4,9 @@ public struct LocalSiteSource: ExternalSiteSource {
     public let tool = "Local"
     private let home: URL
 
-    public init(home: URL = FileManager.default.homeDirectoryForCurrentUser) { self.home = home }
+    public init(home: URL = FileManager.default.homeDirectoryForCurrentUser) {
+        self.home = home
+    }
 
     private var candidateFiles: [URL] {
         ["Local", "Local by Flywheel"].map {
@@ -29,8 +31,13 @@ public struct LocalSiteSource: ExternalSiteSource {
         let name = (dict["name"] as? String) ?? URL(fileURLWithPath: path).lastPathComponent
         let domain = (dict["domain"] as? String) ?? "\(SiteInspector.slug(name)).local"
         let php = phpVersion(from: dict)
-        return DiscoveredSite(tool: tool, name: name, path: URL(fileURLWithPath: path),
-                              domain: domain, phpVersion: php)
+        return DiscoveredSite(
+            tool: tool,
+            name: name,
+            path: URL(fileURLWithPath: path),
+            domain: domain,
+            phpVersion: php
+        )
     }
 
     private func phpVersion(from dict: [String: Any]) -> String? {

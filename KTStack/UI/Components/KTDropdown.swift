@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct KTDropdownOption: Identifiable {
     let id = UUID()
@@ -10,7 +10,7 @@ struct KTDropdownOption: Identifiable {
 
 struct KTDropdown<Label: View>: View {
     var width: CGFloat = 170
-    var maxHeight: CGFloat? = nil
+    var maxHeight: CGFloat?
     var compact: Bool = false
     let options: [KTDropdownOption]
     @ViewBuilder var label: () -> Label
@@ -62,8 +62,10 @@ private struct KTDropdownRow: View {
             }
             .padding(.horizontal, compact ? 8 : 10).padding(.vertical, compact ? 4 : 7)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 7, style: .continuous)
-                .fill(hovering ? KTColor.accentSoft : Color.clear))
+            .background(
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(hovering ? KTColor.accentSoft : Color.clear)
+            )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

@@ -2,7 +2,6 @@ import XCTest
 @testable import KTStackKit
 
 final class BackupLibraryTests: XCTestCase {
-
     private var paths: AppSupportPaths!
     private var library: BackupLibrary!
     private var root: URL!
@@ -25,7 +24,8 @@ final class BackupLibraryTests: XCTestCase {
         let provider = StubBackupProvider()
         let set = try await library.create(
             kind: .mysql, profile: .managedMySQL, databases: ["app", "logs"],
-            using: provider, password: nil, engineVersion: "9.6.0")
+            using: provider, password: nil, engineVersion: "9.6.0"
+        )
         XCTAssertEqual(library.list().count, 1)
         XCTAssertEqual(library.list().first?.id, set.id)
         XCTAssertEqual(library.list().first?.databases, ["app", "logs"])
@@ -39,10 +39,20 @@ final class BackupLibraryTests: XCTestCase {
     /// F11: manifest corruption must not hide on-disk sets. Rebuild from each set dir's meta.json.
     func testCorruptManifestRebuildsFromOnDiskMeta() async throws {
         let provider = StubBackupProvider()
-        let setA = try await library.create(kind: .mysql, profile: .managedMySQL,
-                                             databases: ["a"], using: provider, password: nil)
-        let setB = try await library.create(kind: .mysql, profile: .managedMySQL,
-                                             databases: ["b"], using: provider, password: nil)
+        let setA = try await library.create(
+            kind: .mysql,
+            profile: .managedMySQL,
+            databases: ["a"],
+            using: provider,
+            password: nil
+        )
+        let setB = try await library.create(
+            kind: .mysql,
+            profile: .managedMySQL,
+            databases: ["b"],
+            using: provider,
+            password: nil
+        )
         try Data("not-json".utf8).write(to: paths.backupManifest)
 
         let rebuilt = library.list()
@@ -57,8 +67,13 @@ final class BackupLibraryTests: XCTestCase {
     /// F11: a manifest entry whose set dir has been hand-deleted should be pruned, not surfaced.
     func testListPrunesEntriesWithMissingSetDirectory() async throws {
         let provider = StubBackupProvider()
-        let set = try await library.create(kind: .mysql, profile: .managedMySQL,
-                                            databases: ["a"], using: provider, password: nil)
+        let set = try await library.create(
+            kind: .mysql,
+            profile: .managedMySQL,
+            databases: ["a"],
+            using: provider,
+            password: nil
+        )
         try FileManager.default.removeItem(at: paths.backupSetDir(set.id))
 
         XCTAssertTrue(library.list().isEmpty)
@@ -66,8 +81,13 @@ final class BackupLibraryTests: XCTestCase {
 
     func testExportThenImportReproducesSet() async throws {
         let provider = StubBackupProvider()
-        let original = try await library.create(kind: .mysql, profile: .managedMySQL,
-                                                 databases: ["app"], using: provider, password: nil)
+        let original = try await library.create(
+            kind: .mysql,
+            profile: .managedMySQL,
+            databases: ["app"],
+            using: provider,
+            password: nil
+        )
         let exportURL = root.appendingPathComponent("exported")
         try library.export(original, to: exportURL)
         try library.delete(original)
@@ -83,8 +103,13 @@ final class BackupLibraryTests: XCTestCase {
     /// Single-file portable archive: export to `.ktbackup` → import the file (not a folder).
     func testExportAsKtbackupArchiveAndImportFile() async throws {
         let provider = StubBackupProvider()
-        let original = try await library.create(kind: .mysql, profile: .managedMySQL,
-                                                 databases: ["app", "blog"], using: provider, password: nil)
+        let original = try await library.create(
+            kind: .mysql,
+            profile: .managedMySQL,
+            databases: ["app", "blog"],
+            using: provider,
+            password: nil
+        )
         let exportURL = root.appendingPathComponent("export.ktbackup")
         try library.export(original, to: exportURL)
         XCTAssertTrue(FileManager.default.fileExists(atPath: exportURL.path))
@@ -99,32 +124,35 @@ final class BackupLibraryTests: XCTestCase {
         XCTAssertEqual(try String(contentsOf: importedAppFile), "app")
     }
 
-    // MARK: - F8: filesystem path safety
-
     func testSafeArtifactURLRejectsDotDot() {
         let setDir = root.appendingPathComponent("set")
         XCTAssertThrowsError(try BackupLibrary.safeArtifactURL(
-            database: "..", fileExtension: "sql", in: setDir))
+            database: "..", fileExtension: "sql", in: setDir
+        ))
     }
 
     func testSafeArtifactURLRejectsDot() {
         let setDir = root.appendingPathComponent("set")
         XCTAssertThrowsError(try BackupLibrary.safeArtifactURL(
-            database: ".", fileExtension: "sql", in: setDir))
+            database: ".", fileExtension: "sql", in: setDir
+        ))
     }
 
     func testSafeArtifactURLRejectsPathSeparator() {
         let setDir = root.appendingPathComponent("set")
         XCTAssertThrowsError(try BackupLibrary.safeArtifactURL(
-            database: "a/b", fileExtension: "sql", in: setDir))
+            database: "a/b", fileExtension: "sql", in: setDir
+        ))
     }
 
     func testSafeArtifactURLAcceptsNormalName() throws {
         let setDir = root.appendingPathComponent("set")
         let url = try BackupLibrary.safeArtifactURL(database: "app", fileExtension: "sql", in: setDir)
         XCTAssertEqual(url.lastPathComponent, "app.sql")
-        XCTAssertEqual(url.deletingLastPathComponent().standardizedFileURL.path,
-                       setDir.standardizedFileURL.path)
+        XCTAssertEqual(
+            url.deletingLastPathComponent().standardizedFileURL.path,
+            setDir.standardizedFileURL.path
+        )
     }
 
     func testSafeArtifactURLHandlesEmptyExtensionForDirectoryArtifacts() throws {

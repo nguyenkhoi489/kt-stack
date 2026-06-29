@@ -12,7 +12,7 @@ final class IDEDebugConfigWriterLaunchJSONTests: XCTestCase {
             "/Users/x/Sites/emoji-🚀/public",
             "/Users/x/Sites/line\nbreak/public",
             "/Users/x/Sites/tab\tchar/public",
-            "/Users/x/Sites/back\\slash/public"
+            "/Users/x/Sites/back\\slash/public",
         ]
         for docroot in docroots {
             let json = IDEDebugConfigWriter.launchJSON(docroot: docroot)
@@ -24,8 +24,11 @@ final class IDEDebugConfigWriterLaunchJSONTests: XCTestCase {
 
             let config = try XCTUnwrap((parsed["configurations"] as? [[String: Any]])?.first)
             let mappings = try XCTUnwrap(config["pathMappings"] as? [String: String])
-            XCTAssertEqual(mappings[docroot], "${workspaceFolder}",
-                           "missing mapping for \(docroot.debugDescription)")
+            XCTAssertEqual(
+                mappings[docroot],
+                "${workspaceFolder}",
+                "missing mapping for \(docroot.debugDescription)"
+            )
         }
     }
 

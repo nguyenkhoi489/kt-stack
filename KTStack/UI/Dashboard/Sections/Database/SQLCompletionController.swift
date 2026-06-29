@@ -2,7 +2,6 @@ import AppKit
 import KTStackKit
 
 final class SQLCompletionController: NSObject, NSTableViewDataSource, NSTableViewDelegate {
-
     private weak var textView: NSTextView?
     private var items: [SQLCompletionItem] = []
     private var partial: String = ""
@@ -12,14 +11,19 @@ final class SQLCompletionController: NSObject, NSTableViewDataSource, NSTableVie
     private let maxVisibleRows = 9
     private let panelWidth: CGFloat = 280
 
-    var isVisible: Bool { panel.isVisible }
+    var isVisible: Bool {
+        panel.isVisible
+    }
 
     init(textView: NSTextView) {
         self.textView = textView
         tableView = NSTableView()
-        panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 280, height: 100),
-                        styleMask: [.borderless, .nonactivatingPanel],
-                        backing: .buffered, defer: true)
+        panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 280, height: 100),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: true
+        )
         super.init()
         configure()
     }
@@ -92,8 +96,13 @@ final class SQLCompletionController: NSObject, NSTableViewDataSource, NSTableVie
         items = []
     }
 
-    func moveDown() { selectRow(min(tableView.selectedRow + 1, items.count - 1)) }
-    func moveUp() { selectRow(max(tableView.selectedRow - 1, 0)) }
+    func moveDown() {
+        selectRow(min(tableView.selectedRow + 1, items.count - 1))
+    }
+
+    func moveUp() {
+        selectRow(max(tableView.selectedRow - 1, 0))
+    }
 
     private func selectRow(_ index: Int) {
         guard index >= 0, index < items.count else { return }
@@ -101,7 +110,10 @@ final class SQLCompletionController: NSObject, NSTableViewDataSource, NSTableVie
         tableView.scrollRowToVisible(index)
     }
 
-    @objc private func handleClick() { acceptSelected() }
+    @objc
+    private func handleClick() {
+        acceptSelected()
+    }
 
     func acceptSelected() {
         let index = tableView.selectedRow
@@ -119,7 +131,9 @@ final class SQLCompletionController: NSObject, NSTableViewDataSource, NSTableVie
         let caret = textView.selectedRange().location
         let string = textView.string as NSString
         var start = caret
-        while start > 0, isIdentifier(string.character(at: start - 1)) { start -= 1 }
+        while start > 0, isIdentifier(string.character(at: start - 1)) {
+            start -= 1
+        }
         return NSRange(location: start, length: caret - start)
     }
 
@@ -130,17 +144,21 @@ final class SQLCompletionController: NSObject, NSTableViewDataSource, NSTableVie
 
     private func position(relativeTo textView: NSTextView) {
         let caret = textView.selectedRange().location
-        let caretRect = textView.firstRect(forCharacterRange: NSRange(location: caret, length: 0),
-                                           actualRange: nil)
+        let caretRect = textView.firstRect(
+            forCharacterRange: NSRange(location: caret, length: 0),
+            actualRange: nil
+        )
         let rows = min(items.count, maxVisibleRows)
         let height = CGFloat(rows) * rowHeight + 8
         let origin = NSPoint(x: caretRect.minX, y: caretRect.minY - height - 4)
         panel.setFrame(NSRect(x: origin.x, y: origin.y, width: panelWidth, height: height), display: true)
     }
 
-    func numberOfRows(in tableView: NSTableView) -> Int { items.count }
+    func numberOfRows(in _: NSTableView) -> Int {
+        items.count
+    }
 
-    func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
+    func tableView(_ tableView: NSTableView, viewFor _: NSTableColumn?, row: Int) -> NSView? {
         let identifier = NSUserInterfaceItemIdentifier("cell")
         let field = (tableView.makeView(withIdentifier: identifier, owner: self) as? NSTextField)
             ?? makeCell(identifier)

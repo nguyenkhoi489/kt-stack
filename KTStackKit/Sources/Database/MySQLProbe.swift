@@ -12,11 +12,13 @@ public struct QueryResultSet: Sendable, Equatable {
         self.rows = rows
     }
 
-    public var rowCount: Int { rows.count }
+    public var rowCount: Int {
+        rows.count
+    }
 
     public init(columns: [String], textRows: [MySQLRow]) {
         self.columns = columns
-        self.rows = textRows.map { Self.textCells($0.values) }
+        rows = textRows.map { Self.textCells($0.values) }
     }
 
     public static func textCells(_ values: [ByteBuffer?]) -> [String?] {
@@ -28,7 +30,6 @@ public struct QueryResultSet: Sendable, Equatable {
 }
 
 public enum MySQLProbe {
-
     public static var loopbackTLS: TLSConfiguration {
         var config = TLSConfiguration.makeClientConfiguration()
         config.certificateVerification = .none
@@ -68,7 +69,6 @@ public enum MySQLProbe {
         do {
             try await connection.send(command, logger: connection.logger).get()
         } catch {
-           
             try? await connection.close().get()
             throw error
         }

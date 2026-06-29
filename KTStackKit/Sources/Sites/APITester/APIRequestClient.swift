@@ -33,8 +33,13 @@ public struct APIResponseResult: Sendable {
 public struct APIRequestClient: Sendable {
     public struct RequestError: LocalizedError {
         public let message: String
-        public init(message: String) { self.message = message }
-        public var errorDescription: String? { message }
+        public init(message: String) {
+            self.message = message
+        }
+
+        public var errorDescription: String? {
+            message
+        }
     }
 
     private let session: URLSession
@@ -44,7 +49,7 @@ public struct APIRequestClient: Sendable {
         cfg.timeoutIntervalForRequest = timeout
         cfg.timeoutIntervalForResource = timeout
         cfg.requestCachePolicy = .reloadIgnoringLocalAndRemoteCacheData
-        self.session = URLSession(configuration: cfg)
+        session = URLSession(configuration: cfg)
     }
 
     public func send(_ spec: APIRequestSpec) async throws -> APIResponseResult {
@@ -62,11 +67,13 @@ public struct APIRequestClient: Sendable {
             guard let http = response as? HTTPURLResponse else {
                 throw RequestError(message: "The server returned a non-HTTP response.")
             }
-            return APIResponseResult(statusCode: http.statusCode,
-                                     headers: Self.headerPairs(http),
-                                     body: data,
-                                     elapsedMs: elapsed,
-                                     contentType: http.value(forHTTPHeaderField: "Content-Type"))
+            return APIResponseResult(
+                statusCode: http.statusCode,
+                headers: Self.headerPairs(http),
+                body: data,
+                elapsedMs: elapsed,
+                contentType: http.value(forHTTPHeaderField: "Content-Type")
+            )
         } catch let error as URLError {
             throw RequestError(message: Self.message(for: error))
         }
@@ -84,15 +91,15 @@ public struct APIRequestClient: Sendable {
     private static func message(for error: URLError) -> String {
         switch error.code {
         case .timedOut:
-            return "Request timed out. Increase the timeout or check the site is responding."
+            "Request timed out. Increase the timeout or check the site is responding."
         case .cannotConnectToHost, .cannotFindHost, .networkConnectionLost:
-            return "Could not reach the site. Check that the service is running."
+            "Could not reach the site. Check that the service is running."
         case .secureConnectionFailed, .serverCertificateUntrusted,
              .serverCertificateHasBadDate, .serverCertificateHasUnknownRoot,
              .serverCertificateNotYetValid:
-            return "TLS handshake failed. Ensure the local CA is trusted for this site."
+            "TLS handshake failed. Ensure the local CA is trusted for this site."
         default:
-            return error.localizedDescription
+            error.localizedDescription
         }
     }
 }

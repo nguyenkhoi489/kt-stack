@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 @MainActor
 final class DashboardNavigation: ObservableObject {

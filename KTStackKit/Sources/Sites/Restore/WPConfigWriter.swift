@@ -4,19 +4,31 @@ public struct WPConfigWriter: Sendable {
     private let cli: WordPressCLI
 
     public init(php: URL, phpIni: URL?, wpCliPhar: URL) {
-        self.cli = WordPressCLI(php: php, phpIni: phpIni, wpCliPhar: wpCliPhar)
+        cli = WordPressCLI(php: php, phpIni: phpIni, wpCliPhar: wpCliPhar)
     }
 
-    public func write(into docroot: URL, database: String, tablePrefix: String,
-                      emit: @Sendable (String) -> Void) throws {
+    public func write(
+        into docroot: URL,
+        database: String,
+        tablePrefix: String,
+        emit: @Sendable (String) -> Void
+    ) throws {
         let prefix = try WordPressArgumentValidator.validateTablePrefix(tablePrefix)
         let name = try WordPressArgumentValidator.validateDatabaseName(database)
 
         emit("Writing wp-config.php…")
-        let configArgs = ["config", "create", cli.pathArgument(docroot),
-                          "--dbname=\(name)", "--dbuser=root", "--dbpass=",
-                          "--dbhost=127.0.0.1", "--dbprefix=\(prefix)",
-                          "--skip-check", "--force"] + WordPressCLI.skipFlags
+        let configArgs = [
+            "config",
+            "create",
+            cli.pathArgument(docroot),
+            "--dbname=\(name)",
+            "--dbuser=root",
+            "--dbpass=",
+            "--dbhost=127.0.0.1",
+            "--dbprefix=\(prefix)",
+            "--skip-check",
+            "--force",
+        ] + WordPressCLI.skipFlags
         do {
             _ = try cli.run(configArgs, in: docroot)
         } catch {
@@ -24,13 +36,28 @@ public struct WPConfigWriter: Sendable {
             return
         }
         _ = try? cli.run(["config", "shuffle-salts", cli.pathArgument(docroot)] + WordPressCLI.skipFlags, in: docroot)
-        _ = try? cli.run(["config", "set", "DISABLE_WP_CRON", "true", "--raw", "--type=constant",
-                          cli.pathArgument(docroot)] + WordPressCLI.skipFlags, in: docroot)
+        _ = try? cli.run([
+            "config",
+            "set",
+            "DISABLE_WP_CRON",
+            "true",
+            "--raw",
+            "--type=constant",
+            cli.pathArgument(docroot),
+        ] + WordPressCLI.skipFlags, in: docroot)
     }
 
     private func writeTemplate(into docroot: URL, database: String, prefix: String) throws {
-        let keys = ["AUTH_KEY", "SECURE_AUTH_KEY", "LOGGED_IN_KEY", "NONCE_KEY",
-                    "AUTH_SALT", "SECURE_AUTH_SALT", "LOGGED_IN_SALT", "NONCE_SALT"]
+        let keys = [
+            "AUTH_KEY",
+            "SECURE_AUTH_KEY",
+            "LOGGED_IN_KEY",
+            "NONCE_KEY",
+            "AUTH_SALT",
+            "SECURE_AUTH_SALT",
+            "LOGGED_IN_SALT",
+            "NONCE_SALT",
+        ]
         let saltLines = keys.map { "define('\($0)', '\(randomSalt())');" }.joined(separator: "\n")
         let config = """
         <?php

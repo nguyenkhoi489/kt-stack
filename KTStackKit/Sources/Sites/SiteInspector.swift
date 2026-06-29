@@ -1,6 +1,5 @@
 import Foundation
 
-
 public struct SiteInspector {
     public struct Result: Equatable, Sendable {
         public let docroot: URL
@@ -36,7 +35,8 @@ public struct SiteInspector {
         }
         if has("artisan", in: folder)
             || containsPHPFile(in: docroot, fileManager: fileManager)
-            || containsPHPFile(in: folder, fileManager: fileManager) {
+            || containsPHPFile(in: folder, fileManager: fileManager)
+        {
             return .php
         }
         if has("package.json", in: folder) {
@@ -45,13 +45,13 @@ public struct SiteInspector {
         return .staticSite
     }
 
-    public func suggestedNodeCommand(at folder: URL, fileManager: FileManager = .default) -> String? {
+    public func suggestedNodeCommand(at folder: URL) -> String? {
         let packageJSON = folder.appendingPathComponent("package.json")
         guard let data = try? Data(contentsOf: packageJSON),
               let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let scripts = root["scripts"] as? [String: Any] else { return nil }
-        if scripts["start"] != nil { return "npm run start" }
         if scripts["dev"] != nil { return "npm run dev" }
+        if scripts["start"] != nil { return "npm start" }
         return nil
     }
 

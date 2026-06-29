@@ -1,6 +1,6 @@
-import SwiftUI
 import AppKit
 import KTStackKit
+import SwiftUI
 
 struct KTSidebar: View {
     @Binding var selection: SidebarItem
@@ -59,7 +59,8 @@ struct KTSidebar: View {
                     item: item,
                     isActive: selection == item,
                     badge: item == .sites ? siteCount : nil,
-                    action: { selection = item })
+                    action: { selection = item }
+                )
             }
         }
     }

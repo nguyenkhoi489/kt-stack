@@ -4,7 +4,7 @@ public struct WordPressSearchReplaceRunner: Sendable {
     private let cli: WordPressCLI
 
     public init(php: URL, phpIni: URL?, wpCliPhar: URL) {
-        self.cli = WordPressCLI(php: php, phpIni: phpIni, wpCliPhar: wpCliPhar)
+        cli = WordPressCLI(php: php, phpIni: phpIni, wpCliPhar: wpCliPhar)
     }
 
     public func currentSiteURL(docroot: URL) -> String? {
@@ -13,8 +13,12 @@ public struct WordPressSearchReplaceRunner: Sendable {
         return (trimmed?.isEmpty == false) ? trimmed : nil
     }
 
-    public func run(docroot: URL, oldURL: String, newURL: String,
-                    emit: @Sendable (String) -> Void) async throws {
+    public func run(
+        docroot: URL,
+        oldURL: String,
+        newURL: String,
+        emit: @Sendable (String) -> Void
+    ) async throws {
         let newValue = try WordPressArgumentValidator.validateURL(newURL)
         let oldValue = try WordPressArgumentValidator.validateURL(oldURL)
         let path = cli.pathArgument(docroot)
@@ -22,8 +26,11 @@ public struct WordPressSearchReplaceRunner: Sendable {
         for (from, to) in replacements(old: oldValue, new: newValue) where from != to {
             try Task.checkCancellation()
             emit("Rewriting \(from) → \(to)…")
-            _ = try cli.run(["search-replace", "--all-tables", "--precise", "--report-changed-only", path]
-                            + WordPressCLI.skipFlags + [from, to], in: docroot)
+            _ = try cli.run(
+                ["search-replace", "--all-tables", "--precise", "--report-changed-only", path]
+                    + WordPressCLI.skipFlags + [from, to],
+                in: docroot
+            )
         }
 
         emit("Setting site address…")

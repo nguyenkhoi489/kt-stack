@@ -1,5 +1,5 @@
-import Foundation
 import Combine
+import Foundation
 
 @MainActor
 public final class LocalServerController: ObservableObject {
@@ -11,60 +11,64 @@ public final class LocalServerController: ObservableObject {
     public let httpPort = 80
     public let registry: SiteRegistry
     public var onSitesChanged: (([Site]) -> Void)?
-   
-    nonisolated private let tld: String
 
-    nonisolated private let paths: AppSupportPaths
-    nonisolated private let agents: LaunchAgentManager
-    nonisolated private let nginx: NginxController
-    nonisolated private let pools: PHPFPMPoolManager
-    nonisolated private let nodeSites: NodeSiteController
-    nonisolated private let generator: SiteConfigGenerator
-    nonisolated private let stager: BinaryStager
-    nonisolated private let preflight = PortPreflight()
-    nonisolated private let watcher = RegisteredSiteWatcher()
-    nonisolated private let mkcert: MkcertRunner
-    nonisolated private let certMinter: CertMinter
-    nonisolated private let httpsProvisioner: SiteHTTPSProvisioner
+    private nonisolated let tld: String
+
+    private nonisolated let paths: AppSupportPaths
+    private nonisolated let agents: LaunchAgentManager
+    private nonisolated let nginx: NginxController
+    private nonisolated let pools: PHPFPMPoolManager
+    private nonisolated let nodeSites: NodeSiteController
+    private nonisolated let generator: SiteConfigGenerator
+    private nonisolated let stager: BinaryStager
+    private nonisolated let preflight = PortPreflight()
+    private nonisolated let watcher = RegisteredSiteWatcher()
+    private nonisolated let mkcert: MkcertRunner
+    private nonisolated let certMinter: CertMinter
+    private nonisolated let httpsProvisioner: SiteHTTPSProvisioner
     private var didSeed = false
     private var pendingReconcile = false
 
-    public init(bundleBinDir: URL, paths: AppSupportPaths = AppSupportPaths(),
-                tld: String = AppPreferences.defaultTLD) {
+    public init(
+        bundleBinDir: URL,
+        paths: AppSupportPaths = AppSupportPaths(),
+        tld: String = AppPreferences.defaultTLD
+    ) {
         self.paths = paths
         self.tld = tld
-        self.agents = LaunchAgentManager(paths: paths)
-        self.registry = SiteRegistry(
+        agents = LaunchAgentManager(paths: paths)
+        registry = SiteRegistry(
             storeURL: paths.sitesRegistryFile,
             tld: tld,
-            installedPHP: { BundledPHP.availableVersions(php: paths.phpRuntimesRoot) })
-        self.nginx = NginxController(paths: paths, agents: agents)
-        self.pools = PHPFPMPoolManager(paths: paths, agents: agents)
-        self.nodeSites = NodeSiteController(paths: paths, agents: agents)
-        self.generator = SiteConfigGenerator(paths: paths)
-        self.stager = BinaryStager(bundleBinDir: bundleBinDir, paths: paths)
-        self.mkcert = MkcertRunner(mkcert: paths.mkcertBinary, caroot: paths.caDir)
-        self.certMinter = CertMinter(paths: paths, runner: MkcertRunner(mkcert: paths.mkcertBinary, caroot: paths.caDir))
-        self.httpsProvisioner = SiteHTTPSProvisioner(paths: paths,
-                                                     tld: tld,
-                                                     mkcert: self.mkcert,
-                                                     certMinter: self.certMinter)
+            installedPHP: { BundledPHP.availableVersions(php: paths.phpRuntimesRoot) }
+        )
+        nginx = NginxController(paths: paths, agents: agents)
+        pools = PHPFPMPoolManager(paths: paths, agents: agents)
+        nodeSites = NodeSiteController()
+        generator = SiteConfigGenerator(paths: paths)
+        stager = BinaryStager(bundleBinDir: bundleBinDir, paths: paths)
+        mkcert = MkcertRunner(mkcert: paths.mkcertBinary, caroot: paths.caDir)
+        certMinter = CertMinter(paths: paths, runner: MkcertRunner(mkcert: paths.mkcertBinary, caroot: paths.caDir))
+        httpsProvisioner = SiteHTTPSProvisioner(
+            paths: paths,
+            tld: tld,
+            mkcert: mkcert,
+            certMinter: certMinter
+        )
 
         registry.onChange = { [weak self] in self?.onRegistryChanged() }
         watcher.onChange = { [weak self] folder in
             Task { @MainActor in self?.handleFolderChange(folder) }
         }
-     
+
         if nginx.isRunning { reattachOnLaunch() } else { recomputeStatus() }
     }
-
 
     public func refreshStatus() {
         guard !isBusy else { return }
         recomputeStatus()
     }
 
-   
     private func reattachOnLaunch() {
         let required = generator.poolVersions(for: registry.sites)
         _ = try? pools.reconcile(required: required)
@@ -92,22 +96,25 @@ public final class LocalServerController: ObservableObject {
         }
     }
 
-    public var isRunning: Bool { nginxStatus == .running }
+    public var isRunning: Bool {
+        nginxStatus == .running
+    }
 
     public var availableVersions: [String] {
         let v = BundledPHP.availableVersions(php: paths.phpRuntimesRoot)
         return v.isEmpty ? [BundledPHP.defaultVersion] : v
     }
 
-    public func toggle() { isRunning ? stop() : start() }
+    public func toggle() {
+        isRunning ? stop() : start()
+    }
 
-  
     public func setSiteSecure(_ site: Site, _ secure: Bool) {
         guard !isBusy else { return }
         guard secure else { registry.setSecure(site, false); return }
 
         isBusy = true; lastError = nil
-        let provisioner = self.httpsProvisioner
+        let provisioner = httpsProvisioner
         Task.detached(priority: .userInitiated) {
             var failure: String?
             do {
@@ -118,58 +125,28 @@ public final class LocalServerController: ObservableObject {
             await MainActor.run {
                 self.isBusy = false
                 if let failure { self.lastError = failure }
-                else { self.registry.setSecure(site, true) }   // → onRegistryChanged → reconcile
+                else { self.registry.setSecure(site, true) } // → onRegistryChanged → reconcile
             }
         }
     }
 
-   
-    public func toggleNode(_ site: Site) {
-        let enabling = !site.nodeEnabled
-        guard enabling, site.nodePort == nil else {
-            registry.setNodeEnabled(site, enabling, port: nil)
-            return
-        }
-        let existing = registry.sites.compactMap(\.nodePort)
-        let preflight = self.preflight
-        guard let port = NodePortAllocator().allocate(existing: existing, isFree: {
-            preflight.check(port: $0) == .available
-        }) else {
-            lastError = "No free port available for Node (3000–3999). Stop another Node site and try again."
-            return
-        }
-        registry.setNodeEnabled(site, true, port: port)
-    }
-
-    public func setNodeCommand(_ site: Site, _ command: String) {
-        registry.setNodeCommand(site, command)
-    }
-
-    public func nodeReadiness(_ site: Site) -> NodeSiteController.Readiness {
-        nodeSites.readiness(for: site)
+    public func setNodePort(_ site: Site, _ port: Int?) {
+        registry.setNodePort(site, port)
     }
 
     public func probeNode(_ site: Site) async -> NodeSiteController.State {
         await nodeSites.probe(site)
     }
 
-    public func installNodeDeps(_ site: Site) async throws {
-        let controller = nodeSites
-        try await Task.detached(priority: .userInitiated) {
-            try await controller.installDependencies(site)
-        }.value
-    }
-
     public func reloadPHPPool(version: String) async throws {
-        let pools = self.pools
+        let pools = pools
         try await Task.detached(priority: .userInitiated) {
             try pools.reload(version: version)
         }.value
     }
 
-    
     public func restartPHPPool(version: String) async throws {
-        let pools = self.pools
+        let pools = pools
         try await Task.detached(priority: .userInitiated) {
             try pools.restart(version: version)
         }.value
@@ -184,13 +161,14 @@ public final class LocalServerController: ObservableObject {
         let port = httpPort
         Task.detached(priority: .userInitiated) { [stager, self] in
             do {
-                LogRotator().rotateOversized(in: self.paths)
+                LogRotator().rotateOversized(in: paths)
+                purgeLegacyNodeAgents()
                 try stager.stageIfNeeded()
-                let missing = try await self.applyConfiguration(sites: sites, port: port, startNginx: true)
-                await self.finish(missing: missing, error: nil)
+                let missing = try await applyConfiguration(sites: sites, port: port, startNginx: true)
+                await finish(missing: missing, error: nil)
             } catch {
-                self.pools.stopAll(); self.nginx.stop()
-                await self.finish(missing: [], error: error.localizedDescription)
+                pools.stopAll(); nginx.stop()
+                await finish(missing: [], error: error.localizedDescription)
             }
         }
     }
@@ -198,10 +176,9 @@ public final class LocalServerController: ObservableObject {
     public func stop() {
         guard !isBusy else { return }
         isBusy = true; nginxStatus = .stopping; phpStatus = .stopping
-        Task.detached(priority: .userInitiated) { [nginx, pools, nodeSites, self] in
+        Task.detached(priority: .userInitiated) { [nginx, pools, self] in
             nginx.stop()
             pools.stopAll()
-            nodeSites.stopAll()
             await MainActor.run {
                 self.nginxStatus = .stopped; self.phpStatus = .stopped; self.isBusy = false
                 self.watcher.stop()
@@ -209,21 +186,32 @@ public final class LocalServerController: ObservableObject {
         }
     }
 
-    
     public func shutdownForQuit() {
         watcher.stop()
         agents.bootoutAll()
     }
 
-    // MARK: - Independent nginx / PHP-FPM lifecycle
+    private nonisolated func purgeLegacyNodeAgents() {
+        let legacyPrefix = "com.ktstack.node."
+        let labels = agents.loadedLabels(withPrefix: legacyPrefix)
+        agents.bootout(matchingPrefix: legacyPrefix)
+        for label in labels {
+            try? FileManager.default.removeItem(at: paths.launchAgentPlist(label))
+        }
+    }
 
     public var phpRunning: Bool {
         let active = pools.activeVersions
         return !active.isEmpty && active.allSatisfy { pools.isRunning(version: $0) }
     }
 
-    public func toggleNginx() { isRunning ? stopNginx() : startNginx() }
-    public func togglePHP() { phpRunning ? stopPHP() : startPHP() }
+    public func toggleNginx() {
+        isRunning ? stopNginx() : startNginx()
+    }
+
+    public func togglePHP() {
+        phpRunning ? stopPHP() : startPHP()
+    }
 
     public func startNginx() {
         guard !isBusy, !isRunning else { return }
@@ -237,7 +225,7 @@ public final class LocalServerController: ObservableObject {
                 _ = try generator.generate(sites: sites, port: port)
                 switch preflight.check(port: port) {
                 case .available: break
-                case .inUse(_, let message), .blocked(let message):
+                case let .inUse(_, message), let .blocked(message):
                     throw NSError(domain: "KTStack", code: 2, userInfo: [NSLocalizedDescriptionKey: message])
                 }
                 try nginx.start()
@@ -331,8 +319,6 @@ public final class LocalServerController: ObservableObject {
         }
     }
 
-    // MARK: - Reconcile
-
     private func onRegistryChanged() {
         onSitesChanged?(registry.sites)
         guard isRunning || phpRunning else { refreshWatches(); return }
@@ -340,8 +326,9 @@ public final class LocalServerController: ObservableObject {
         reconcile()
     }
 
-   
-    public func reconcileAfterRuntimeChange() { onRegistryChanged() }
+    public func reconcileAfterRuntimeChange() {
+        onRegistryChanged()
+    }
 
     private func reconcile() {
         isBusy = true
@@ -349,16 +336,20 @@ public final class LocalServerController: ObservableObject {
         let port = httpPort
         Task.detached(priority: .userInitiated) { [self] in
             do {
-                let missing = try await self.applyConfiguration(sites: sites, port: port, startNginx: false)
-                await self.finish(missing: missing, error: nil)
+                let missing = try await applyConfiguration(sites: sites, port: port, startNginx: false)
+                await finish(missing: missing, error: nil)
             } catch {
-                await self.finish(missing: [], error: error.localizedDescription)
+                await finish(missing: [], error: error.localizedDescription)
             }
         }
     }
 
-    private nonisolated func applyConfiguration(sites: [Site], port: Int, startNginx: Bool,
-                                                runPreflight: Bool = true) async throws -> [String] {
+    private nonisolated func applyConfiguration(
+        sites: [Site],
+        port: Int,
+        startNginx: Bool,
+        runPreflight: Bool = true
+    ) async throws -> [String] {
         let changed = try generator.generate(sites: sites, port: port)
 
         let phpUp = !pools.activeVersions.isEmpty && pools.activeVersions.allSatisfy { pools.isRunning(version: $0) }
@@ -371,13 +362,15 @@ public final class LocalServerController: ObservableObject {
         let installedPHP = Set(BundledPHP.availableVersions(php: paths.phpRuntimesRoot))
         let missing = SiteConfigGenerator.requiredVersions(for: sites)
             .subtracting(installedPHP).sorted()
-        await nodeSites.reconcile(sites: sites)
         if startNginx {
             if runPreflight {
                 switch preflight.check(port: port) {
                 case .available: break
-                case .inUse(_, let m), .blocked(let m): throw NSError(domain: "KTStack", code: 2,
-                    userInfo: [NSLocalizedDescriptionKey: m])
+                case let .inUse(_, m), let .blocked(m): throw NSError(
+                        domain: "KTStack",
+                        code: 2,
+                        userInfo: [NSLocalizedDescriptionKey: m]
+                    )
                 }
             }
             try nginx.start()
@@ -388,8 +381,6 @@ public final class LocalServerController: ObservableObject {
         return missing
     }
 
-    // MARK: - State
-
     private func finish(missing: [String], error: String?) {
         isBusy = false
         if let error { lastError = error }
@@ -397,7 +388,6 @@ public final class LocalServerController: ObservableObject {
             let pins = missing.joined(separator: ", ")
             let installed = BundledPHP.availableVersions(php: paths.phpRuntimesRoot)
             if let fallback = installed.max(by: { $0.compare($1, options: .numeric) == .orderedAscending }) {
-               
                 lastError = "PHP \(pins) not installed — those sites are running on PHP \(fallback) for now. "
                     + "Install \(pins) from Runtimes to use the pinned version."
             } else {
@@ -407,12 +397,11 @@ public final class LocalServerController: ObservableObject {
         }
         recomputeStatus()
         refreshWatches()
-        certMinter.pruneOrphans(keeping: Set(registry.sites.map(\.domain)))   // drop removed sites' leaves
+        certMinter.pruneOrphans(keeping: Set(registry.sites.map(\.domain))) // drop removed sites' leaves
         if pendingReconcile { pendingReconcile = false; reconcile() }
     }
 
     private func recomputeStatus() {
-    
         let nginxRunning = nginx.isRunning
         let newNginx: ServiceStatus = nginxRunning ? .running : .stopped
         let active = pools.activeVersions
@@ -423,7 +412,6 @@ public final class LocalServerController: ObservableObject {
     }
 
     private func handleFolderChange(_ folder: URL) {
-      
         for site in registry.sites where site.path == folder.path {
             registry.reinspect(site)
         }
@@ -447,8 +435,11 @@ public final class LocalServerController: ObservableObject {
             if FileManager.default.fileExists(atPath: url.path) { return }
             try await Task.sleep(nanoseconds: 50_000_000)
         }
-        throw NSError(domain: "KTStack", code: 1,
-                      userInfo: [NSLocalizedDescriptionKey: "php-fpm socket did not appear in time."])
+        throw NSError(
+            domain: "KTStack",
+            code: 1,
+            userInfo: [NSLocalizedDescriptionKey: "php-fpm socket did not appear in time."]
+        )
     }
 
     private nonisolated static func provisionSampleSite(at docroot: URL, domain: String) throws {

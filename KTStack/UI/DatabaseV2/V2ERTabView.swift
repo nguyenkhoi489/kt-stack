@@ -1,6 +1,6 @@
-import SwiftUI
 import AppKit
 import KTStackKit
+import SwiftUI
 
 struct V2ERTabView: View {
     @ObservedObject var vm: DatabaseV2ViewModel
@@ -120,7 +120,7 @@ struct V2ERTabView: View {
 
     private func updateHover(_ phase: HoverPhase) {
         switch phase {
-        case .active(let location):
+        case let .active(location):
             state.isMouseOverCanvas = true
             guard state.draggingTable == nil else { return }
             let desired: NSCursor? = state.tableAt(viewPoint: location) != nil ? .openHand : nil
@@ -241,7 +241,7 @@ struct V2ERTabView: View {
         .buttonStyle(.plain)
     }
 
-    private func centeredView<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    private func centeredView(@ViewBuilder content: () -> some View) -> some View {
         VStack {
             Spacer()
             content()

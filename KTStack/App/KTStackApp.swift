@@ -1,7 +1,7 @@
-import SwiftUI
 import AppKit
-import ServiceManagement
 import KTStackKit
+import ServiceManagement
+import SwiftUI
 
 private struct MenuBarLaunchLabel: View {
     @Environment(\.openWindow) private var openWindow
@@ -40,7 +40,6 @@ struct KTStackApp: App {
     }
 
     var body: some Scene {
-
         MenuBarExtra(isInserted: Binding(get: { showInMenuBar }, set: { _ in })) {
             MenuBarContentView()
                 .environmentObject(appDelegate.server)
@@ -52,7 +51,6 @@ struct KTStackApp: App {
         }
         .menuBarExtraStyle(.window)
 
-        
         Window("KTStack Dashboard", id: DashboardWindow.windowID) {
             DashboardWindow()
                 .environmentObject(appDelegate.preferences)
@@ -73,30 +71,29 @@ struct KTStackApp: App {
         .windowResizability(.contentMinSize)
 
         Settings {
-            SettingsView(preferences: appDelegate.preferences,
-                         dns: appDelegate.dns,
-                         server: appDelegate.server,
-                         runtimes: appDelegate.runtimes,
-                         caTrust: appDelegate.caTrust,
-                         updater: appDelegate.updater,
-                         uninstaller: appDelegate.uninstaller)
-                .frame(width: 480, height: 560)   // the standalone Settings window's fixed size
+            SettingsView(
+                preferences: appDelegate.preferences,
+                dns: appDelegate.dns,
+                server: appDelegate.server,
+                runtimes: appDelegate.runtimes,
+                caTrust: appDelegate.caTrust,
+                updater: appDelegate.updater,
+                uninstaller: appDelegate.uninstaller
+            )
+            .frame(width: 480, height: 560) // the standalone Settings window's fixed size
         }
     }
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-   
     @MainActor lazy var preferences = AppPreferences()
 
- 
-    @MainActor lazy var server: LocalServerController = {
-        LocalServerController(bundleBinDir: Self.bundleBinDir, tld: preferences.tld)
-    }()
+    @MainActor lazy var server: LocalServerController = .init(bundleBinDir: Self.bundleBinDir, tld: preferences.tld)
 
     @MainActor lazy var dns = DNSAutomationService(
         bundledDnsmasq: Self.bundleBinDir.appendingPathComponent("dnsmasq"),
-        tld: preferences.tld)
+        tld: preferences.tld
+    )
 
     @MainActor lazy var services: ServiceManager = {
         let manager = ServiceManager(server: server, dns: dns)
@@ -104,25 +101,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return manager
     }()
 
- 
     @MainActor lazy var runtimes = RuntimeManager()
 
-   
     @MainActor lazy var mail = MailStore()
 
     @MainActor lazy var updater = UpdaterController()
 
     @MainActor lazy var uninstaller = UninstallService(
         paths: AppSupportPaths(), dns: dns,
-        mkcertBinary: Self.bundleBinDir.appendingPathComponent("mkcert"))
+        mkcertBinary: Self.bundleBinDir.appendingPathComponent("mkcert")
+    )
 
     @MainActor lazy var caTrust = CATrustService(
-        paths: AppSupportPaths(), mkcertBinary: Self.bundleBinDir.appendingPathComponent("mkcert"))
+        paths: AppSupportPaths(), mkcertBinary: Self.bundleBinDir.appendingPathComponent("mkcert")
+    )
 
     @MainActor lazy var connectionStore = ConnectionStore(
         storeURL: AppSupportPaths().config
             .appendingPathComponent("database", isDirectory: true)
-            .appendingPathComponent("connections.json"))
+            .appendingPathComponent("connections.json")
+    )
 
     @MainActor lazy var databaseViewModel = DatabaseViewModel()
 
@@ -142,7 +140,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             ?? Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/bin", isDirectory: true)
     }
 
-    func applicationDidFinishLaunching(_ notification: Notification) {
+    func applicationDidFinishLaunching(_: Notification) {
         if let existing = Self.alreadyRunningInstance() {
             existing.activate(options: [.activateAllWindows])
             exit(0)
@@ -154,7 +152,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self,
             selector: #selector(windowWillClose(_:)),
             name: NSWindow.willCloseNotification,
-            object: nil)
+            object: nil
+        )
         registerHelperIfSigned()
 
         _ = services
@@ -164,14 +163,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         applyStartupPreferences()
     }
 
-    @MainActor private func applyStartupPreferences() {
+    @MainActor
+    private func applyStartupPreferences() {
         if HelperIdentity.hasSigningIdentity { preferences.launchAtLogin = LoginItemService.isEnabled }
         updater.setAutomaticChecks(preferences.automaticUpdates)
         updater.setChannel(preferences.releaseChannel == .beta ? "beta" : "")
         if preferences.autoStartServer { services.startAll() }
     }
 
-    
     private func refreshShellShim() {
         let helper = Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/ktstack-resolve")
         let manager = ShellPathManager(paths: AppSupportPaths(), helperSource: helper)
@@ -190,27 +189,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+    func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
         false
     }
 
-    func applicationWillTerminate(_ notification: Notification) {
-
+    func applicationWillTerminate(_: Notification) {
         let dbShutdown = DispatchSemaphore(value: 0)
         Task.detached {
             try? await EventLoopProvider.shared.shutdown()
             dbShutdown.signal()
         }
         dbShutdown.wait()
-       
+
         MainActor.assumeIsolated {
             tunnels.shutdownAll()
             server.shutdownForQuit()
         }
     }
 
-    @objc private func windowWillClose(_ note: Notification) {
-
+    @objc
+    private func windowWillClose(_ note: Notification) {
         let closingWindow = note.object as? NSWindow
         DispatchQueue.main.async {
             AppActivationPolicy.restoreAccessoryIfNoWindows(excluding: closingWindow)

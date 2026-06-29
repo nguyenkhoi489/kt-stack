@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct KTSettingsGroup<Content: View>: View {
     let title: String
@@ -87,10 +87,14 @@ struct KTSettingsTextButton: View {
             Text(title).font(.jbMono(13, .medium))
                 .foregroundStyle(danger ? KTColor.danger : KTColor.ink)
                 .padding(.horizontal, 14).padding(.vertical, 7)
-                .background(RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .fill(hovering ? (danger ? KTColor.dangerBg : KTColor.btnHover) : Color.white))
-                .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .stroke(danger ? KTColor.dangerBorder : KTColor.btnBorder, lineWidth: 0.5))
+                .background(
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(hovering ? (danger ? KTColor.dangerBg : KTColor.btnHover) : Color.white)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .stroke(danger ? KTColor.dangerBorder : KTColor.btnBorder, lineWidth: 0.5)
+                )
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

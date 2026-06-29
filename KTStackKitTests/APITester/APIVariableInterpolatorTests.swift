@@ -2,15 +2,16 @@ import XCTest
 @testable import KTStackKit
 
 final class APIVariableInterpolatorTests: XCTestCase {
-
     func testResolvesSingleVariable() {
         let result = APIVariableInterpolator.resolve("https://{{host}}/api", with: ["host": "app.test"])
         XCTAssertEqual(result, "https://app.test/api")
     }
 
     func testResolvesMultipleVariables() {
-        let result = APIVariableInterpolator.resolve("{{scheme}}://{{host}}/{{path}}",
-                                                     with: ["scheme": "https", "host": "app.test", "path": "users"])
+        let result = APIVariableInterpolator.resolve(
+            "{{scheme}}://{{host}}/{{path}}",
+            with: ["scheme": "https", "host": "app.test", "path": "users"]
+        )
         XCTAssertEqual(result, "https://app.test/users")
     }
 

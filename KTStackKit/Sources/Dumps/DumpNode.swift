@@ -8,10 +8,10 @@ public indirect enum DumpNode: Sendable {
 
     public var displaySummary: String {
         switch self {
-        case .scalar(let s):          return s
-        case .array(let items):       return "array(\(items.count))"
-        case .object(let cls, _):     return cls
-        case .reference(let n):       return "&\(n)"
+        case let .scalar(s): s
+        case let .array(items): "array(\(items.count))"
+        case let .object(cls, _): cls
+        case let .reference(n): "&\(n)"
         }
     }
 }

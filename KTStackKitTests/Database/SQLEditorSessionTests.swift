@@ -2,9 +2,6 @@ import XCTest
 @testable import KTStackKit
 
 final class SQLEditorSessionTests: XCTestCase {
-
-    // MARK: - Auto-LIMIT
-
     private let mysql = SQLDialect.forKind(.mysql)
     private let postgres = SQLDialect.forKind(.postgres)
 
@@ -28,7 +25,8 @@ final class SQLEditorSessionTests: XCTestCase {
 
     func testIgnoresLimitInsideSubquery() {
         let outcome = SQLAutoLimit.augment(
-            "SELECT * FROM (SELECT id FROM t LIMIT 5) AS x", dialect: mysql)
+            "SELECT * FROM (SELECT id FROM t LIMIT 5) AS x", dialect: mysql
+        )
         XCTAssertFalse(outcome.applied)
     }
 
@@ -59,7 +57,8 @@ final class SQLEditorSessionTests: XCTestCase {
 
     func testSkipsDataModifyingCTE() {
         let outcome = SQLAutoLimit.augment(
-            "WITH x AS (DELETE FROM t RETURNING id) SELECT * FROM x", dialect: postgres)
+            "WITH x AS (DELETE FROM t RETURNING id) SELECT * FROM x", dialect: postgres
+        )
         XCTAssertFalse(outcome.applied)
     }
 
@@ -81,7 +80,8 @@ final class SQLEditorSessionTests: XCTestCase {
 
     func testSkipsFetchFirstPagination() {
         let outcome = SQLAutoLimit.augment(
-            "SELECT * FROM t ORDER BY id FETCH FIRST 5 ROWS ONLY", dialect: postgres)
+            "SELECT * FROM t ORDER BY id FETCH FIRST 5 ROWS ONLY", dialect: postgres
+        )
         XCTAssertFalse(outcome.applied)
     }
 
@@ -89,8 +89,6 @@ final class SQLEditorSessionTests: XCTestCase {
         let outcome = SQLAutoLimit.augment("SELECT * FROM t OFFSET 10", dialect: postgres)
         XCTAssertFalse(outcome.applied)
     }
-
-    // MARK: - QueryResult equality
 
     func testEqualityIgnoresTruncationMetadata() {
         let columns = [ColumnMeta(name: "id")]
@@ -107,19 +105,23 @@ final class SQLEditorSessionTests: XCTestCase {
         XCTAssertNotEqual(a, b)
     }
 
-    // MARK: - ConnectionSession cancellation + database tracking
-
     private final class ScriptedConnection: SessionConnection, @unchecked Sendable {
         let log: Log
         var live = true
         private let lock = NSLock()
         private var blocked: CheckedContinuation<QueryResult, Error>?
 
-        init(log: Log) { self.log = log; log.opened() }
+        init(log: Log) {
+            self.log = log; log.opened()
+        }
 
-        var isLive: Bool { lock.lock(); defer { lock.unlock() }; return live }
+        var isLive: Bool {
+            lock.lock(); defer { lock.unlock() }; return live
+        }
 
-        func useDatabase(_ database: String) async throws { log.used(database) }
+        func useDatabase(_ database: String) async throws {
+            log.used(database)
+        }
 
         func runText(_ sql: String) async throws -> QueryResult {
             if sql == "block" {
@@ -131,7 +133,7 @@ final class SQLEditorSessionTests: XCTestCase {
             return QueryResult(columns: [ColumnMeta(name: sql)], rows: [])
         }
 
-        func runSelect(_ statement: DMLStatement) async throws -> QueryResult {
+        func runSelect(_: DMLStatement) async throws -> QueryResult {
             QueryResult(columns: [], rows: [])
         }
 
@@ -149,8 +151,13 @@ final class SQLEditorSessionTests: XCTestCase {
         private let lock = NSLock()
         private(set) var opens = 0
         private(set) var usedDatabases: [String] = []
-        func opened() { lock.lock(); opens += 1; lock.unlock() }
-        func used(_ database: String) { lock.lock(); usedDatabases.append(database); lock.unlock() }
+        func opened() {
+            lock.lock(); opens += 1; lock.unlock()
+        }
+
+        func used(_ database: String) {
+            lock.lock(); usedDatabases.append(database); lock.unlock()
+        }
     }
 
     private func makeSession(log: Log) -> ConnectionSession {

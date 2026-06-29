@@ -1,6 +1,6 @@
-import SwiftUI
 import AppKit
 import KTStackKit
+import SwiftUI
 
 struct DashboardEnv {
     let preferences: AppPreferences
@@ -18,7 +18,7 @@ struct DashboardEnv {
     let tunnels: TunnelManager
     let overlay: KTOverlayCenter
 
-    func inject<V: View>(_ view: V) -> some View {
+    func inject(_ view: some View) -> some View {
         view
             .environmentObject(preferences)
             .environmentObject(server)
@@ -41,11 +41,11 @@ struct DashboardSplitRepresentable: NSViewControllerRepresentable {
     @ObservedObject var nav: DashboardNavigation
     let env: DashboardEnv
 
-    func makeNSViewController(context: Context) -> DashboardSplitViewController {
+    func makeNSViewController(context _: Context) -> DashboardSplitViewController {
         DashboardSplitViewController(nav: nav, env: env)
     }
 
-    func updateNSViewController(_ controller: DashboardSplitViewController, context: Context) {
+    func updateNSViewController(_ controller: DashboardSplitViewController, context _: Context) {
         controller.show(nav.selection)
     }
 }
@@ -59,8 +59,9 @@ private struct DashboardSidebarHost: View {
             selection: Binding(get: { nav.selection }, set: { nav.selection = $0 }),
             siteCount: server.registry.sites.count,
             serverStatus: serverStatus,
-            version: versionText)
-            .ignoresSafeArea(.container, edges: .top)
+            version: versionText
+        )
+        .ignoresSafeArea(.container, edges: .top)
     }
 
     private var serverStatus: ServiceStatus {
@@ -84,12 +85,14 @@ final class DashboardSplitViewController: NSSplitViewController {
     init(nav: DashboardNavigation, env: DashboardEnv) {
         self.nav = nav
         self.env = env
-        self.detailContainer = DetailContainerViewController(nav: nav, env: env)
+        detailContainer = DetailContainerViewController(nav: nav, env: env)
         super.init(nibName: nil, bundle: nil)
     }
 
     @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+    required init?(coder _: NSCoder) {
+        fatalError("init(coder:) is not supported")
+    }
 
     override func viewDidAppear() {
         super.viewDidAppear()
@@ -134,7 +137,9 @@ final class DetailContainerViewController: NSViewController {
     }
 
     @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+    required init?(coder _: NSCoder) {
+        fatalError("init(coder:) is not supported")
+    }
 
     override func loadView() {
         let container = NSView()
@@ -161,7 +166,7 @@ final class DetailContainerViewController: NSViewController {
                 controller.view.topAnchor.constraint(equalTo: view.topAnchor),
                 controller.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
                 controller.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-                controller.view.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+                controller.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             ])
         }
 
@@ -184,7 +189,7 @@ final class DetailContainerViewController: NSViewController {
 
     @ViewBuilder
     private func detailView(for item: SidebarItem) -> some View {
-        let nav = self.nav
+        let nav = nav
         switch item {
         case .sites:
             KTSitesScreen(onOpenLogs: { nav.openLogs($0) }, onNavigate: { nav.selection = $0 })
@@ -197,10 +202,16 @@ final class DetailContainerViewController: NSViewController {
         case .mail:
             MailSectionView(nav: nav)
         case .settings:
-            SettingsView(preferences: env.preferences, dns: env.dns, server: env.server,
-                         runtimes: env.runtimes, caTrust: env.caTrust, updater: env.updater,
-                         uninstaller: env.uninstaller)
-                .navigationTitle("Settings")
+            SettingsView(
+                preferences: env.preferences,
+                dns: env.dns,
+                server: env.server,
+                runtimes: env.runtimes,
+                caTrust: env.caTrust,
+                updater: env.updater,
+                uninstaller: env.uninstaller
+            )
+            .navigationTitle("Settings")
         case .about:
             AboutSettingsView().navigationTitle("About")
         case .database:

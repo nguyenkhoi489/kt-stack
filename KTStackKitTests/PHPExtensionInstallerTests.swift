@@ -6,7 +6,6 @@ import XCTest
 /// uninstall removal, and the php-fpm `PHP_INI_SCAN_DIR` wiring. The network download + live FPM load
 /// gate are exercised manually (Phase-3 step 4); these cover the pure file/wiring logic.
 final class PHPExtensionInstallerTests: XCTestCase {
-
     private func tempPaths() throws -> AppSupportPaths {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("ktstack-extinstall-\(UUID().uuidString)")
@@ -22,7 +21,7 @@ final class PHPExtensionInstallerTests: XCTestCase {
     }
 
     func testIniGenerationExtensionVsZend() throws {
-        let installer = PHPExtensionInstaller(paths: try tempPaths())
+        let installer = try PHPExtensionInstaller(paths: tempPaths())
         let imagick = installer.iniContent(forExtID: "imagick", phpVersion: "8.4")
         XCTAssertEqual(imagick, "extension=imagick.so\n")
         // Zend extensions need an ABSOLUTE path — extension_dir does not apply to zend_extension=.
@@ -65,7 +64,7 @@ final class PHPExtensionInstallerTests: XCTestCase {
         let paths = try tempPaths()
         let installer = PHPExtensionInstaller(paths: paths)
         try FileManager.default.createDirectory(at: paths.phpModulesDir(version: "8.4"), withIntermediateDirectories: true)
-        try installer.placeSharedObject(from: try writeFakeSO("imagick"), extID: "imagick", phpVersion: "8.4")
+        try installer.placeSharedObject(from: writeFakeSO("imagick"), extID: "imagick", phpVersion: "8.4")
         try installer.finishInstall(extID: "imagick", phpVersion: "8.4")
 
         try installer.uninstall("imagick", phpVersion: "8.4")
@@ -105,9 +104,11 @@ final class PHPExtensionInstallerTests: XCTestCase {
 
     func testSpecCarriesIniScanDirEnv() throws {
         let paths = try tempPaths()
-        let controller = PHPFPMController(paths: paths,
-                                          agents: LaunchAgentManager(paths: paths),
-                                          poolName: "8.4")
+        let controller = PHPFPMController(
+            paths: paths,
+            agents: LaunchAgentManager(paths: paths),
+            poolName: "8.4"
+        )
         let spec = controller.spec(poolConf: paths.phpFpmPool("8.4"))
         XCTAssertEqual(spec.environment["PHP_INI_SCAN_DIR"], paths.phpExtConfDir(version: "8.4").path)
     }

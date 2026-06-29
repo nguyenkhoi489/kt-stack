@@ -1,11 +1,9 @@
-import SwiftUI
 import KTStackKit
-
+import SwiftUI
 
 struct DashboardWindow: View {
     static let windowID = "dashboard"
 
-   
     @EnvironmentObject private var preferences: AppPreferences
     @EnvironmentObject private var dns: DNSAutomationService
     @EnvironmentObject private var server: LocalServerController
@@ -24,11 +22,22 @@ struct DashboardWindow: View {
     @StateObject private var overlay = KTOverlayCenter()
 
     private var dashboardEnv: DashboardEnv {
-        DashboardEnv(preferences: preferences, server: server, dns: dns, services: services,
-                     runtimes: runtimes, mail: mail, caTrust: caTrust, updater: updater,
-                     uninstaller: uninstaller, connectionStore: connectionStore,
-                     databaseViewModel: databaseViewModel, documentViewModel: documentViewModel,
-                     tunnels: tunnels, overlay: overlay)
+        DashboardEnv(
+            preferences: preferences,
+            server: server,
+            dns: dns,
+            services: services,
+            runtimes: runtimes,
+            mail: mail,
+            caTrust: caTrust,
+            updater: updater,
+            uninstaller: uninstaller,
+            connectionStore: connectionStore,
+            databaseViewModel: databaseViewModel,
+            documentViewModel: documentViewModel,
+            tunnels: tunnels,
+            overlay: overlay
+        )
     }
 
     var body: some View {
@@ -39,27 +48,28 @@ struct DashboardWindow: View {
             .ignoresSafeArea(.container, edges: .top)
             .background(KTWindowChrome())
     }
-
 }
 
 enum SidebarSection: String, CaseIterable, Identifiable {
     case manage, inspect, app
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
     var title: String {
         switch self {
-        case .manage:  return "Manage"
-        case .inspect: return "Inspect"
-        case .app:     return "App"
+        case .manage: "Manage"
+        case .inspect: "Inspect"
+        case .app: "App"
         }
     }
 
     var items: [SidebarItem] {
         switch self {
-        case .manage:  return [.sites, .services, .runtimes, .database]
-        case .inspect: return [.logs, .mail, .dumps]
-        case .app:     return [.settings, .about]
+        case .manage: [.sites, .services, .runtimes, .database]
+        case .inspect: [.logs, .mail, .dumps]
+        case .app: [.settings, .about]
         }
     }
 }
@@ -67,33 +77,35 @@ enum SidebarSection: String, CaseIterable, Identifiable {
 enum SidebarItem: String, CaseIterable, Identifiable {
     case sites, services, runtimes, database, logs, mail, dumps, settings, about
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
     var title: String {
         switch self {
-        case .sites:    return "Sites"
-        case .services: return "Services"
-        case .runtimes: return "Runtimes"
-        case .database: return "Database"
-        case .logs:     return "Logs"
-        case .mail:     return "Mail"
-        case .dumps:    return "Dumps"
-        case .settings: return "Settings"
-        case .about:    return "About"
+        case .sites: "Sites"
+        case .services: "Services"
+        case .runtimes: "Runtimes"
+        case .database: "Database"
+        case .logs: "Logs"
+        case .mail: "Mail"
+        case .dumps: "Dumps"
+        case .settings: "Settings"
+        case .about: "About"
         }
     }
 
     var symbol: String {
         switch self {
-        case .sites:    return "globe"
-        case .services: return "server.rack"
-        case .runtimes: return "cube"
-        case .database: return "cylinder.split.1x2"
-        case .logs:     return "text.alignleft"
-        case .mail:     return "envelope"
-        case .dumps:    return "curlybraces"
-        case .settings: return "gearshape"
-        case .about:    return "info.circle"
+        case .sites: "globe"
+        case .services: "server.rack"
+        case .runtimes: "cube"
+        case .database: "cylinder.split.1x2"
+        case .logs: "text.alignleft"
+        case .mail: "envelope"
+        case .dumps: "curlybraces"
+        case .settings: "gearshape"
+        case .about: "info.circle"
         }
     }
 }

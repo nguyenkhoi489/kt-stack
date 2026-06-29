@@ -7,7 +7,7 @@ final class DumpEventDecoderTests: XCTestCase {
             "timestamp": 1_700_000_000.0,
             "file": "/app/src/Controller.php",
             "line": 42,
-            "value": dict
+            "value": dict,
         ]
         return try! JSONSerialization.data(withJSONObject: payload)
     }
@@ -45,7 +45,7 @@ final class DumpEventDecoderTests: XCTestCase {
 
     func testDecodesFloat() throws {
         let event = try DumpEventDecoder.decode(line: json(["type": "float", "value": 3.14]))
-        if case .scalar(let s) = event.root {
+        if case let .scalar(s) = event.root {
             XCTAssertTrue(s.hasPrefix("3.14"), "Expected scalar to start with 3.14, got \(s)")
         } else {
             XCTFail("Expected scalar node")
@@ -59,7 +59,7 @@ final class DumpEventDecoderTests: XCTestCase {
 
     func testDecodesEmptyArray() throws {
         let event = try DumpEventDecoder.decode(line: json(["type": "array", "count": 0, "items": []]))
-        if case .array(let items) = event.root {
+        if case let .array(items) = event.root {
             XCTAssertTrue(items.isEmpty)
         } else {
             XCTFail("Expected array node")
@@ -69,10 +69,10 @@ final class DumpEventDecoderTests: XCTestCase {
     func testDecodesArrayWithItems() throws {
         let items: [[String: Any]] = [
             ["key": "0", "value": ["type": "int", "value": 1]],
-            ["key": "1", "value": ["type": "string", "value": "x", "length": 1]]
+            ["key": "1", "value": ["type": "string", "value": "x", "length": 1]],
         ]
         let event = try DumpEventDecoder.decode(line: json(["type": "array", "count": 2, "items": items]))
-        guard case .array(let children) = event.root else { return XCTFail("Expected array") }
+        guard case let .array(children) = event.root else { return XCTFail("Expected array") }
         XCTAssertEqual(children.count, 2)
         XCTAssertEqual(children[0].key, "0")
         XCTAssertEqual(children[0].value, .scalar("1"))
@@ -82,10 +82,10 @@ final class DumpEventDecoderTests: XCTestCase {
 
     func testDecodesObject() throws {
         let props: [[String: Any]] = [
-            ["key": "name", "value": ["type": "string", "value": "KD", "length": 2]]
+            ["key": "name", "value": ["type": "string", "value": "KD", "length": 2]],
         ]
         let event = try DumpEventDecoder.decode(line: json(["type": "object", "class": "App\\User", "properties": props]))
-        guard case .object(let cls, let children) = event.root else { return XCTFail("Expected object") }
+        guard case let .object(cls, children) = event.root else { return XCTFail("Expected object") }
         XCTAssertEqual(cls, "App\\User")
         XCTAssertEqual(children.count, 1)
         XCTAssertEqual(children[0].key, "name")
@@ -112,14 +112,14 @@ final class DumpEventDecoderTests: XCTestCase {
 extension DumpNode: Equatable {
     public static func == (lhs: DumpNode, rhs: DumpNode) -> Bool {
         switch (lhs, rhs) {
-        case (.scalar(let a), .scalar(let b)):
+        case let (.scalar(a), .scalar(b)):
             return a == b
-        case (.reference(let a), .reference(let b)):
+        case let (.reference(a), .reference(b)):
             return a == b
-        case (.array(let a), .array(let b)):
+        case let (.array(a), .array(b)):
             guard a.count == b.count else { return false }
             return zip(a, b).allSatisfy { $0.key == $1.key && $0.value == $1.value }
-        case (.object(let ac, let ap), .object(let bc, let bp)):
+        case let (.object(ac, ap), .object(bc, bp)):
             guard ac == bc, ap.count == bp.count else { return false }
             return zip(ap, bp).allSatisfy { $0.key == $1.key && $0.value == $1.value }
         default:

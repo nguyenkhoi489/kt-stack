@@ -5,12 +5,14 @@ public final class RegisteredSiteWatcher: @unchecked Sendable {
         let source: DispatchSourceFileSystemObject
         let fd: Int32
         var pending: DispatchWorkItem?
-        init(source: DispatchSourceFileSystemObject, fd: Int32) { self.source = source; self.fd = fd }
+        init(source: DispatchSourceFileSystemObject, fd: Int32) {
+            self.source = source; self.fd = fd
+        }
     }
 
     private let debounce: TimeInterval
     private let queue = DispatchQueue(label: "com.ktstack.site-watcher")
-    private var watches: [String: Watch] = [:]   // keyed by folder path
+    private var watches: [String: Watch] = [:] // keyed by folder path
 
     public var onChange: (@Sendable (URL) -> Void)?
 
@@ -37,7 +39,9 @@ public final class RegisteredSiteWatcher: @unchecked Sendable {
     deinit { cancelAllWatches() }
 
     private func cancelAllWatches() {
-        for (_, w) in watches { w.source.cancel() }
+        for (_, w) in watches {
+            w.source.cancel()
+        }
         watches.removeAll()
     }
 
@@ -47,7 +51,8 @@ public final class RegisteredSiteWatcher: @unchecked Sendable {
         let source = DispatchSource.makeFileSystemObjectSource(
             fileDescriptor: fd,
             eventMask: [.write, .rename, .delete, .extend],
-            queue: queue)
+            queue: queue
+        )
         let watch = Watch(source: source, fd: fd)
         source.setEventHandler { [weak self] in self?.scheduleCallback(folder) }
         source.setCancelHandler { close(fd) }
@@ -55,7 +60,6 @@ public final class RegisteredSiteWatcher: @unchecked Sendable {
         source.resume()
     }
 
-   
     private func scheduleCallback(_ folder: URL) {
         guard let watch = watches[folder.path] else { return }
         watch.pending?.cancel()

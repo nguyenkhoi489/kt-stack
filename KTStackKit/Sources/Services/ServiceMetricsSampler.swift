@@ -5,14 +5,14 @@ public struct ServiceMetricsSample: Sendable, Hashable {
     public let memoryBytes: Int64
 }
 
-struct ParsedServiceProcess: Sendable, Equatable {
+struct ParsedServiceProcess: Equatable {
     let pid: Int32
     let rssBytes: Int64
     let cpuSeconds: Double
     let basename: String
 }
 
-struct ProcessCPUSample: Sendable, Equatable {
+struct ProcessCPUSample: Equatable {
     let cpuSeconds: Double
     let sampledAt: Date
 }
@@ -36,10 +36,13 @@ final class ServiceMetricsSampler {
         return outcome.metrics
     }
 
-    static func aggregate(current: [ParsedServiceProcess],
-                          previous: [Int32: ProcessCPUSample],
-                          now: Date)
-        -> (metrics: [ServiceKind: ServiceMetricsSample], nextPrevious: [Int32: ProcessCPUSample]) {
+    static func aggregate(
+        current: [ParsedServiceProcess],
+        previous: [Int32: ProcessCPUSample],
+        now: Date
+    )
+        -> (metrics: [ServiceKind: ServiceMetricsSample], nextPrevious: [Int32: ProcessCPUSample])
+    {
         var cpuByKind: [ServiceKind: Double] = [:]
         var memByKind: [ServiceKind: Int64] = [:]
         var nextPrevious: [Int32: ProcessCPUSample] = [:]
@@ -59,8 +62,10 @@ final class ServiceMetricsSampler {
 
         var metrics: [ServiceKind: ServiceMetricsSample] = [:]
         for kind in Set(cpuByKind.keys).union(memByKind.keys) {
-            metrics[kind] = ServiceMetricsSample(cpuPercent: cpuByKind[kind] ?? 0,
-                                                 memoryBytes: memByKind[kind] ?? 0)
+            metrics[kind] = ServiceMetricsSample(
+                cpuPercent: cpuByKind[kind] ?? 0,
+                memoryBytes: memByKind[kind] ?? 0
+            )
         }
         return (metrics, nextPrevious)
     }
@@ -74,10 +79,12 @@ final class ServiceMetricsSampler {
                   let rssKiB = Int64(fields[1]),
                   let cpuSeconds = parseCPUTime(String(fields[2])) else { continue }
             let command = fields[3...].joined(separator: " ")
-            rows.append(ParsedServiceProcess(pid: pid,
-                                             rssBytes: rssKiB * 1024,
-                                             cpuSeconds: cpuSeconds,
-                                             basename: serviceName(from: command)))
+            rows.append(ParsedServiceProcess(
+                pid: pid,
+                rssBytes: rssKiB * 1024,
+                cpuSeconds: cpuSeconds,
+                basename: serviceName(from: command)
+            ))
         }
         return rows
     }
@@ -112,7 +119,7 @@ final class ServiceMetricsSampler {
             guard let component = Double(part) else { return nil }
             seconds = seconds * 60 + component
         }
-        return days * 86_400 + seconds
+        return days * 86400 + seconds
     }
 
     private static func runPS() async -> String {

@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct KTSidebarFooterCard: View {
     let status: ServiceStatus
@@ -25,11 +25,11 @@ struct KTSidebarFooterCard: View {
 
     private var dotColor: Color {
         switch status {
-        case .running: return KTColor.runDot
-        case .starting: return KTColor.accent
-        case .error: return KTColor.danger
-        case .warning: return Color(hex: 0xFF9F0A)
-        default: return KTColor.stopDot
+        case .running: KTColor.runDot
+        case .starting: KTColor.accent
+        case .error: KTColor.danger
+        case .warning: Color(hex: 0xFF9F0A)
+        default: KTColor.stopDot
         }
     }
 }

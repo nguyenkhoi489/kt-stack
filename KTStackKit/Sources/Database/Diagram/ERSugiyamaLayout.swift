@@ -1,8 +1,7 @@
-import Foundation
 import CoreGraphics
+import Foundation
 
 public enum ERSugiyamaLayout {
-
     public static let nodeWidth: CGFloat = 220
     public static let headerHeight: CGFloat = 34
     public static let columnRowHeight: CGFloat = 22
@@ -26,7 +25,9 @@ public enum ERSugiyamaLayout {
 
     private static func buildAdjacency(graph: ERSchemaGraph, nodeIds: [String]) -> [String: [String]] {
         var adjacency: [String: [String]] = [:]
-        for id in nodeIds { adjacency[id] = [] }
+        for id in nodeIds {
+            adjacency[id] = []
+        }
         for edge in graph.edges {
             guard adjacency[edge.fromTable] != nil, adjacency[edge.toTable] != nil else { continue }
             adjacency[edge.fromTable, default: []].append(edge.toTable)
@@ -73,14 +74,20 @@ public enum ERSugiyamaLayout {
 
     private static func assignLayers(dagEdges: [String: [String]], nodeIds: [String]) -> [[String]] {
         var inDegree: [String: Int] = [:]
-        for id in nodeIds { inDegree[id] = 0 }
+        for id in nodeIds {
+            inDegree[id] = 0
+        }
         for (_, neighbors) in dagEdges {
-            for neighbor in neighbors { inDegree[neighbor, default: 0] += 1 }
+            for neighbor in neighbors {
+                inDegree[neighbor, default: 0] += 1
+            }
         }
 
         var queue = nodeIds.filter { (inDegree[$0] ?? 0) == 0 }
         var layerAssignment: [String: Int] = [:]
-        for id in queue { layerAssignment[id] = 0 }
+        for id in queue {
+            layerAssignment[id] = 0
+        }
 
         var idx = 0
         while idx < queue.count {
@@ -117,7 +124,9 @@ public enum ERSugiyamaLayout {
 
         var reverseEdges: [String: [String]] = [:]
         for (from, neighbors) in dagEdges {
-            for to in neighbors { reverseEdges[to, default: []].append(from) }
+            for to in neighbors {
+                reverseEdges[to, default: []].append(from)
+            }
         }
 
         var result = layers
@@ -127,7 +136,8 @@ public enum ERSugiyamaLayout {
             if sweep.isMultiple(of: 2) {
                 for layerIdx in 1..<result.count {
                     let upperPositions = Dictionary(
-                        uniqueKeysWithValues: result[layerIdx - 1].enumerated().map { ($1, $0) })
+                        uniqueKeysWithValues: result[layerIdx - 1].enumerated().map { ($1, $0) }
+                    )
                     var barycenters: [String: Double] = [:]
                     for node in result[layerIdx] {
                         let positions = (reverseEdges[node] ?? []).compactMap { upperPositions[$0] }
@@ -140,7 +150,8 @@ public enum ERSugiyamaLayout {
             } else {
                 for layerIdx in stride(from: result.count - 2, through: 0, by: -1) {
                     let lowerPositions = Dictionary(
-                        uniqueKeysWithValues: result[layerIdx + 1].enumerated().map { ($1, $0) })
+                        uniqueKeysWithValues: result[layerIdx + 1].enumerated().map { ($1, $0) }
+                    )
                     var barycenters: [String: Double] = [:]
                     for node in result[layerIdx] {
                         let positions = (dagEdges[node] ?? []).compactMap { lowerPositions[$0] }
@@ -167,7 +178,8 @@ public enum ERSugiyamaLayout {
     private static func assignCoordinates(orderedLayers: [[String]], graph: ERSchemaGraph) -> [String: CGPoint] {
         var positions: [String: CGPoint] = [:]
         let columnCountByTable = Dictionary(
-            uniqueKeysWithValues: graph.nodes.map { ($0.id, $0.displayColumns.count) })
+            uniqueKeysWithValues: graph.nodes.map { ($0.id, $0.displayColumns.count) }
+        )
         let connected = graph.connectedTables
 
         var connectedLayers: [[String]] = []
@@ -225,7 +237,6 @@ public enum ERSugiyamaLayout {
 }
 
 public enum ERRectIndex {
-
     public static func rects(positions: [String: CGPoint], nodes: [ERSchemaNode]) -> [String: CGRect] {
         var rects: [String: CGRect] = [:]
         for node in nodes {
@@ -235,7 +246,8 @@ public enum ERRectIndex {
                 x: center.x - ERSugiyamaLayout.nodeWidth / 2,
                 y: center.y - height / 2,
                 width: ERSugiyamaLayout.nodeWidth,
-                height: height)
+                height: height
+            )
         }
         return rects
     }

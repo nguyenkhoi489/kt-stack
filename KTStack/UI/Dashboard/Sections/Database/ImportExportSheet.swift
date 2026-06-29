@@ -1,6 +1,6 @@
-import SwiftUI
-import KTStackKit
 import AppKit
+import KTStackKit
+import SwiftUI
 import UniformTypeIdentifiers
 
 struct ImportExportSheet: View {
@@ -21,7 +21,9 @@ struct ImportExportSheet: View {
     @State private var confirmingImport = false
 
     private static let wholeDatabase = "--whole database--"
-    enum Tab: String, CaseIterable, Identifiable { case export = "Export", `import` = "Import"; var id: String { rawValue } }
+    enum Tab: String, CaseIterable, Identifiable { case export = "Export", `import` = "Import"; var id: String {
+        rawValue
+    } }
     enum SQLiteImportMode: Hashable { case overwrite, newFile }
 
     var body: some View {
@@ -64,16 +66,15 @@ struct ImportExportSheet: View {
 
     @ViewBuilder
     private var content: some View {
-        if tab == .export && !canExport {
+        if tab == .export, !canExport {
             unavailable("Export not supported yet", "Export is currently available only for MySQL connections.")
-        } else if tab == .import && !canImport {
+        } else if tab == .import, !canImport {
             unavailable("Import unavailable", importUnavailableReason)
         } else {
             body(for: tab)
         }
     }
 
-    @ViewBuilder
     private func body(for tab: Tab) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: KDSpacing.space3) {
@@ -142,7 +143,6 @@ struct ImportExportSheet: View {
         }
     }
 
-    @ViewBuilder
     private var sqliteTargetControls: some View {
         VStack(alignment: .leading, spacing: KDSpacing.space1) {
             Picker("Destination", selection: $sqliteMode) {
@@ -167,16 +167,16 @@ struct ImportExportSheet: View {
         if isDocumentTrack {
             switch documentVM.backupStatus {
             case .idle: EmptyView()
-            case .running(let message): progressRow(message)
-            case .done(let message): successRow(message)
-            case .failed(let message): failureRow(message)
+            case let .running(message): progressRow(message)
+            case let .done(message): successRow(message)
+            case let .failed(message): failureRow(message)
             }
         } else {
             switch vm.dumpStatus {
             case .idle: EmptyView()
             case .running: progressRow("Working...")
-            case .done(let message): successRow(message)
-            case .failed(let message): failureRow(message)
+            case let .done(message): successRow(message)
+            case let .failed(message): failureRow(message)
             }
         }
     }
@@ -256,9 +256,9 @@ struct ImportExportSheet: View {
 
     private func resolveTargetExists() async -> Bool {
         switch activeKind {
-        case .some(.sqlite): return sqliteMode == .overwrite
-        case .some(.mongodb): return await documentVM.targetDatabaseExists(targetName)
-        default: return await vm.targetDatabaseExists(targetName)
+        case .some(.sqlite): sqliteMode == .overwrite
+        case .some(.mongodb): await documentVM.targetDatabaseExists(targetName)
+        default: await vm.targetDatabaseExists(targetName)
         }
     }
 
@@ -283,18 +283,34 @@ struct ImportExportSheet: View {
         }
     }
 
-    private var isDocumentTrack: Bool { documentVM.selectedProfile?.kind == .mongodb }
-    private var activeKind: DatabaseKind? { isDocumentTrack ? documentVM.selectedProfile?.kind : vm.selectedProfile?.kind }
-    private var canExport: Bool { !isDocumentTrack && vm.canDump }
-    private var canImport: Bool { isDocumentTrack ? documentVM.canManualImport : vm.canManualImport }
-    private var isReadOnly: Bool { isDocumentTrack ? documentVM.isReadOnlyConnection : vm.isReadOnlyConnection }
+    private var isDocumentTrack: Bool {
+        documentVM.selectedProfile?.kind == .mongodb
+    }
+
+    private var activeKind: DatabaseKind? {
+        isDocumentTrack ? documentVM.selectedProfile?.kind : vm.selectedProfile?.kind
+    }
+
+    private var canExport: Bool {
+        !isDocumentTrack && vm.canDump
+    }
+
+    private var canImport: Bool {
+        isDocumentTrack ? documentVM.canManualImport : vm.canManualImport
+    }
+
+    private var isReadOnly: Bool {
+        isDocumentTrack ? documentVM.isReadOnlyConnection : vm.isReadOnlyConnection
+    }
+
     private var isWorking: Bool {
         if isDocumentTrack, case .running = documentVM.backupStatus { return true }
         if !isDocumentTrack, case .running = vm.dumpStatus { return true }
         return false
     }
+
     private var importUnavailableReason: String {
-        (isDocumentTrack ? documentVM.manualImportUnavailableReason : vm.manualImportUnavailableReason)
+        (isDocumentTrack ? documentVM.importUnavailableReason : vm.importUnavailableReason)
             ?? "The required database tools aren't available."
     }
 
@@ -303,7 +319,9 @@ struct ImportExportSheet: View {
         return !path.isEmpty
     }
 
-    private var isFullDump: Bool { activeKind == .mysql && fullDumpMode }
+    private var isFullDump: Bool {
+        activeKind == .mysql && fullDumpMode
+    }
 
     private var canSubmit: Bool {
         if isFullDump { return true }
@@ -337,45 +355,50 @@ struct ImportExportSheet: View {
 
     private var nameTargetIcon: String {
         switch liveTargetExists {
-        case .some(true): return "exclamationmark.triangle"
-        case .some(false): return "plus.circle"
-        case .none: return "cylinder"
+        case .some(true): "exclamationmark.triangle"
+        case .some(false): "plus.circle"
+        case .none: "cylinder"
         }
     }
 
     private var importButtonTitle: String {
         switch activeKind {
-        case .some(.mysql): return "Choose MySQL .sql file..."
-        case .some(.postgres): return "Choose PostgreSQL .sql/.dump file..."
-        case .some(.sqlite): return "Choose SQLite .sqlite/.db file..."
-        case .some(.mongodb): return "Choose MongoDB dump folder..."
-        case .none: return "Choose import file..."
+        case .some(.mysql): "Choose MySQL .sql file..."
+        case .some(.postgres): "Choose PostgreSQL .sql/.dump file..."
+        case .some(.sqlite): "Choose SQLite .sqlite/.db file..."
+        case .some(.mongodb): "Choose MongoDB dump folder..."
+        case .none: "Choose import file..."
         }
     }
+
     private var importExtensions: [String] {
         switch activeKind {
-        case .some(.mysql): return ["sql"]
-        case .some(.postgres): return ["sql", "dump"]
-        case .some(.sqlite): return ["sqlite", "db"]
-        case .some(.mongodb), .none: return []
+        case .some(.mysql): ["sql"]
+        case .some(.postgres): ["sql", "dump"]
+        case .some(.sqlite): ["sqlite", "db"]
+        case .some(.mongodb), .none: []
         }
     }
+
     private var sqliteOverwriteText: String {
         guard let path = vm.selectedProfile?.filePath, !path.isEmpty else {
             return "No SQLite file selected for this connection; save as a new file instead."
         }
         return "Replaces \(URL(fileURLWithPath: path).lastPathComponent)."
     }
+
     private var confirmIsDestructive: Bool {
         if isFullDump { return true }
         if activeKind == .sqlite { return sqliteMode == .overwrite }
         return pendingExists
     }
+
     private var confirmButtonTitle: String {
         if isFullDump { return "Import all" }
         if activeKind == .sqlite { return sqliteMode == .overwrite ? "Replace" : "Save" }
         return pendingExists ? "Overwrite" : "Create & Import"
     }
+
     private var confirmTitle: String {
         if isFullDump { return "Import all databases?" }
         if activeKind == .sqlite {
@@ -383,6 +406,7 @@ struct ImportExportSheet: View {
         }
         return pendingExists ? "Overwrite database?" : "Create new database?"
     }
+
     private var confirmMessage: String {
         if isFullDump {
             return "Every database in the dump will be created or overwritten by its CREATE DATABASE/USE statements. This can't be undone."
@@ -397,6 +421,7 @@ struct ImportExportSheet: View {
             ? "Loading into \"\(name)\" can overwrite existing data. This can't be undone."
             : "A new database \"\(name)\" will be created and the file imported."
     }
+
     private var scopeName: String {
         exportTable == Self.wholeDatabase ? (vm.selectedDatabase ?? "export") : exportTable
     }

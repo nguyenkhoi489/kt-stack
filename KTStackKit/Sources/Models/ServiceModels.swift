@@ -5,37 +5,37 @@ public enum ServiceStatus: String, CaseIterable, Sendable {
 
     public var color: Color {
         switch self {
-        case .running:  return .KDStatus.running
-        case .stopped:  return .KDStatus.stopped
-        case .starting: return .KDStatus.starting
-        case .stopping: return .KDStatus.starting
-        case .warning:  return .KDStatus.warning
-        case .error:    return .KDStatus.error
-        case .info:     return .KDStatus.info
+        case .running: .KDStatus.running
+        case .stopped: .KDStatus.stopped
+        case .starting: .KDStatus.starting
+        case .stopping: .KDStatus.starting
+        case .warning: .KDStatus.warning
+        case .error: .KDStatus.error
+        case .info: .KDStatus.info
         }
     }
 
     public var symbolName: String {
         switch self {
-        case .running:  return "circle.fill"
-        case .stopped:  return "circle"
-        case .starting: return "circle.dotted"
-        case .stopping: return "circle.dotted"
-        case .warning:  return "exclamationmark.triangle.fill"
-        case .error:    return "xmark.octagon.fill"
-        case .info:     return "info.circle"
+        case .running: "circle.fill"
+        case .stopped: "circle"
+        case .starting: "circle.dotted"
+        case .stopping: "circle.dotted"
+        case .warning: "exclamationmark.triangle.fill"
+        case .error: "xmark.octagon.fill"
+        case .info: "info.circle"
         }
     }
 
     public var label: String {
         switch self {
-        case .running:  return "Running"
-        case .stopped:  return "Stopped"
-        case .starting: return "Starting"
-        case .stopping: return "Stopping"
-        case .warning:  return "Warning"
-        case .error:    return "Error"
-        case .info:     return "Info"
+        case .running: "Running"
+        case .stopped: "Stopped"
+        case .starting: "Starting"
+        case .stopping: "Stopping"
+        case .warning: "Warning"
+        case .error: "Error"
+        case .info: "Info"
         }
     }
 }
@@ -47,16 +47,17 @@ public enum SiteType: String, Codable, CaseIterable, Sendable {
 
     public var label: String {
         switch self {
-        case .php:        return "PHP"
-        case .staticSite: return "Static"
-        case .node:       return "Node"
+        case .php: "PHP"
+        case .staticSite: "Static"
+        case .node: "Node"
         }
     }
+
     public var symbolName: String {
         switch self {
-        case .php:        return "chevron.left.forwardslash.chevron.right"
-        case .staticSite: return "doc.richtext"
-        case .node:       return "shippingbox"
+        case .php: "chevron.left.forwardslash.chevron.right"
+        case .staticSite: "doc.richtext"
+        case .node: "shippingbox"
         }
     }
 }
@@ -75,18 +76,20 @@ public struct Site: Identifiable, Hashable, Codable, Sendable {
     public var nodeCommand: String?
     public var nodeEnabled: Bool
 
-    public init(id: UUID = UUID(),
-                name: String,
-                path: String,
-                docroot: String,
-                domain: String,
-                phpVersion: String,
-                type: SiteType,
-                databaseName: String? = nil,
-                secure: Bool = false,
-                nodePort: Int? = nil,
-                nodeCommand: String? = nil,
-                nodeEnabled: Bool = false) {
+    public init(
+        id: UUID = UUID(),
+        name: String,
+        path: String,
+        docroot: String,
+        domain: String,
+        phpVersion: String,
+        type: SiteType,
+        databaseName: String? = nil,
+        secure: Bool = false,
+        nodePort: Int? = nil,
+        nodeCommand: String? = nil,
+        nodeEnabled: Bool = false
+    ) {
         self.id = id
         self.name = name
         self.path = path

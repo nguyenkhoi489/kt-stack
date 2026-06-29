@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct PHPIniEditorSheet: View {
     let version: String
@@ -53,22 +53,21 @@ struct PHPIniEditorSheet: View {
         error = nil
         isSaving = true
         let candidate = text
-        let store = self.store
-        let version = self.version
+        let store = store
+        let version = version
         Task {
-
             if let problem = await Task.detached(priority: .userInitiated, operation: {
                 store.validate(version: version, contents: candidate)
             }).value {
-                self.error = "php.ini has a syntax error (not applied):\n\(problem)"
-                self.isSaving = false
+                error = "php.ini has a syntax error (not applied):\n\(problem)"
+                isSaving = false
                 return
             }
             do {
-                try store.write(version: version, contents: candidate)   // atomic + .bak
+                try store.write(version: version, contents: candidate) // atomic + .bak
             } catch {
                 self.error = error.localizedDescription
-                self.isSaving = false
+                isSaving = false
                 return
             }
             do {
@@ -76,17 +75,15 @@ struct PHPIniEditorSheet: View {
                 isSaving = false
                 dismiss()
             } catch {
-               
                 _ = try? store.restoreBackup(version: version)
                 try? await server.reloadPHPPool(version: version)
                 self.error = "Reload failed; reverted to the previous php.ini.\n\(error.localizedDescription)"
-                self.isSaving = false
+                isSaving = false
             }
         }
     }
 
     private func reset() {
-      
         text = PHPIniTemplate.default
         error = nil
     }

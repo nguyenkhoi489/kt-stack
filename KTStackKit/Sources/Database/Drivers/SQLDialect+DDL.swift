@@ -4,7 +4,6 @@ import Foundation
 /// ride raw because they can't be bound parameters, so `sanitizeType` restricts them to a charset
 /// that can't smuggle further DDL. Every generated statement is shown to the user before it runs.
 public extension SQLDialect {
-
     func createTable(schema: String, table: String, columns: [ColumnDefinition]) throws -> String {
         guard !columns.isEmpty else {
             throw DatabaseError.connection("CREATE TABLE needs at least one column")
@@ -20,24 +19,22 @@ public extension SQLDialect {
     }
 
     func dropDatabase(_ name: String) throws -> String {
-        "DROP DATABASE \(try quoteIdent(name))"
+        try "DROP DATABASE \(quoteIdent(name))"
     }
 
     func dropTable(schema: String, table: String) throws -> String {
-        "DROP TABLE \(try qualifiedTable(schema: schema, table: table))"
+        try "DROP TABLE \(qualifiedTable(schema: schema, table: table))"
     }
 
     func addColumn(schema: String, table: String, column: ColumnDefinition) throws -> String {
-        "ALTER TABLE \(try qualifiedTable(schema: schema, table: table)) "
-            + "ADD COLUMN \(try columnClause(column))"
+        try "ALTER TABLE \(qualifiedTable(schema: schema, table: table)) "
+            + "ADD COLUMN \(columnClause(column))"
     }
 
     func dropColumn(schema: String, table: String, column: String) throws -> String {
-        "ALTER TABLE \(try qualifiedTable(schema: schema, table: table)) "
-            + "DROP COLUMN \(try quoteIdent(column))"
+        try "ALTER TABLE \(qualifiedTable(schema: schema, table: table)) "
+            + "DROP COLUMN \(quoteIdent(column))"
     }
-
-    // MARK: - Helpers
 
     private func columnClause(_ column: ColumnDefinition) throws -> String {
         let name = try quoteIdent(column.name)
@@ -55,8 +52,10 @@ public extension SQLDialect {
         guard !trimmed.isEmpty else {
             throw DatabaseError.connection("Empty column type")
         }
-        let allowed = CharacterSet(charactersIn:
-            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 (),._")
+        let allowed = CharacterSet(
+            charactersIn:
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 (),._"
+        )
         guard trimmed.unicodeScalars.allSatisfy({ allowed.contains($0) }) else {
             throw DatabaseError.connection("Illegal character in column type")
         }

@@ -5,9 +5,6 @@ import XCTest
 /// installed scan, version clamping, and checksum verification. Live download/extract is exercised
 /// manually (network) — these cover the pure logic.
 final class RuntimeManagementTests: XCTestCase {
-
-    // MARK: - VersionResolver
-
     func testParseKTStackRCTolerantKeyValue() {
         let rc = """
         # project runtimes
@@ -27,12 +24,12 @@ final class RuntimeManagementTests: XCTestCase {
         let dir = try tempDir()
         defer { try? FileManager.default.removeItem(at: dir) }
         try ".ktstackrc has php only\nphp = \"8.1\"".write(to: dir.appendingPathComponent(".ktstackrc"), atomically: true, encoding: .utf8)
-        try "v22.5.0".write(to: dir.appendingPathComponent(".nvmrc"), atomically: true, encoding: .utf8)   // leading v stripped
+        try "v22.5.0".write(to: dir.appendingPathComponent(".nvmrc"), atomically: true, encoding: .utf8) // leading v stripped
 
         let r = VersionResolver()
         let v = r.versions(forProjectAt: dir)
-        XCTAssertEqual(v[.php], "8.1")        // from .ktstackrc
-        XCTAssertEqual(v[.node], "22.5.0")    // .nvmrc fallback, v-stripped
+        XCTAssertEqual(v[.php], "8.1") // from .ktstackrc
+        XCTAssertEqual(v[.node], "22.5.0") // .nvmrc fallback, v-stripped
     }
 
     func testKTStackRCBeatsLanguageFallback() throws {
@@ -43,8 +40,6 @@ final class RuntimeManagementTests: XCTestCase {
         XCTAssertEqual(VersionResolver().version(.php, forProjectAt: dir), "8.4")
     }
 
-    // MARK: - RuntimeCatalog
-
     func testInstalledScanAndAvailableExcludesInstalled() throws {
         let root = try tempDir()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -52,8 +47,11 @@ final class RuntimeManagementTests: XCTestCase {
         // Install Node 22.22.3 (the manifest version) by creating its marker binary.
         let nodeBin = paths.runtimeBin("node", "22.22.3")
         try FileManager.default.createDirectory(at: nodeBin, withIntermediateDirectories: true)
-        FileManager.default.createFile(atPath: nodeBin.appendingPathComponent("node").path,
-                                       contents: Data(), attributes: [.posixPermissions: 0o755])
+        FileManager.default.createFile(
+            atPath: nodeBin.appendingPathComponent("node").path,
+            contents: Data(),
+            attributes: [.posixPermissions: 0o755]
+        )
 
         let catalog = RuntimeCatalog(paths: paths)
         XCTAssertEqual(catalog.installedVersions(.node), ["22.22.3"])
@@ -80,8 +78,11 @@ final class RuntimeManagementTests: XCTestCase {
         for r in php {
             XCTAssertEqual(r.url.host, "github.com")
             XCTAssertTrue(r.url.path.contains("/releases/download/"), "\(r.id) must resolve to a release asset")
-            XCTAssertEqual(r.url.lastPathComponent, "php-\(r.version)-arm64.tar.gz",
-                           "filename must follow <name>-<version>-<arch>.tar.gz")
+            XCTAssertEqual(
+                r.url.lastPathComponent,
+                "php-\(r.version)-arm64.tar.gz",
+                "filename must follow <name>-<version>-<arch>.tar.gz"
+            )
         }
     }
 
@@ -93,8 +94,6 @@ final class RuntimeManagementTests: XCTestCase {
         XCTAssertEqual(redis?.url.lastPathComponent, "redis-\(redis!.version)-\(ServiceBinaryCatalog.arch).tar.gz")
     }
 
-    // MARK: - VersionSwitcher clamping
-
     func testResolvedPHPClampsUninstalledPinToInstalled() throws {
         let root = try tempDir()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -102,8 +101,11 @@ final class RuntimeManagementTests: XCTestCase {
         // Only 8.4 installed.
         let bin = paths.runtimeBin("php", "8.4")
         try FileManager.default.createDirectory(at: bin, withIntermediateDirectories: true)
-        FileManager.default.createFile(atPath: bin.appendingPathComponent("php-fpm").path,
-                                       contents: Data(), attributes: [.posixPermissions: 0o755])
+        FileManager.default.createFile(
+            atPath: bin.appendingPathComponent("php-fpm").path,
+            contents: Data(),
+            attributes: [.posixPermissions: 0o755]
+        )
 
         // Project pins 8.1 (NOT installed) → clamp to the installed 8.4.
         let project = try tempDir()
@@ -114,19 +116,15 @@ final class RuntimeManagementTests: XCTestCase {
         XCTAssertEqual(switcher.resolvedPHPVersion(projectDir: project, globalDefault: "8.4"), "8.4")
     }
 
-    // MARK: - ChecksumVerifier
-
     func testChecksumVerifyPassesAndRejects() throws {
         let file = try tempDir().appendingPathComponent("blob.bin")
         try Data("ktstack-runtime".utf8).write(to: file)
         defer { try? FileManager.default.removeItem(at: file.deletingLastPathComponent()) }
         let digest = try ChecksumVerifier.sha256(of: file)
         XCTAssertEqual(digest.count, 64)
-        XCTAssertNoThrow(try ChecksumVerifier.verify(file, expected: digest.uppercased()))  // case-insensitive
+        XCTAssertNoThrow(try ChecksumVerifier.verify(file, expected: digest.uppercased())) // case-insensitive
         XCTAssertThrowsError(try ChecksumVerifier.verify(file, expected: String(repeating: "0", count: 64)))
     }
-
-    // MARK: - PHPModules
 
     func testPHPModulesParseStripsHeadersDeDupesAndSorts() {
         let output = """
@@ -148,11 +146,9 @@ final class RuntimeManagementTests: XCTestCase {
     }
 
     func testPHPModulesListEmptyWhenBinaryAbsent() throws {
-        let paths = AppSupportPaths(root: try tempDir())
+        let paths = try AppSupportPaths(root: tempDir())
         XCTAssertEqual(PHPModules.list(version: "9.9", paths: paths), [])
     }
-
-    // MARK: - Helpers
 
     private func tempDir() throws -> URL {
         let dir = URL(fileURLWithPath: NSTemporaryDirectory())

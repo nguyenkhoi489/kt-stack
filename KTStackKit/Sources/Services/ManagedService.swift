@@ -5,64 +5,66 @@ public enum ServiceKind: String, CaseIterable, Sendable, Hashable {
 
     public var displayName: String {
         switch self {
-        case .nginx:    return "Nginx"
-        case .phpFpm:   return "PHP-FPM"
-        case .dnsmasq:  return "dnsmasq"
-        case .mysql:    return "MySQL"
-        case .postgres: return "PostgreSQL"
-        case .redis:    return "Redis"
-        case .mongodb:  return "MongoDB"
-        case .mailpit:  return "Mailpit"
+        case .nginx: "Nginx"
+        case .phpFpm: "PHP-FPM"
+        case .dnsmasq: "dnsmasq"
+        case .mysql: "MySQL"
+        case .postgres: "PostgreSQL"
+        case .redis: "Redis"
+        case .mongodb: "MongoDB"
+        case .mailpit: "Mailpit"
         }
     }
 
     public var symbolName: String {
         switch self {
-        case .nginx:    return "arrow.triangle.branch"
-        case .phpFpm:   return "chevron.left.forwardslash.chevron.right"
-        case .dnsmasq:  return "point.3.connected.trianglepath.dotted"
-        case .mysql:    return "cylinder.split.1x2"
-        case .postgres: return "cylinder.split.1x2.fill"
-        case .redis:    return "bolt.fill"
-        case .mongodb:  return "leaf.fill"
-        case .mailpit:  return "envelope"
+        case .nginx: "arrow.triangle.branch"
+        case .phpFpm: "chevron.left.forwardslash.chevron.right"
+        case .dnsmasq: "point.3.connected.trianglepath.dotted"
+        case .mysql: "cylinder.split.1x2"
+        case .postgres: "cylinder.split.1x2.fill"
+        case .redis: "bolt.fill"
+        case .mongodb: "leaf.fill"
+        case .mailpit: "envelope"
         }
     }
 
     public var defaultPort: Int? {
         switch self {
-        case .nginx:    return 443
-        case .phpFpm:   return nil
-        case .dnsmasq:  return 53
-        case .mysql:    return 3306
-        case .postgres: return 5432
-        case .redis:    return 6379
-        case .mongodb:  return 27017
-        case .mailpit:  return 8025
-        }
-    }
-    
-    public var binaryName: String? {
-        switch self {
-        case .nginx:    return "nginx"
-        case .phpFpm:   return "php-fpm"
-        case .dnsmasq:  return "dnsmasq"
-        case .mysql:    return "mysqld"
-        case .postgres: return "postgres"
-        case .redis:    return "redis-server"
-        case .mongodb:  return "mongod"
-        case .mailpit:  return "mailpit"
+        case .nginx: 443
+        case .phpFpm: nil
+        case .dnsmasq: 53
+        case .mysql: 3306
+        case .postgres: 5432
+        case .redis: 6379
+        case .mongodb: 27017
+        case .mailpit: 8025
         }
     }
 
-    public var launchdLabel: String { "com.ktstack.\(rawValue)" }
+    public var binaryName: String? {
+        switch self {
+        case .nginx: "nginx"
+        case .phpFpm: "php-fpm"
+        case .dnsmasq: "dnsmasq"
+        case .mysql: "mysqld"
+        case .postgres: "postgres"
+        case .redis: "redis-server"
+        case .mongodb: "mongod"
+        case .mailpit: "mailpit"
+        }
+    }
+
+    public var launchdLabel: String {
+        "com.ktstack.\(rawValue)"
+    }
 }
 
 public protocol ManagedService: AnyObject, Sendable {
     var kind: ServiceKind { get }
-   
+
     var detail: String { get }
-    
+
     var logsURL: URL? { get }
 
     var isInstalled: Bool { get }
@@ -70,7 +72,7 @@ public protocol ManagedService: AnyObject, Sendable {
     func start() async throws
     func stop() async throws
     func restart() async throws
-   
+
     func probe() async -> ServiceStatus
 }
 
@@ -81,7 +83,7 @@ public struct ServiceSnapshot: Identifiable, Sendable, Hashable {
     public var isInstalled: Bool
     public var isBusy: Bool
     public var errorMessage: String?
-  
+
     public var installable: Bool
 
     public var downloadFraction: Double?
@@ -90,9 +92,17 @@ public struct ServiceSnapshot: Identifiable, Sendable, Hashable {
 
     public var memoryBytes: Int64?
 
-    public var id: ServiceKind { kind }
-    public var displayName: String { kind.displayName }
-    public var symbolName: String { kind.symbolName }
+    public var id: ServiceKind {
+        kind
+    }
+
+    public var displayName: String {
+        kind.displayName
+    }
+
+    public var symbolName: String {
+        kind.symbolName
+    }
 
     public var metricsText: String? {
         guard status == .running else { return nil }
@@ -102,16 +112,18 @@ public struct ServiceSnapshot: Identifiable, Sendable, Hashable {
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
-    public init(kind: ServiceKind,
-                status: ServiceStatus,
-                detail: String,
-                isInstalled: Bool,
-                isBusy: Bool = false,
-                errorMessage: String? = nil,
-                installable: Bool = false,
-                downloadFraction: Double? = nil,
-                cpuPercent: Double? = nil,
-                memoryBytes: Int64? = nil) {
+    public init(
+        kind: ServiceKind,
+        status: ServiceStatus,
+        detail: String,
+        isInstalled: Bool,
+        isBusy: Bool = false,
+        errorMessage: String? = nil,
+        installable: Bool = false,
+        downloadFraction: Double? = nil,
+        cpuPercent: Double? = nil,
+        memoryBytes: Int64? = nil
+    ) {
         self.kind = kind
         self.status = status
         self.detail = detail

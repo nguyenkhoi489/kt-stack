@@ -1,5 +1,5 @@
-import XCTest
 import NIOCore
+import XCTest
 @testable import KTStackKit
 
 /// Engine-free coverage of the MySQL error/literal helpers — CI-blocking. `quoteLiteral` is a security
@@ -7,9 +7,6 @@ import NIOCore
 /// literals, so it must doubly-escape quotes/backslashes and reject NUL. The refused-connection
 /// classification decides whether the UI says "engine down" vs a generic connection error.
 final class MySQLErrorMapperTests: XCTestCase {
-
-    // MARK: - quoteLiteral (single-quoted string literal)
-
     func testQuoteLiteralWrapsAndDoublesSingleQuotes() throws {
         XCTAssertEqual(try MySQLErrorMapper.quoteLiteral("app"), "'app'")
         // An embedded quote is doubled so O'Brien can't break out of the literal.
@@ -24,8 +21,6 @@ final class MySQLErrorMapperTests: XCTestCase {
         // NUL can truncate at the server's C-string boundary, so it's refused rather than escaped.
         XCTAssertThrowsError(try MySQLErrorMapper.quoteLiteral("a\u{0}b"))
     }
-
-    // MARK: - connection-refused classification
 
     func testRefusedSocketMapsToEngineNotRunningWhenManaged() {
         let refused = IOError(errnoCode: ECONNREFUSED, reason: "refused")

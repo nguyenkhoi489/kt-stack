@@ -20,7 +20,7 @@ public struct CertMinter {
         case nonLocalDomain(String, tld: String)
         public var errorDescription: String? {
             switch self {
-            case .nonLocalDomain(let d, let t): return "Refusing to mint a certificate for “\(d)” — only .\(t) domains are allowed."
+            case let .nonLocalDomain(d, t): "Refusing to mint a certificate for “\(d)” — only .\(t) domains are allowed."
             }
         }
     }
@@ -33,15 +33,16 @@ public struct CertMinter {
         return (cert, key)
     }
 
-    
     public func removeCert(name: String) {
         try? FileManager.default.removeItem(at: paths.siteCertDir(name))
     }
 
     public func pruneOrphans(keeping: Set<String>) {
         let fm = FileManager.default
-        guard let dirs = try? fm.contentsOfDirectory(at: paths.certsDir,
-                                                     includingPropertiesForKeys: nil) else { return }
+        guard let dirs = try? fm.contentsOfDirectory(
+            at: paths.certsDir,
+            includingPropertiesForKeys: nil
+        ) else { return }
         for dir in dirs where !keeping.contains(dir.lastPathComponent) {
             try? fm.removeItem(at: dir)
         }
@@ -56,8 +57,6 @@ public struct CertMinter {
         guard let exp = notAfter(name: name) else { return true }
         return exp.timeIntervalSinceNow < within
     }
-
-    // MARK: - PEM expiry parsing
 
     static func notAfter(pem: Data) -> Date? {
         guard let der = pemToDER(pem),
@@ -86,10 +85,13 @@ public struct SiteHTTPSProvisioner: Sendable {
     private let installCA: InstallCA
     private let mintLeaf: MintLeaf
 
-    public init(caCert: URL, tld: String,
-                trustQuery: @escaping TrustQuery,
-                installCA: @escaping InstallCA,
-                mintLeaf: @escaping MintLeaf) {
+    public init(
+        caCert: URL,
+        tld: String,
+        trustQuery: @escaping TrustQuery,
+        installCA: @escaping InstallCA,
+        mintLeaf: @escaping MintLeaf
+    ) {
         self.caCert = caCert
         self.tld = tld
         self.trustQuery = trustQuery
@@ -97,18 +99,22 @@ public struct SiteHTTPSProvisioner: Sendable {
         self.mintLeaf = mintLeaf
     }
 
-    public init(paths: AppSupportPaths,
-                tld: String = AppPreferences.defaultTLD,
-                mkcert: MkcertRunner,
-                certMinter: CertMinter,
-                trustQuery: @escaping TrustQuery = CATrustService.isTrustedInSystemKeychain) {
-        self.init(caCert: paths.caRootCert,
-                  tld: tld,
-                  trustQuery: trustQuery,
-                  installCA: { try mkcert.install() },
-                  mintLeaf: { domain, tld in
-                      try certMinter.mint(name: domain, domain: domain, tld: tld)
-                  })
+    public init(
+        paths: AppSupportPaths,
+        tld: String = AppPreferences.defaultTLD,
+        mkcert: MkcertRunner,
+        certMinter: CertMinter,
+        trustQuery: @escaping TrustQuery = CATrustService.isTrustedInSystemKeychain
+    ) {
+        self.init(
+            caCert: paths.caRootCert,
+            tld: tld,
+            trustQuery: trustQuery,
+            installCA: { try mkcert.install() },
+            mintLeaf: { domain, tld in
+                try certMinter.mint(name: domain, domain: domain, tld: tld)
+            }
+        )
     }
 
     public func enableHTTPS(for site: Site) throws {

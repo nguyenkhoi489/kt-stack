@@ -11,7 +11,9 @@ final class ExternalSiteImportTests: XCTestCase {
         try fm.createDirectory(at: tmp, withIntermediateDirectories: true)
     }
 
-    override func tearDownWithError() throws { try? fm.removeItem(at: tmp) }
+    override func tearDownWithError() throws {
+        try? fm.removeItem(at: tmp)
+    }
 
     func testLocalSourceParsesPathDomainPhpAndDropsCredentials() throws {
         let support = tmp.appendingPathComponent("Library/Application Support/Local")

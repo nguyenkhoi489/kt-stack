@@ -1,6 +1,6 @@
-import SwiftUI
 import AppKit
 import KTStackKit
+import SwiftUI
 
 struct MailMessageView: View {
     let detail: MailDetail
@@ -61,8 +61,10 @@ struct MailMessageView: View {
     private var toolbar: some View {
         HStack {
             if hasHTML {
-                KTSegmentedTabs(items: [.init(value: Tab.plain, label: "Plain"), .init(value: .html, label: "HTML")],
-                                selection: $tab)
+                KTSegmentedTabs(
+                    items: [.init(value: Tab.plain, label: "Plain"), .init(value: .html, label: "HTML")],
+                    selection: $tab
+                )
                 .fixedSize()
             }
             Spacer()
@@ -73,7 +75,7 @@ struct MailMessageView: View {
 
     @ViewBuilder
     private var bodyContent: some View {
-        if tab == .html && hasHTML {
+        if tab == .html, hasHTML {
             MailHTMLView(html: detail.HTML ?? "")
         } else {
             ScrollView {
@@ -88,7 +90,9 @@ struct MailMessageView: View {
         }
     }
 
-    private var hasHTML: Bool { detail.HTML?.isEmpty == false }
+    private var hasHTML: Bool {
+        detail.HTML?.isEmpty == false
+    }
 
     private func attachmentsList(_ attachments: [MailAttachment]) -> some View {
         VStack(alignment: .leading, spacing: 4) {

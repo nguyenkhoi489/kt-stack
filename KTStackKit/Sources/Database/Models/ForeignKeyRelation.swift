@@ -7,11 +7,13 @@ public struct ForeignKeyRelation: Sendable, Hashable, Identifiable {
     public let toColumn: String
     public let constraintName: String?
 
-    public init(fromTable: String,
-                fromColumn: String,
-                toTable: String,
-                toColumn: String,
-                constraintName: String? = nil) {
+    public init(
+        fromTable: String,
+        fromColumn: String,
+        toTable: String,
+        toColumn: String,
+        constraintName: String? = nil
+    ) {
         self.fromTable = fromTable
         self.fromColumn = fromColumn
         self.toTable = toTable

@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct V2DataTabView: View {
     @ObservedObject var vm: DatabaseV2ViewModel
@@ -15,7 +15,7 @@ struct V2DataTabView: View {
             if let errorMessage = vm.editError {
                 editErrorBanner(errorMessage)
             }
-            if vm.isLoadingRows && vm.rows == nil {
+            if vm.isLoadingRows, vm.rows == nil {
                 loadingPlaceholder
             } else if let result = vm.rows {
                 HStack(spacing: 0) {
@@ -46,7 +46,7 @@ struct V2DataTabView: View {
 
     private var foreignKeyColumnNames: Set<String> {
         guard let table = vm.selectedTable else { return [] }
-        return Set(vm.foreignKeys.filter { $0.fromTable == table.name }.map { $0.fromColumn })
+        return Set(vm.foreignKeys.filter { $0.fromTable == table.name }.map(\.fromColumn))
     }
 
     private var contentHeader: some View {
@@ -67,7 +67,7 @@ struct V2DataTabView: View {
                     .font(.jbMono(12.5))
                     .foregroundStyle(KTEditorTheme.label2)
             }
-            if vm.selectedTable != nil && !vm.canEdit {
+            if vm.selectedTable != nil, !vm.canEdit {
                 Text("No primary key — edit disabled")
                     .font(.jbMono(11))
                     .foregroundStyle(KTEditorTheme.label3)
@@ -196,15 +196,15 @@ struct V2DataTabView: View {
         switch cell {
         case .null:
             Text("NULL").font(.jbMono(12.5)).italic().foregroundStyle(KTEditorTheme.faint)
-        case .int(let n):
+        case let .int(n):
             Text(String(n)).font(.jbMono(12.5)).foregroundStyle(KTEditorTheme.Grid.number)
-        case .double(let d):
+        case let .double(d):
             Text(String(d)).font(.jbMono(12.5)).foregroundStyle(KTEditorTheme.Grid.number)
-        case .bool(let b):
+        case let .bool(b):
             Text(b ? "true" : "false").font(.jbMono(12.5)).foregroundStyle(KTEditorTheme.label)
-        case .text(let s):
+        case let .text(s):
             Text(s).font(.jbMono(12.5)).foregroundStyle(KTEditorTheme.label)
-        case .blob(let d):
+        case let .blob(d):
             Text("[\(d.count) bytes]").font(.jbMono(12.5)).italic().foregroundStyle(KTEditorTheme.faint)
         }
     }
@@ -218,7 +218,7 @@ struct V2DataTabView: View {
                 .font(.jbMono(12))
                 .foregroundStyle(KTEditorTheme.label2)
             Spacer()
-            if vm.hasMore && !vm.isLoadingRows {
+            if vm.hasMore, !vm.isLoadingRows {
                 V2Button(title: "Load more") {
                     Task { await vm.fetchMore() }
                 }

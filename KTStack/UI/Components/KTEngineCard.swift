@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct KTEngineCard: View {
     let name: String
@@ -23,10 +23,14 @@ struct KTEngineCard: View {
             }
             .padding(.horizontal, 11).padding(.vertical, 10)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 11, style: .continuous)
-                .fill(active ? KTColor.accentSoft : (hovering ? KTColor.btnHover : Color.white)))
-            .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous)
-                .stroke(active ? KTColor.accent : Color(hex: 0xE6E6EC), lineWidth: active ? 1.5 : 0.5))
+            .background(
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .fill(active ? KTColor.accentSoft : (hovering ? KTColor.btnHover : Color.white))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .stroke(active ? KTColor.accent : Color(hex: 0xE6E6EC), lineWidth: active ? 1.5 : 0.5)
+            )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

@@ -1,9 +1,8 @@
-import XCTest
 import CoreGraphics
+import XCTest
 @testable import KTStackKit
 
 final class ERLayoutEngineTests: XCTestCase {
-
     func testEmptyTablesProducesEmptyLayout() {
         let layout = ERLayoutEngine.layout(tables: [], columnsByTable: [:], relations: [])
         XCTAssertEqual(layout, ERDiagramLayout.empty)
@@ -14,11 +13,11 @@ final class ERLayoutEngineTests: XCTestCase {
         let cols: [String: [String]] = [
             "users": ["id", "name"],
             "orders": ["id", "user_id"],
-            "items": ["id", "order_id"]
+            "items": ["id", "order_id"],
         ]
         let relations = [
             ForeignKeyRelation(fromTable: "orders", fromColumn: "user_id", toTable: "users", toColumn: "id"),
-            ForeignKeyRelation(fromTable: "items", fromColumn: "order_id", toTable: "orders", toColumn: "id")
+            ForeignKeyRelation(fromTable: "items", fromColumn: "order_id", toTable: "orders", toColumn: "id"),
         ]
         let a = ERLayoutEngine.layout(tables: tables, columnsByTable: cols, relations: relations)
         let b = ERLayoutEngine.layout(tables: tables, columnsByTable: cols, relations: relations)
@@ -32,8 +31,10 @@ final class ERLayoutEngineTests: XCTestCase {
         let rects = layout.nodes.map(\.rect)
         for i in 0..<rects.count {
             for j in (i + 1)..<rects.count {
-                XCTAssertFalse(rects[i].intersects(rects[j]),
-                                "Node \(i) overlaps node \(j): \(rects[i]) vs \(rects[j])")
+                XCTAssertFalse(
+                    rects[i].intersects(rects[j]),
+                    "Node \(i) overlaps node \(j): \(rects[i]) vs \(rects[j])"
+                )
             }
         }
     }
@@ -42,10 +43,10 @@ final class ERLayoutEngineTests: XCTestCase {
         let tables = ["users", "orders"]
         let cols: [String: [String]] = [
             "users": ["id"],
-            "orders": ["id", "user_id"]
+            "orders": ["id", "user_id"],
         ]
         let relations = [
-            ForeignKeyRelation(fromTable: "orders", fromColumn: "user_id", toTable: "users", toColumn: "id")
+            ForeignKeyRelation(fromTable: "orders", fromColumn: "user_id", toTable: "users", toColumn: "id"),
         ]
         let layout = ERLayoutEngine.layout(tables: tables, columnsByTable: cols, relations: relations)
         XCTAssertEqual(layout.edges.count, 1)
@@ -71,11 +72,11 @@ final class ERLayoutEngineTests: XCTestCase {
         let tables = ["parent", "child"]
         let cols: [String: [String]] = [
             "parent": ["a", "b"],
-            "child": ["pa", "pb"]
+            "child": ["pa", "pb"],
         ]
         let relations = [
             ForeignKeyRelation(fromTable: "child", fromColumn: "pa", toTable: "parent", toColumn: "a"),
-            ForeignKeyRelation(fromTable: "child", fromColumn: "pb", toTable: "parent", toColumn: "b")
+            ForeignKeyRelation(fromTable: "child", fromColumn: "pb", toTable: "parent", toColumn: "b"),
         ]
         let layout = ERLayoutEngine.layout(tables: tables, columnsByTable: cols, relations: relations)
         XCTAssertEqual(layout.edges.count, 1)
@@ -86,8 +87,9 @@ final class ERLayoutEngineTests: XCTestCase {
             tables: ["users"],
             columnsByTable: ["users": ["id"]],
             relations: [
-                ForeignKeyRelation(fromTable: "ghost", fromColumn: "u", toTable: "users", toColumn: "id")
-            ])
+                ForeignKeyRelation(fromTable: "ghost", fromColumn: "u", toTable: "users", toColumn: "id"),
+            ]
+        )
         XCTAssertEqual(layout.edges.count, 0)
     }
 
@@ -96,8 +98,9 @@ final class ERLayoutEngineTests: XCTestCase {
             tables: ["orders"],
             columnsByTable: ["orders": ["id", "user_id"]],
             relations: [
-                ForeignKeyRelation(fromTable: "orders", fromColumn: "user_id", toTable: "users", toColumn: "id")
-            ])
+                ForeignKeyRelation(fromTable: "orders", fromColumn: "user_id", toTable: "users", toColumn: "id"),
+            ]
+        )
         let node = try! XCTUnwrap(layout.nodes.first)
         XCTAssertTrue(node.foreignKeyColumns.contains("user_id"))
         XCTAssertFalse(node.foreignKeyColumns.contains("id"))

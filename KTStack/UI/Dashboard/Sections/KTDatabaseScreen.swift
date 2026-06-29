@@ -1,9 +1,10 @@
-import SwiftUI
 import AppKit
 import KTStackKit
+import SwiftUI
 
 struct KTDatabaseScreen: View {
     @EnvironmentObject private var vm: DatabaseViewModel
+    @EnvironmentObject private var documentVM: DocumentViewModel
     @EnvironmentObject private var connectionStore: ConnectionStore
     @EnvironmentObject private var services: ServiceManager
     @EnvironmentObject private var overlay: KTOverlayCenter
@@ -37,8 +38,10 @@ struct KTDatabaseScreen: View {
             }
         }
         .task {
-            reachability.configure(profiles: { connectionStore.profiles },
-                                   managedRunning: { managedEngineRunning($0) })
+            reachability.configure(
+                profiles: { connectionStore.profiles },
+                managedRunning: { managedEngineRunning($0) }
+            )
             reachability.start()
             await reloadBackups()
         }
@@ -59,8 +62,12 @@ struct KTDatabaseScreen: View {
             KTButton(title: "Connect", systemImage: "link", kind: .secondary) { overlay.connectPresented = true }
             KTButton(title: "Import", systemImage: "square.and.arrow.down", kind: .secondary) { showImportExport = true }
                 .disabled(vm.connection != .connected || !(vm.canDump || vm.canManualImport))
-            KTButton(title: backingUpAll ? "Backing up…" : "Backup All", systemImage: "tray.and.arrow.down",
-                     kind: .secondary, isLoading: backingUpAll) { backupAll() }
+            KTButton(
+                title: backingUpAll ? "Backing up…" : "Backup All",
+                systemImage: "tray.and.arrow.down",
+                kind: .secondary,
+                isLoading: backingUpAll
+            ) { backupAll() }
                 .disabled(vm.connection != .connected || backingUpAll)
             KTButton(title: "New Database", systemImage: "plus", kind: .primary) { overlay.newDatabasePresented = true }
                 .disabled(vm.connection != .connected || !vm.canCreateDatabase)
@@ -68,8 +75,10 @@ struct KTDatabaseScreen: View {
     }
 
     private var tabBar: some View {
-        KTSegmentedTabs(items: [.init(value: .servers, label: "Servers"), .init(value: .backups, label: "Backups")],
-                        selection: $tab)
+        KTSegmentedTabs(
+            items: [.init(value: .servers, label: "Servers"), .init(value: .backups, label: "Backups")],
+            selection: $tab
+        )
     }
 
     @ViewBuilder
@@ -83,16 +92,22 @@ struct KTDatabaseScreen: View {
     @ViewBuilder
     private var serversTab: some View {
         if visibleProfiles.isEmpty {
-            emptyState(icon: "cylinder.split.1x2", title: "No connections yet",
-                       message: "Connect a database server to browse it here.",
-                       cta: ("Connect a server", "link", { overlay.connectPresented = true }))
+            emptyState(
+                icon: "cylinder.split.1x2",
+                title: "No connections yet",
+                message: "Connect a database server to browse it here.",
+                cta: ("Connect a server", "link", { overlay.connectPresented = true })
+            )
         } else {
             VStack(spacing: 14) {
                 KTSearchField(text: $serverSearch, placeholder: "Search connections…")
                 let matches = filteredProfiles
                 if matches.isEmpty {
-                    emptyState(icon: "magnifyingglass", title: "No matches",
-                               message: "No connection matches “\(serverSearch)”.")
+                    emptyState(
+                        icon: "magnifyingglass",
+                        title: "No matches",
+                        message: "No connection matches “\(serverSearch)”."
+                    )
                 } else {
                     ScrollView { serverRows(matches) }
                 }
@@ -103,8 +118,15 @@ struct KTDatabaseScreen: View {
     private var visibleProfiles: [ConnectionProfile] {
         var seen = Set<String>()
         return connectionStore.profiles.filter { profile in
-            let key = [profile.kind.rawValue, profile.name, profile.host, String(profile.port),
-                       profile.user, profile.database, profile.filePath ?? ""].joined(separator: "\u{1F}")
+            let key = [
+                profile.kind.rawValue,
+                profile.name,
+                profile.host,
+                String(profile.port),
+                profile.user,
+                profile.database,
+                profile.filePath ?? "",
+            ].joined(separator: "\u{1F}")
             return seen.insert(key).inserted
         }
     }
@@ -121,29 +143,40 @@ struct KTDatabaseScreen: View {
     private func serverRows(_ profiles: [ConnectionProfile]) -> some View {
         LazyVStack(spacing: 10) {
             ForEach(profiles) { profile in
-                KTServerRow(profile: profile,
-                            status: reachability.currentStatus(for: profile.id),
-                            databaseCount: databaseCount(for: profile),
-                            onOpen: { open(profile) },
-                            onBackup: { backupServer(profile) },
-                            onRestore: { tab = .backups })
+                KTServerRow(
+                    profile: profile,
+                    status: reachability.currentStatus(for: profile.id),
+                    databaseCount: databaseCount(for: profile),
+                    isConnected: isConnected(profile),
+                    onOpen: { open(profile) },
+                    onBackup: { backupServer(profile) },
+                    onRestore: { tab = .backups },
+                    onDisconnect: { disconnect(profile) }
+                )
             }
         }
     }
 
     private func databaseCount(for profile: ConnectionProfile) -> Int? {
+        if profile.kind == .mongodb {
+            guard documentVM.connection == .connected, documentVM.selectedProfile?.id == profile.id else { return nil }
+            return documentVM.databases.count
+        }
         guard vm.connection == .connected, vm.selectedProfile?.id == profile.id else { return nil }
         return vm.databases.count
     }
 
-    @ViewBuilder
     private var backupsTab: some View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
                 Text("\(backupSets.count) backups").font(.jbMono(13)).foregroundStyle(Color(hex: 0x8E8E93))
                 Spacer()
-                KTButton(title: backingUpAll ? "Backing up…" : "Backup All Now", systemImage: "tray.and.arrow.down",
-                         kind: .primary, isLoading: backingUpAll) { backupAll() }
+                KTButton(
+                    title: backingUpAll ? "Backing up…" : "Backup All Now",
+                    systemImage: "tray.and.arrow.down",
+                    kind: .primary,
+                    isLoading: backingUpAll
+                ) { backupAll() }
                     .disabled(vm.connection != .connected || backingUpAll)
             }
             .padding(.bottom, 14)
@@ -154,10 +187,12 @@ struct KTDatabaseScreen: View {
                     KTListContainer {
                         VStack(spacing: 0) {
                             ForEach(Array(backupSets.enumerated()), id: \.element.id) { index, set in
-                                KTBackupRow(backup: set,
-                                            onRestore: { restoringSet = set },
-                                            onDownload: { download(set) },
-                                            onDelete: { confirmDeleteBackup(set) })
+                                KTBackupRow(
+                                    backup: set,
+                                    onRestore: { restoringSet = set },
+                                    onDownload: { download(set) },
+                                    onDelete: { confirmDeleteBackup(set) }
+                                )
                                 if index < backupSets.count - 1 {
                                     Rectangle().fill(KTColor.sepFaint).frame(height: 0.5).padding(.leading, 18)
                                 }
@@ -169,8 +204,12 @@ struct KTDatabaseScreen: View {
         }
     }
 
-    private func emptyState(icon: String, title: String, message: String,
-                            cta: (title: String, systemImage: String, action: () -> Void)? = nil) -> some View {
+    private func emptyState(
+        icon: String,
+        title: String,
+        message: String,
+        cta: (title: String, systemImage: String, action: () -> Void)? = nil
+    ) -> some View {
         VStack(spacing: 8) {
             Image(systemName: icon).font(.system(size: 42, weight: .light)).foregroundStyle(KTColor.faint)
             Text(title).font(.jbMono(16, .regular)).foregroundStyle(KTColor.ink3)
@@ -187,10 +226,10 @@ struct KTDatabaseScreen: View {
     private func managedEngineRunning(_ kind: DatabaseKind) -> Bool {
         let serviceKind: ServiceKind
         switch kind {
-        case .mysql:    serviceKind = .mysql
+        case .mysql: serviceKind = .mysql
         case .postgres: serviceKind = .postgres
-        case .mongodb:  serviceKind = .mongodb
-        case .sqlite:   return false
+        case .mongodb: serviceKind = .mongodb
+        case .sqlite: return false
         }
         return services.snapshots.first { $0.kind == serviceKind }?.status == .running
     }
@@ -199,18 +238,44 @@ struct KTDatabaseScreen: View {
         guard !opening else { return }
         opening = true
         Task {
-            await vm.select(profile: profile)
             defer { opening = false }
-            guard vm.connection == .connected else {
-                if case .failed(let error) = vm.connection { overlay.toast(error.message) }
-                return
-            }
-            if let database = vm.resolvePreferredDatabase(for: profile) {
-                await vm.select(database: database)
+            if profile.kind == .mongodb {
+                await documentVM.select(profile: profile)
+                guard documentVM.connection == .connected else {
+                    if case let .failed(error) = documentVM.connection { overlay.toast(error.message) }
+                    return
+                }
+                DocumentWindowController.shared.present(documentVM: documentVM, services: services)
             } else {
-                overlay.toast("Connected to “\(profile.name)” — no databases found")
+                await vm.select(profile: profile)
+                guard vm.connection == .connected else {
+                    if case let .failed(error) = vm.connection { overlay.toast(error.message) }
+                    return
+                }
+                if let database = vm.resolvePreferredDatabase(for: profile) {
+                    await vm.select(database: database)
+                } else {
+                    overlay.toast("Connected to \"\(profile.name)\" - no databases found")
+                }
+                DatabaseV2WindowController.shared.present(profile: profile)
             }
-            DatabaseV2WindowController.shared.present(profile: profile)
+        }
+    }
+
+    private func isConnected(_ profile: ConnectionProfile) -> Bool {
+        if profile.kind == .mongodb {
+            return documentVM.connection == .connected && documentVM.selectedProfile?.id == profile.id
+        }
+        return vm.connection == .connected && vm.selectedProfile?.id == profile.id
+    }
+
+    private func disconnect(_ profile: ConnectionProfile) {
+        if profile.kind == .mongodb {
+            DocumentWindowController.shared.close()
+            documentVM.deselect()
+        } else {
+            DatabaseV2WindowController.shared.close()
+            vm.deselect()
         }
     }
 
@@ -220,7 +285,7 @@ struct KTDatabaseScreen: View {
                 await vm.select(profile: profile)
             }
             guard vm.connection == .connected else {
-                if case .failed(let error) = vm.connection { overlay.toast(error.message) }
+                if case let .failed(error) = vm.connection { overlay.toast(error.message) }
                 return
             }
             let set = await vm.backupAllDatabases(session: session)
@@ -241,9 +306,12 @@ struct KTDatabaseScreen: View {
     }
 
     private func confirmDeleteBackup(_ set: BackupSet) {
-        overlay.confirm(title: "Delete backup?",
-                        message: "Permanently delete this backup. This cannot be undone.",
-                        okLabel: "Delete", danger: true) {
+        overlay.confirm(
+            title: "Delete backup?",
+            message: "Permanently delete this backup. This cannot be undone.",
+            okLabel: "Delete",
+            danger: true
+        ) {
             vm.deleteBackup(set, session: session)
             Task { await reloadBackups() }
             overlay.toast("Backup deleted")

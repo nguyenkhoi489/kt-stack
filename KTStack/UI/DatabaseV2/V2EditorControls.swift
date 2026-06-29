@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 enum V2ButtonKind {
     case primary
@@ -9,9 +9,9 @@ enum V2ButtonKind {
 
 struct V2Button: View {
     let title: String
-    var systemImage: String? = nil
+    var systemImage: String?
     var kind: V2ButtonKind = .standard
-    var action: (() -> Void)? = nil
+    var action: (() -> Void)?
 
     var body: some View {
         Button {
@@ -38,21 +38,21 @@ struct V2Button: View {
 
     private var foreground: Color {
         switch kind {
-        case .primary: return KTEditorTheme.onAccent
-        case .standard: return KTEditorTheme.label
-        case .danger: return KTEditorTheme.Status.error
+        case .primary: KTEditorTheme.onAccent
+        case .standard: KTEditorTheme.label
+        case .danger: KTEditorTheme.Status.error
         }
     }
 
     private var backgroundStyle: AnyShapeStyle {
         switch kind {
         case .primary:
-            return AnyShapeStyle(LinearGradient(
+            AnyShapeStyle(LinearGradient(
                 colors: [Color(hex: 0x4385FF), KTEditorTheme.accent],
                 startPoint: .top, endPoint: .bottom
             ))
         default:
-            return AnyShapeStyle(KTEditorTheme.btnBg)
+            AnyShapeStyle(KTEditorTheme.btnBg)
         }
     }
 
@@ -66,7 +66,7 @@ struct V2Button: View {
 struct V2IconButton: View {
     let systemImage: String
     var tint: Color = KTEditorTheme.label2
-    var action: (() -> Void)? = nil
+    var action: (() -> Void)?
 
     var body: some View {
         Button {

@@ -33,7 +33,7 @@ final class TLDResolutionTests: XCTestCase {
 
     func testSetTLDScriptNoOpWhenUnchangedSkipsRemoval() {
         let s = installer.setTLDScript(old: "test", new: "test")
-        XCTAssertFalse(s.contains("rm -f '/etc/resolver/test'"))   // nothing to orphan
+        XCTAssertFalse(s.contains("rm -f '/etc/resolver/test'")) // nothing to orphan
         XCTAssertTrue(s.contains("cat > '/etc/resolver/test'"))
     }
 
@@ -43,7 +43,7 @@ final class TLDResolutionTests: XCTestCase {
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         let reg = SiteRegistry(storeURL: dir.appendingPathComponent("sites.json"), tld: "localhost")
-        XCTAssertThrowsError(try reg.validateDomain("app.test"))    // wrong TLD for this registry
-        XCTAssertNoThrow(try reg.validateDomain("app.localhost"))   // matches the injected TLD
+        XCTAssertThrowsError(try reg.validateDomain("app.test")) // wrong TLD for this registry
+        XCTAssertNoThrow(try reg.validateDomain("app.localhost")) // matches the injected TLD
     }
 }

@@ -1,7 +1,6 @@
+import KTStackKit
 import SwiftUI
 import UniformTypeIdentifiers
-import KTStackKit
-
 
 struct AddConnectionSheet: View {
     @EnvironmentObject private var store: ConnectionStore
@@ -69,13 +68,13 @@ struct AddConnectionSheet: View {
             Button("Choose…") { importingFile = true }
         }
         Toggle("Read-only (open the file read-only)", isOn: $readOnly)
-        .fileImporter(isPresented: $importingFile, allowedContentTypes: [.data]) { result in
-            if case .success(let url) = result {
-                filePath = url.path
-                if name.isEmpty { name = url.deletingPathExtension().lastPathComponent }
-                test = .idle
+            .fileImporter(isPresented: $importingFile, allowedContentTypes: [.data]) { result in
+                if case let .success(url) = result {
+                    filePath = url.path
+                    if name.isEmpty { name = url.deletingPathExtension().lastPathComponent }
+                    test = .idle
+                }
             }
-        }
     }
 
     @ViewBuilder
@@ -84,17 +83,19 @@ struct AddConnectionSheet: View {
         TextField("Host", text: $host, prompt: Text("db.example.com"))
         TextField("Port", text: $port)
         TextField("User", text: $user)
-        SecureField("Password", text: $password,
-                    prompt: Text(editing == nil ? "" : "leave blank to keep current"))
+        SecureField(
+            "Password",
+            text: $password,
+            prompt: Text(editing == nil ? "" : "leave blank to keep current")
+        )
         TextField("Database", text: $database, prompt: Text("optional"))
         Picker("TLS", selection: $tlsMode) {
             ForEach(TLSMode.allCases, id: \.self) { Text($0.rawValue).tag($0) }
         }
         Toggle("Read-only (writes rejected by the server)", isOn: $readOnly)
-        .onChange(of: host) { _ in test = .idle }
+            .onChange(of: host) { _ in test = .idle }
     }
 
-    @ViewBuilder
     private var testRow: some View {
         HStack(spacing: KDSpacing.space2) {
             Button("Test Connection", action: runTest)
@@ -105,7 +106,7 @@ struct AddConnectionSheet: View {
             case .ok:
                 Label("Connected", systemImage: "checkmark.circle.fill")
                     .font(KDFont.footnote).foregroundStyle(.green)
-            case .failed(let message):
+            case let .failed(message):
                 Label(message, systemImage: "exclamationmark.triangle.fill")
                     .font(KDFont.footnote).foregroundStyle(.orange).lineLimit(2)
             }
@@ -133,19 +134,19 @@ struct AddConnectionSheet: View {
 
     private func engineLabel(_ kind: DatabaseKind) -> String {
         switch kind {
-        case .mysql:    return "MySQL"
-        case .postgres: return "PostgreSQL"
-        case .sqlite:   return "SQLite"
-        case .mongodb:  return "MongoDB"
+        case .mysql: "MySQL"
+        case .postgres: "PostgreSQL"
+        case .sqlite: "SQLite"
+        case .mongodb: "MongoDB"
         }
     }
 
     private static func defaultPort(_ kind: DatabaseKind) -> String {
         switch kind {
-        case .postgres: return "5432"
-        case .mysql:    return "3306"
-        case .mongodb:  return "27017"
-        case .sqlite:   return ""
+        case .postgres: "5432"
+        case .mysql: "3306"
+        case .mongodb: "27017"
+        case .sqlite: ""
         }
     }
 
@@ -153,7 +154,7 @@ struct AddConnectionSheet: View {
         guard let e = editing else { return }
         kind = e.kind; name = e.name; host = e.host; port = String(e.port)
         user = e.user; database = e.database; filePath = e.filePath ?? ""
-        tlsMode = e.tlsMode; readOnly = e.readOnly   // password intentionally left blank
+        tlsMode = e.tlsMode; readOnly = e.readOnly // password intentionally left blank
     }
 
     private func buildProfile() -> ConnectionProfile? {
@@ -164,7 +165,8 @@ struct AddConnectionSheet: View {
                 id: editing?.id ?? UUID(),
                 name: name.isEmpty ? URL(fileURLWithPath: path).lastPathComponent : name,
                 kind: .sqlite, host: "", port: 0, user: "", database: SQLiteDriver.mainDatabase,
-                filePath: path, readOnly: readOnly)
+                filePath: path, readOnly: readOnly
+            )
         }
         let trimmedHost = host.trimmingCharacters(in: .whitespaces)
         guard let portNum = Int(port) else { return nil }
@@ -172,7 +174,8 @@ struct AddConnectionSheet: View {
             id: editing?.id ?? UUID(),
             name: name.isEmpty ? trimmedHost : name,
             kind: kind, host: trimmedHost, port: portNum, user: user, database: database,
-            tlsMode: tlsMode, readOnly: readOnly)
+            tlsMode: tlsMode, readOnly: readOnly
+        )
     }
 
     private var effectivePassword: String? {
@@ -208,7 +211,7 @@ struct AddConnectionSheet: View {
         if editing == nil {
             store.add(profile, password: pwd)
         } else {
-            store.update(profile, password: pwd)   // nil pwd keeps the existing secret
+            store.update(profile, password: pwd) // nil pwd keeps the existing secret
         }
         dismiss()
     }

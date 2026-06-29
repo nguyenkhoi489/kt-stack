@@ -17,7 +17,7 @@ final class AppPreferencesTests: XCTestCase {
     func testTLDPersistsAndReloads() {
         let d = makeDefaults()
         XCTAssertTrue(AppPreferences(defaults: d).setTLD("home.arpa"))
-        XCTAssertEqual(AppPreferences(defaults: d).tld, "home.arpa")   // fresh instance reloads it
+        XCTAssertEqual(AppPreferences(defaults: d).tld, "home.arpa") // fresh instance reloads it
     }
 
     func testSitesRootPersistsAndReloads() {
@@ -28,12 +28,12 @@ final class AppPreferencesTests: XCTestCase {
 
     func testInvalidTLDRejectedAndNothingPersisted() {
         let prefs = AppPreferences(defaults: makeDefaults())
-        XCTAssertFalse(prefs.setTLD("My.Test"))   // uppercase
-        XCTAssertFalse(prefs.setTLD("a b"))        // space
-        XCTAssertFalse(prefs.setTLD(".test"))      // leading dot
-        XCTAssertFalse(prefs.setTLD("a..b"))       // empty label
-        XCTAssertFalse(prefs.setTLD(""))           // empty
-        XCTAssertEqual(prefs.tld, AppPreferences.defaultTLD)   // unchanged
+        XCTAssertFalse(prefs.setTLD("My.Test")) // uppercase
+        XCTAssertFalse(prefs.setTLD("a b")) // space
+        XCTAssertFalse(prefs.setTLD(".test")) // leading dot
+        XCTAssertFalse(prefs.setTLD("a..b")) // empty label
+        XCTAssertFalse(prefs.setTLD("")) // empty
+        XCTAssertEqual(prefs.tld, AppPreferences.defaultTLD) // unchanged
     }
 
     func testValidatorAcceptsEverySafeTLD() {
@@ -49,7 +49,7 @@ final class AppPreferencesTests: XCTestCase {
     }
 
     func testSafeListExcludesHSTSAndPublicTLDs() {
-        XCTAssertFalse(AppPreferences.safeTLDs.contains("dev"))    // HSTS-preloaded
-        XCTAssertFalse(AppPreferences.safeTLDs.contains("com"))    // real public TLD
+        XCTAssertFalse(AppPreferences.safeTLDs.contains("dev")) // HSTS-preloaded
+        XCTAssertFalse(AppPreferences.safeTLDs.contains("com")) // real public TLD
     }
 }

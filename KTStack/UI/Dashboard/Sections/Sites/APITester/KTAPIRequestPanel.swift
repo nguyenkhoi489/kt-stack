@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct KTAPIRequestPanel: View {
     @ObservedObject var vm: APITesterViewModel
@@ -7,9 +7,20 @@ struct KTAPIRequestPanel: View {
 
     enum BuilderTab: Hashable { case params, headers, body }
 
-    static let commonHeaders = ["Accept", "Authorization", "Content-Type", "Accept-Language",
-                                "Cache-Control", "Cookie", "Origin", "Referer", "User-Agent",
-                                "X-Requested-With", "X-CSRF-TOKEN", "X-API-Key"]
+    static let commonHeaders = [
+        "Accept",
+        "Authorization",
+        "Content-Type",
+        "Accept-Language",
+        "Cache-Control",
+        "Cookie",
+        "Origin",
+        "Referer",
+        "User-Agent",
+        "X-Requested-With",
+        "X-CSRF-TOKEN",
+        "X-API-Key",
+    ]
 
     @State private var builderTab: BuilderTab = .params
 
@@ -38,12 +49,16 @@ struct KTAPIRequestPanel: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func requestBar(_ route: APIRoute) -> some View {
+    private func requestBar(_: APIRoute) -> some View {
         HStack(spacing: 10) {
             methodPicker
             urlField
-            KTButton(title: "Send", systemImage: "paperplane.fill", kind: .primary,
-                     isLoading: vm.isSending) {
+            KTButton(
+                title: "Send",
+                systemImage: "paperplane.fill",
+                kind: .primary,
+                isLoading: vm.isSending
+            ) {
                 Task { await vm.send(site: site) }
             }
         }
@@ -134,10 +149,14 @@ struct KTAPIRequestPanel: View {
 
     private var builderTabs: some View {
         HStack {
-            KTSegmentedTabs(items: [.init(value: BuilderTab.params, label: "Params"),
-                                    .init(value: .headers, label: "Headers"),
-                                    .init(value: .body, label: "Body")],
-                            selection: $builderTab)
+            KTSegmentedTabs(
+                items: [
+                    .init(value: BuilderTab.params, label: "Params"),
+                    .init(value: .headers, label: "Headers"),
+                    .init(value: .body, label: "Body"),
+                ],
+                selection: $builderTab
+            )
             Spacer()
         }
         .padding(.horizontal, 14).padding(.top, 10)
@@ -147,36 +166,46 @@ struct KTAPIRequestPanel: View {
     private func tabContent(_ route: APIRoute) -> some View {
         switch builderTab {
         case .params: paramsTab(route)
-        case .headers: KTEditablePairList(pairs: $vm.requestDraft.headers,
-                                          keyPlaceholder: "Header", valuePlaceholder: "Value",
-                                          keySuggestions: Self.commonHeaders,
-                                          variableNames: vm.variableNames)
+        case .headers: KTEditablePairList(
+                pairs: $vm.requestDraft.headers,
+                keyPlaceholder: "Header",
+                valuePlaceholder: "Value",
+                keySuggestions: Self.commonHeaders,
+                variableNames: vm.variableNames
+            )
         case .body: bodyTab(route)
         }
     }
 
-    @ViewBuilder
     private func paramsTab(_ route: APIRoute) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             if !vm.requestDraft.pathParams.isEmpty {
                 sectionLabel("PATH")
-                KTEditablePairList(pairs: $vm.requestDraft.pathParams,
-                                   keyPlaceholder: "Name", valuePlaceholder: "Value", lockKeys: true,
-                                   variableNames: vm.variableNames)
+                KTEditablePairList(
+                    pairs: $vm.requestDraft.pathParams,
+                    keyPlaceholder: "Name",
+                    valuePlaceholder: "Value",
+                    lockKeys: true,
+                    variableNames: vm.variableNames
+                )
             }
             sectionLabel("QUERY")
-            KTEditablePairList(pairs: $vm.requestDraft.query,
-                               keyPlaceholder: "Key", valuePlaceholder: "Value",
-                               variableNames: vm.variableNames)
+            KTEditablePairList(
+                pairs: $vm.requestDraft.query,
+                keyPlaceholder: "Key",
+                valuePlaceholder: "Value",
+                variableNames: vm.variableNames
+            )
             fieldsReference(route)
         }
     }
 
-    @ViewBuilder
     private func bodyTab(_ route: APIRoute) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            KTSegmentedTabs(items: RequestBodyMode.allCases.map { .init(value: $0, label: $0.label) },
-                            selection: $vm.requestDraft.bodyMode)
+            KTSegmentedTabs(
+                items: RequestBodyMode.allCases.map { .init(value: $0, label: $0.label) },
+                selection: $vm.requestDraft.bodyMode
+            )
             Group {
                 switch vm.requestDraft.bodyMode {
                 case .none:
@@ -189,9 +218,12 @@ struct KTAPIRequestPanel: View {
                         .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Color(hex: 0xFBFBFC)))
                         .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(KTColor.fieldBorder, lineWidth: 0.5))
                 case .form:
-                    KTEditablePairList(pairs: $vm.requestDraft.formFields,
-                                       keyPlaceholder: "Key", valuePlaceholder: "Value",
-                                       variableNames: vm.variableNames)
+                    KTEditablePairList(
+                        pairs: $vm.requestDraft.formFields,
+                        keyPlaceholder: "Key",
+                        valuePlaceholder: "Value",
+                        variableNames: vm.variableNames
+                    )
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 140, alignment: .topLeading)
@@ -283,9 +315,12 @@ struct KTEditablePairList: View {
                         if variableNames.isEmpty {
                             field(text: $pair.value, placeholder: valuePlaceholder, disabled: false)
                         } else {
-                            KTVariableTextField(text: $pair.value, placeholder: valuePlaceholder,
-                                                variableNames: variableNames)
-                                .frame(maxWidth: .infinity)
+                            KTVariableTextField(
+                                text: $pair.value,
+                                placeholder: valuePlaceholder,
+                                variableNames: variableNames
+                            )
+                            .frame(maxWidth: .infinity)
                         }
                     }
                     if !lockKeys {
@@ -306,7 +341,7 @@ struct KTEditablePairList: View {
         }
     }
 
-    private func fieldBox<Content: View>(disabled: Bool, @ViewBuilder _ content: () -> Content) -> some View {
+    private func fieldBox(disabled _: Bool, @ViewBuilder _ content: () -> some View) -> some View {
         HStack(spacing: 4) { content() }
             .padding(.horizontal, 9).padding(.vertical, 6)
             .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(Color(hex: 0xFBFBFC)))

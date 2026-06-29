@@ -1,16 +1,17 @@
 import Foundation
 
 public struct SchemaCatalog: Sendable, Equatable {
-
     public let tables: [String]
     public let columnsByTable: [String: [String]]
     public let detailedColumnsByTable: [String: [ColumnInfo]]
     public let relations: [ForeignKeyRelation]
 
-    public init(tables: [String] = [],
-                columnsByTable: [String: [String]] = [:],
-                detailedColumnsByTable: [String: [ColumnInfo]] = [:],
-                relations: [ForeignKeyRelation] = []) {
+    public init(
+        tables: [String] = [],
+        columnsByTable: [String: [String]] = [:],
+        detailedColumnsByTable: [String: [ColumnInfo]] = [:],
+        relations: [ForeignKeyRelation] = []
+    ) {
         self.tables = tables
         self.columnsByTable = columnsByTable
         self.detailedColumnsByTable = detailedColumnsByTable
@@ -20,19 +21,23 @@ public struct SchemaCatalog: Sendable, Equatable {
     public static let empty = SchemaCatalog()
 
     public func withRelations(_ relations: [ForeignKeyRelation]) -> SchemaCatalog {
-        SchemaCatalog(tables: tables,
-                      columnsByTable: columnsByTable,
-                      detailedColumnsByTable: detailedColumnsByTable,
-                      relations: relations)
+        SchemaCatalog(
+            tables: tables,
+            columnsByTable: columnsByTable,
+            detailedColumnsByTable: detailedColumnsByTable,
+            relations: relations
+        )
     }
 
     public func withDetailedColumns(_ detailed: [String: [ColumnInfo]]) -> SchemaCatalog {
         let names = detailed.mapValues { $0.map(\.name) }
         let mergedNames = columnsByTable.merging(names) { _, new in new }
-        return SchemaCatalog(tables: tables,
-                             columnsByTable: mergedNames,
-                             detailedColumnsByTable: detailed,
-                             relations: relations)
+        return SchemaCatalog(
+            tables: tables,
+            columnsByTable: mergedNames,
+            detailedColumnsByTable: detailed,
+            relations: relations
+        )
     }
 
     public func columns(of table: String) -> [String] {
@@ -52,7 +57,9 @@ public struct SchemaCatalog: Sendable, Equatable {
                 ordered.append(col)
             }
         }
-        for table in tables { absorb(columns(of: table)) }
+        for table in tables {
+            absorb(columns(of: table))
+        }
         for key in columnsByTable.keys.sorted() where !tables.contains(key) {
             absorb(columnsByTable[key] ?? [])
         }

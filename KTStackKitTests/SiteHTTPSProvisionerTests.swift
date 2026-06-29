@@ -19,12 +19,14 @@ final class SiteHTTPSProvisionerTests: XCTestCase {
             }
         )
 
-        try provisioner.enableHTTPS(for: Site(name: "app",
-                                              path: "/tmp/app",
-                                              docroot: "/tmp/app/public",
-                                              domain: "app.test",
-                                              phpVersion: "8.4",
-                                              type: .php))
+        try provisioner.enableHTTPS(for: Site(
+            name: "app",
+            path: "/tmp/app",
+            docroot: "/tmp/app/public",
+            domain: "app.test",
+            phpVersion: "8.4",
+            type: .php
+        ))
 
         XCTAssertEqual(calls, ["trust", "install", "mint:app.test:test"])
     }
@@ -46,12 +48,14 @@ final class SiteHTTPSProvisionerTests: XCTestCase {
             }
         )
 
-        try provisioner.enableHTTPS(for: Site(name: "blog",
-                                              path: "/tmp/blog",
-                                              docroot: "/tmp/blog/public",
-                                              domain: "blog.test",
-                                              phpVersion: "8.4",
-                                              type: .php))
+        try provisioner.enableHTTPS(for: Site(
+            name: "blog",
+            path: "/tmp/blog",
+            docroot: "/tmp/blog/public",
+            domain: "blog.test",
+            phpVersion: "8.4",
+            type: .php
+        ))
 
         XCTAssertEqual(calls, ["trust", "mint:blog.test:test"])
     }

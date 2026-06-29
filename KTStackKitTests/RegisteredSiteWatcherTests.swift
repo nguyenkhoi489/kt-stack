@@ -11,7 +11,9 @@ final class RegisteredSiteWatcherTests: XCTestCase {
         try fm.createDirectory(at: folder, withIntermediateDirectories: true)
     }
 
-    override func tearDownWithError() throws { try? fm.removeItem(at: folder) }
+    override func tearDownWithError() throws {
+        try? fm.removeItem(at: folder)
+    }
 
     func testReportsChangedFolderAfterDebounce() throws {
         let watcher = RegisteredSiteWatcher(debounce: 0.15)

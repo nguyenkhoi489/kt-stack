@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct V2QueryTabView: View {
     @ObservedObject var vm: DatabaseV2ViewModel
@@ -100,20 +100,22 @@ struct V2QueryTabView: View {
     }
 
     private var sqlEditor: some View {
-        SQLCodeEditor(text: activeTextBinding,
-                      catalog: vm.schemaCatalog,
-                      keywords: SQLKeywords.forKind(vm.connectionKind ?? .mysql))
-            .id(vm.activeQueryTabID)
-            .frame(height: 132)
-            .padding(6)
-            .background(KTEditorTheme.content)
-            .overlay(
-                RoundedRectangle(cornerRadius: 11)
-                    .stroke(KTEditorTheme.separator, lineWidth: 1)
-            )
-            .padding(.horizontal, 16)
-            .padding(.bottom, 12)
-            .task(id: vm.selectedDatabase) { await vm.loadDiagram() }
+        SQLCodeEditor(
+            text: activeTextBinding,
+            catalog: vm.schemaCatalog,
+            keywords: SQLKeywords.forKind(vm.connectionKind ?? .mysql)
+        )
+        .id(vm.activeQueryTabID)
+        .frame(height: 132)
+        .padding(6)
+        .background(KTEditorTheme.content)
+        .overlay(
+            RoundedRectangle(cornerRadius: 11)
+                .stroke(KTEditorTheme.separator, lineWidth: 1)
+        )
+        .padding(.horizontal, 16)
+        .padding(.bottom, 12)
+        .task(id: vm.selectedDatabase) { await vm.loadDiagram() }
     }
 
     @ViewBuilder

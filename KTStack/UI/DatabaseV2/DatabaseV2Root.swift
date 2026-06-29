@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 enum V2EditorTab: String, CaseIterable, Identifiable {
     case data = "Data"
@@ -7,14 +7,16 @@ enum V2EditorTab: String, CaseIterable, Identifiable {
     case query = "Query"
     case er = "ER"
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
     var symbol: String {
         switch self {
-        case .data: return "tablecells"
-        case .structure: return "list.bullet.rectangle"
-        case .query: return "terminal"
-        case .er: return "point.3.connected.trianglepath.dotted"
+        case .data: "tablecells"
+        case .structure: "list.bullet.rectangle"
+        case .query: "terminal"
+        case .er: "point.3.connected.trianglepath.dotted"
         }
     }
 }
@@ -36,19 +38,19 @@ struct V2ConnectionPill: View {
 
     private var pillColor: Color {
         switch state {
-        case .connected: return KTEditorTheme.Status.running
-        case .connecting: return KTEditorTheme.accent
-        case .idle: return KTEditorTheme.Status.error
-        case .failed: return KTEditorTheme.Status.error
+        case .connected: KTEditorTheme.Status.running
+        case .connecting: KTEditorTheme.accent
+        case .idle: KTEditorTheme.Status.error
+        case .failed: KTEditorTheme.Status.error
         }
     }
 
     private var pillLabel: String {
         switch state {
-        case .idle: return "Idle"
-        case .connecting: return "Connecting…"
-        case .connected: return "Connected"
-        case .failed: return "Failed"
+        case .idle: "Idle"
+        case .connecting: "Connecting…"
+        case .connected: "Connected"
+        case .failed: "Failed"
         }
     }
 }
@@ -178,8 +180,10 @@ struct V2TableSidebar: View {
         }
         .padding(.horizontal, 9)
         .padding(.vertical, 6)
-        .background(isSelected ? KTEditorTheme.accent : .clear,
-                    in: RoundedRectangle(cornerRadius: 7))
+        .background(
+            isSelected ? KTEditorTheme.accent : .clear,
+            in: RoundedRectangle(cornerRadius: 7)
+        )
         .contentShape(Rectangle())
         .onTapGesture { onSelect(table) }
     }

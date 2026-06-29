@@ -20,30 +20,51 @@ public struct SiteConfigGenerator {
 
         if site.secure, certPresent(for: site) {
             return tls.redirectVhost(domain: site.domain) + "\n\n"
-                + tls.secureVhost(domain: site.domain, root: root,
-                                  certFile: paths.siteCert(site.domain), keyFile: paths.siteKey(site.domain),
-                                  phpFpmSocket: socket, nodeProxyPort: nodeProxyPort,
-                                  accessLog: access, errorLog: error)
+                + tls.secureVhost(
+                    domain: site.domain,
+                    root: root,
+                    certFile: paths.siteCert(site.domain),
+                    keyFile: paths.siteKey(site.domain),
+                    phpFpmSocket: socket,
+                    nodeProxyPort: nodeProxyPort,
+                    accessLog: access,
+                    errorLog: error
+                )
         }
         switch site.type {
         case .php:
-            return writer.vhost(domain: site.domain, root: root, phpFpmSocket: socket!, port: port,
-                                accessLog: access, errorLog: error)
+            return writer.vhost(
+                domain: site.domain,
+                root: root,
+                phpFpmSocket: socket!,
+                port: port,
+                accessLog: access,
+                errorLog: error
+            )
         case .node where nodeProxyPort != nil:
-            return writer.vhostNodeProxy(domain: site.domain, nodePort: nodeProxyPort!, port: port,
-                                         accessLog: access, errorLog: error)
+            return writer.vhostNodeProxy(
+                domain: site.domain,
+                nodePort: nodeProxyPort!,
+                port: port,
+                accessLog: access,
+                errorLog: error
+            )
         case .staticSite, .node:
-            return writer.vhostStatic(domain: site.domain, root: root, port: port,
-                                      accessLog: access, errorLog: error)
+            return writer.vhostStatic(
+                domain: site.domain,
+                root: root,
+                port: port,
+                accessLog: access,
+                errorLog: error
+            )
         }
     }
 
     private func nodeProxyPort(for site: Site) -> Int? {
-        guard site.type == .node, site.nodeEnabled, let port = site.nodePort else { return nil }
+        guard site.type == .node, let port = site.nodePort else { return nil }
         return port
     }
 
-   
     private func certPresent(for site: Site) -> Bool {
         let fm = FileManager.default
         return fm.fileExists(atPath: paths.siteCert(site.domain).path)
@@ -55,8 +76,10 @@ public struct SiteConfigGenerator {
         var changed = false
         let secureCatchAll = sites.contains { $0.secure && certPresent(for: $0) }
         if secureCatchAll { try NginxCatchAllCert(paths: paths).ensure() }
-        changed = try writeIfChanged(writer.masterConfig(paths: paths, secureCatchAll: secureCatchAll),
-                                     to: paths.nginxConf) || changed
+        changed = try writeIfChanged(
+            writer.masterConfig(paths: paths, secureCatchAll: secureCatchAll),
+            to: paths.nginxConf
+        ) || changed
 
         var registeredFiles = Set<String>()
         for site in sites where NginxConfigWriter.isValidDomain(site.domain) {
@@ -65,7 +88,8 @@ public struct SiteConfigGenerator {
 
         for site in sites {
             guard NginxConfigWriter.isValidDomain(site.domain),
-                  NginxConfigWriter.isSafePath(site.docroot) else {
+                  NginxConfigWriter.isSafePath(site.docroot)
+            else {
                 NSLog("KTStack: skipping site with invalid domain/path: \(site.domain)")
                 continue
             }
@@ -76,12 +100,13 @@ public struct SiteConfigGenerator {
         return changed
     }
 
-  
     public static func requiredVersions(for sites: [Site]) -> Set<String> {
         Set(sites.filter { $0.type == .php }.map(\.phpVersion))
     }
 
-    private func installedPHP() -> [String] { BundledPHP.availableVersions(php: paths.phpRuntimesRoot) }
+    private func installedPHP() -> [String] {
+        BundledPHP.availableVersions(php: paths.phpRuntimesRoot)
+    }
 
     public func effectivePHPVersion(_ requested: String) -> String {
         let installed = installedPHP()
@@ -103,12 +128,15 @@ public struct SiteConfigGenerator {
 
     private func removeOrphanVhosts(keeping desired: Set<String>) -> Bool {
         let fm = FileManager.default
-        guard let files = try? fm.contentsOfDirectory(at: paths.sitesEnabled,
-                                                      includingPropertiesForKeys: nil) else { return false }
+        guard let files = try? fm.contentsOfDirectory(
+            at: paths.sitesEnabled,
+            includingPropertiesForKeys: nil
+        ) else { return false }
         var removed = false
         for file in files where file.pathExtension == "conf"
             && !desired.contains(file.lastPathComponent)
-            && !file.lastPathComponent.hasPrefix("tunnel-") {
+            && !file.lastPathComponent.hasPrefix("tunnel-")
+        {
             try? fm.removeItem(at: file)
             removed = true
         }

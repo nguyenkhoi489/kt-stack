@@ -1,6 +1,6 @@
 import Foundation
-import PostgresNIO
 import NIOCore
+import PostgresNIO
 
 /// Translates PostgresNIO failures into the shared `DatabaseError`. Server errors carry a SQLSTATE
 /// (`PSQLError.serverInfo[.sqlState]`); class `28` is "invalid authorization", everything else with a
@@ -8,7 +8,6 @@ import NIOCore
 /// distinguished as engine-not-running for the managed instance (connection refused) vs a generic
 /// connection error for external hosts.
 enum PostgresErrorMapper {
-
     static func map(_ error: any Error, isManaged: Bool) -> DatabaseError {
         if let dbError = error as? DatabaseError { return dbError }
         if let pg = error as? PSQLError {
@@ -24,8 +23,11 @@ enum PostgresErrorMapper {
         return refusedOrGeneric(error, isManaged: isManaged, fallback: String(describing: error))
     }
 
-    private static func refusedOrGeneric(_ error: any Error, isManaged: Bool,
-                                         fallback: String) -> DatabaseError {
+    private static func refusedOrGeneric(
+        _ error: any Error,
+        isManaged: Bool,
+        fallback: String
+    ) -> DatabaseError {
         if isConnectionRefused(error) {
             return isManaged ? .engineNotRunning(kind: "PostgreSQL") : .connection("Connection refused")
         }

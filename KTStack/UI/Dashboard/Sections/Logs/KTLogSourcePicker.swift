@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct KTLogSourcePicker: View {
     let sources: [LogSource]
@@ -84,8 +84,10 @@ struct KTLogSourcePicker: View {
             }
             .padding(.horizontal, 10).padding(.vertical, 7)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 7, style: .continuous)
-                .fill(active ? KTColor.accentSoft : Color.clear))
+            .background(
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(active ? KTColor.accentSoft : Color.clear)
+            )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

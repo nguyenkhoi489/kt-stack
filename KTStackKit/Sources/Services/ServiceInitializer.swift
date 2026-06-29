@@ -1,11 +1,12 @@
 import Foundation
 
-
 public enum ServiceInitializer {
     public struct InitError: LocalizedError {
         public let tool: String
         public let output: String
-        public var errorDescription: String? { "\(tool) initialization failed: \(output)" }
+        public var errorDescription: String? {
+            "\(tool) initialization failed: \(output)"
+        }
     }
 
     public static func isInitialized(_ dir: URL, marker: String? = nil) -> Bool {
@@ -17,7 +18,8 @@ public enum ServiceInitializer {
 
     public static func ensureDir(_ dir: URL) throws {
         try FileManager.default.createDirectory(
-            at: dir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+            at: dir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700]
+        )
     }
 
     public static func run(_ executable: URL, _ arguments: [String], tool: String) throws {
@@ -40,7 +42,10 @@ public enum ServiceInitializer {
 
 public struct ServiceNotInstalled: LocalizedError {
     public let kind: ServiceKind
-    public init(_ kind: ServiceKind) { self.kind = kind }
+    public init(_ kind: ServiceKind) {
+        self.kind = kind
+    }
+
     public var errorDescription: String? {
         "\(kind.displayName) is not bundled in this build yet."
     }

@@ -7,11 +7,15 @@ final class NginxTLSVhostWriterTests: XCTestCase {
     private let key = URL(fileURLWithPath: "/ca/certs/app.test/key.pem")
 
     func testSecurePHPVhostBindsWildcard443WithCertAndFastcgi() {
-        let v = tls.secureVhost(domain: "app.test", root: URL(fileURLWithPath: "/site"),
-                                certFile: cert, keyFile: key,
-                                phpFpmSocket: URL(fileURLWithPath: "/run/php-fpm-8.4.sock"))
+        let v = tls.secureVhost(
+            domain: "app.test",
+            root: URL(fileURLWithPath: "/site"),
+            certFile: cert,
+            keyFile: key,
+            phpFpmSocket: URL(fileURLWithPath: "/run/php-fpm-8.4.sock")
+        )
         XCTAssertTrue(v.contains("listen 0.0.0.0:443 ssl;"))
-        XCTAssertFalse(v.contains("127.0.0.1"))                  // wildcard bind, same rule as :80
+        XCTAssertFalse(v.contains("127.0.0.1")) // wildcard bind, same rule as :80
         XCTAssertTrue(v.contains("ssl_certificate \"/ca/certs/app.test/cert.pem\";"))
         XCTAssertTrue(v.contains("ssl_certificate_key \"/ca/certs/app.test/key.pem\";"))
         XCTAssertTrue(v.contains("fastcgi_pass \"unix:/run/php-fpm-8.4.sock\";"))
@@ -24,8 +28,13 @@ final class NginxTLSVhostWriterTests: XCTestCase {
     }
 
     func testSecureStaticVhostHasNoFastcgi() {
-        let v = tls.secureVhost(domain: "html.test", root: URL(fileURLWithPath: "/site"),
-                                certFile: cert, keyFile: key, phpFpmSocket: nil)
+        let v = tls.secureVhost(
+            domain: "html.test",
+            root: URL(fileURLWithPath: "/site"),
+            certFile: cert,
+            keyFile: key,
+            phpFpmSocket: nil
+        )
         XCTAssertTrue(v.contains("listen 0.0.0.0:443 ssl;"))
         XCTAssertFalse(v.contains("fastcgi_pass"))
         XCTAssertTrue(v.contains("try_files $uri $uri/ =404;"))
@@ -42,10 +51,20 @@ final class NginxTunnelVhostWriterTests: XCTestCase {
     private let writer = NginxTunnelVhostWriter()
 
     func testTunnelPHPVhostForcesLocalHostForFastCGI() {
-        let site = Site(name: "App", path: "/site", docroot: "/site/public",
-                        domain: "app.test", phpVersion: "8.4", type: .php, secure: true)
-        let v = writer.vhost(site: site, port: 45123,
-                             phpFpmSocket: URL(fileURLWithPath: "/run/php-fpm-8.4.sock"))
+        let site = Site(
+            name: "App",
+            path: "/site",
+            docroot: "/site/public",
+            domain: "app.test",
+            phpVersion: "8.4",
+            type: .php,
+            secure: true
+        )
+        let v = writer.vhost(
+            site: site,
+            port: 45123,
+            phpFpmSocket: URL(fileURLWithPath: "/run/php-fpm-8.4.sock")
+        )
 
         XCTAssertTrue(v.contains("listen 127.0.0.1:45123;"))
         XCTAssertTrue(v.contains("server_name _;"))
@@ -59,8 +78,14 @@ final class NginxTunnelVhostWriterTests: XCTestCase {
     }
 
     func testTunnelStaticVhostUsesLoopbackPortWithoutFastCGI() {
-        let site = Site(name: "Static", path: "/site", docroot: "/site/public",
-                        domain: "static.test", phpVersion: "8.4", type: .staticSite)
+        let site = Site(
+            name: "Static",
+            path: "/site",
+            docroot: "/site/public",
+            domain: "static.test",
+            phpVersion: "8.4",
+            type: .staticSite
+        )
         let v = writer.vhost(site: site, port: 45124, phpFpmSocket: nil)
 
         XCTAssertTrue(v.contains("listen 127.0.0.1:45124;"))
@@ -69,20 +94,40 @@ final class NginxTunnelVhostWriterTests: XCTestCase {
     }
 
     func testTunnelVhostOmitsSubFilterWithoutPublicHost() {
-        let site = Site(name: "App", path: "/site", docroot: "/site/public",
-                        domain: "app.test", phpVersion: "8.4", type: .php, secure: true)
-        let v = writer.vhost(site: site, port: 45125,
-                             phpFpmSocket: URL(fileURLWithPath: "/run/php-fpm-8.4.sock"))
+        let site = Site(
+            name: "App",
+            path: "/site",
+            docroot: "/site/public",
+            domain: "app.test",
+            phpVersion: "8.4",
+            type: .php,
+            secure: true
+        )
+        let v = writer.vhost(
+            site: site,
+            port: 45125,
+            phpFpmSocket: URL(fileURLWithPath: "/run/php-fpm-8.4.sock")
+        )
         XCTAssertFalse(v.contains("sub_filter"))
     }
 
     func testTunnelVhostRewritesLocalDomainToPublicHost() {
-        let site = Site(name: "App", path: "/site", docroot: "/site/public",
-                        domain: "app.test", phpVersion: "8.4", type: .php, secure: true)
-        let v = writer.vhost(site: site, port: 45126,
-                             phpFpmSocket: URL(fileURLWithPath: "/run/php-fpm-8.4.sock"),
-                             publicHost: "demo.trycloudflare.com",
-                             supportsBodyRewrite: true)
+        let site = Site(
+            name: "App",
+            path: "/site",
+            docroot: "/site/public",
+            domain: "app.test",
+            phpVersion: "8.4",
+            type: .php,
+            secure: true
+        )
+        let v = writer.vhost(
+            site: site,
+            port: 45126,
+            phpFpmSocket: URL(fileURLWithPath: "/run/php-fpm-8.4.sock"),
+            publicHost: "demo.trycloudflare.com",
+            supportsBodyRewrite: true
+        )
         XCTAssertTrue(v.contains("sub_filter_once off;"))
         XCTAssertTrue(v.contains("sub_filter_types *;"))
         XCTAssertTrue(v.contains("sub_filter \"https://app.test\" \"https://demo.trycloudflare.com\";"))
@@ -91,11 +136,21 @@ final class NginxTunnelVhostWriterTests: XCTestCase {
     }
 
     func testTunnelPHPVhostForwardsPublicHostToFastCGI() {
-        let site = Site(name: "App", path: "/site", docroot: "/site/public",
-                        domain: "app.test", phpVersion: "8.4", type: .php, secure: true)
-        let v = writer.vhost(site: site, port: 45127,
-                             phpFpmSocket: URL(fileURLWithPath: "/run/php-fpm-8.4.sock"),
-                             publicHost: "demo.trycloudflare.com")
+        let site = Site(
+            name: "App",
+            path: "/site",
+            docroot: "/site/public",
+            domain: "app.test",
+            phpVersion: "8.4",
+            type: .php,
+            secure: true
+        )
+        let v = writer.vhost(
+            site: site,
+            port: 45127,
+            phpFpmSocket: URL(fileURLWithPath: "/run/php-fpm-8.4.sock"),
+            publicHost: "demo.trycloudflare.com"
+        )
 
         XCTAssertTrue(v.contains("fastcgi_param HTTP_HOST                demo.trycloudflare.com;"))
         XCTAssertTrue(v.contains("fastcgi_param SERVER_NAME              demo.trycloudflare.com;"))
@@ -106,31 +161,61 @@ final class NginxTunnelVhostWriterTests: XCTestCase {
     }
 
     func testTunnelVhostInjectsHostPrependWhenSharing() {
-        let site = Site(name: "App", path: "/site", docroot: "/site/public",
-                        domain: "app.test", phpVersion: "8.4", type: .php, secure: true)
-        let v = writer.vhost(site: site, port: 45129,
-                             phpFpmSocket: URL(fileURLWithPath: "/run/php-fpm-8.4.sock"),
-                             publicHost: "demo.trycloudflare.com",
-                             hostPrependFile: URL(fileURLWithPath: "/cfg/tunnel-host-prepend.php"))
+        let site = Site(
+            name: "App",
+            path: "/site",
+            docroot: "/site/public",
+            domain: "app.test",
+            phpVersion: "8.4",
+            type: .php,
+            secure: true
+        )
+        let v = writer.vhost(
+            site: site,
+            port: 45129,
+            phpFpmSocket: URL(fileURLWithPath: "/run/php-fpm-8.4.sock"),
+            publicHost: "demo.trycloudflare.com",
+            hostPrependFile: URL(fileURLWithPath: "/cfg/tunnel-host-prepend.php")
+        )
         XCTAssertTrue(v.contains("fastcgi_param PHP_VALUE                \"auto_prepend_file=/cfg/tunnel-host-prepend.php\";"))
     }
 
     func testTunnelVhostOmitsHostPrependWithoutPublicHost() {
-        let site = Site(name: "App", path: "/site", docroot: "/site/public",
-                        domain: "app.test", phpVersion: "8.4", type: .php, secure: true)
-        let v = writer.vhost(site: site, port: 45130,
-                             phpFpmSocket: URL(fileURLWithPath: "/run/php-fpm-8.4.sock"),
-                             hostPrependFile: URL(fileURLWithPath: "/cfg/tunnel-host-prepend.php"))
+        let site = Site(
+            name: "App",
+            path: "/site",
+            docroot: "/site/public",
+            domain: "app.test",
+            phpVersion: "8.4",
+            type: .php,
+            secure: true
+        )
+        let v = writer.vhost(
+            site: site,
+            port: 45130,
+            phpFpmSocket: URL(fileURLWithPath: "/run/php-fpm-8.4.sock"),
+            hostPrependFile: URL(fileURLWithPath: "/cfg/tunnel-host-prepend.php")
+        )
         XCTAssertFalse(v.contains("auto_prepend_file"))
     }
 
     func testTunnelVhostOmitsSubFilterWhenBodyRewriteUnsupported() {
-        let site = Site(name: "App", path: "/site", docroot: "/site/public",
-                        domain: "app.test", phpVersion: "8.4", type: .php, secure: true)
-        let v = writer.vhost(site: site, port: 45128,
-                             phpFpmSocket: URL(fileURLWithPath: "/run/php-fpm-8.4.sock"),
-                             publicHost: "demo.trycloudflare.com",
-                             supportsBodyRewrite: false)
+        let site = Site(
+            name: "App",
+            path: "/site",
+            docroot: "/site/public",
+            domain: "app.test",
+            phpVersion: "8.4",
+            type: .php,
+            secure: true
+        )
+        let v = writer.vhost(
+            site: site,
+            port: 45128,
+            phpFpmSocket: URL(fileURLWithPath: "/run/php-fpm-8.4.sock"),
+            publicHost: "demo.trycloudflare.com",
+            supportsBodyRewrite: false
+        )
         XCTAssertFalse(v.contains("sub_filter"))
         XCTAssertTrue(v.contains("fastcgi_param HTTP_HOST                demo.trycloudflare.com;"))
     }
@@ -138,9 +223,11 @@ final class NginxTunnelVhostWriterTests: XCTestCase {
 
 final class MkcertAndCertMinterTests: XCTestCase {
     func testMintArgsTargetCertAndKeyFiles() {
-        let args = MkcertRunner.mintArgs(domain: "app.test",
-                                         certFile: URL(fileURLWithPath: "/c/cert.pem"),
-                                         keyFile: URL(fileURLWithPath: "/c/key.pem"))
+        let args = MkcertRunner.mintArgs(
+            domain: "app.test",
+            certFile: URL(fileURLWithPath: "/c/cert.pem"),
+            keyFile: URL(fileURLWithPath: "/c/key.pem")
+        )
         XCTAssertEqual(args, ["-cert-file", "/c/cert.pem", "-key-file", "/c/key.pem", "app.test"])
     }
 
@@ -189,8 +276,15 @@ final class SiteConfigGeneratorTLSTests: XCTestCase {
     }
 
     private func secureSite(_ domain: String) -> Site {
-        Site(name: domain, path: "/tmp/\(domain)", docroot: "/tmp/\(domain)/public",
-             domain: domain, phpVersion: "8.4", type: .php, secure: true)
+        Site(
+            name: domain,
+            path: "/tmp/\(domain)",
+            docroot: "/tmp/\(domain)/public",
+            domain: domain,
+            phpVersion: "8.4",
+            type: .php,
+            secure: true
+        )
     }
 
     func testSecureSiteWithCertEmitsHttpsAndRedirect() throws {

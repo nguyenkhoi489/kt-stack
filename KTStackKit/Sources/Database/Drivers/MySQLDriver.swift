@@ -4,10 +4,8 @@ import NIOCore
 import NIOPosix
 import NIOSSL
 
-
 public struct MySQLDriver: RelationalDriver {
     public let kind: DatabaseKind = .mysql
-
 
     let profile: ConnectionProfile
     let password: String?
@@ -15,20 +13,20 @@ public struct MySQLDriver: RelationalDriver {
     let dialect = SQLDialect.forKind(.mysql)
     let session: ConnectionSession
 
-    public init(profile: ConnectionProfile,
-                password: String?,
-                catalog: ServiceBinaryCatalog = ServiceBinaryCatalog(paths: AppSupportPaths())) {
+    public init(
+        profile: ConnectionProfile,
+        password: String?,
+        catalog: ServiceBinaryCatalog = ServiceBinaryCatalog(paths: AppSupportPaths())
+    ) {
         self.profile = profile
         self.password = password
         self.catalog = catalog
         let capturedProfile = profile
         let capturedPassword = password
-        self.session = ConnectionSession {
+        session = ConnectionSession {
             try await MySQLDriver.makeSessionConnection(profile: capturedProfile, password: capturedPassword)
         }
     }
-
-    // MARK: - RelationalDriver
 
     public func ping() async throws {
         _ = try await runStatement("SELECT 1")
@@ -36,15 +34,15 @@ public struct MySQLDriver: RelationalDriver {
 
     public func listDatabases() async throws -> [DatabaseInfo] {
         let result = try await runStatement(
-            "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA ORDER BY SCHEMA_NAME")
+            "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA ORDER BY SCHEMA_NAME"
+        )
         return result.rows.compactMap { $0.first?.displayText }.map(DatabaseInfo.init(name:))
     }
 
     public func listTables(database: String) async throws -> [TableInfo] {
-        
-        let sql = """
+        let sql = try """
         SELECT TABLE_NAME, TABLE_TYPE FROM information_schema.TABLES \
-        WHERE TABLE_SCHEMA = \(try MySQLErrorMapper.quoteLiteral(database)) ORDER BY TABLE_NAME
+        WHERE TABLE_SCHEMA = \(MySQLErrorMapper.quoteLiteral(database)) ORDER BY TABLE_NAME
         """
         let result = try await runStatement(sql)
         return result.rows.compactMap { row in
@@ -55,12 +53,11 @@ public struct MySQLDriver: RelationalDriver {
     }
 
     public func columns(database: String, table: String) async throws -> [ColumnInfo] {
-       
-        let sql = """
+        let sql = try """
         SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_KEY, COLUMN_DEFAULT \
         FROM information_schema.COLUMNS \
-        WHERE TABLE_SCHEMA = \(try MySQLErrorMapper.quoteLiteral(database)) \
-        AND TABLE_NAME = \(try MySQLErrorMapper.quoteLiteral(table)) \
+        WHERE TABLE_SCHEMA = \(MySQLErrorMapper.quoteLiteral(database)) \
+        AND TABLE_NAME = \(MySQLErrorMapper.quoteLiteral(table)) \
         ORDER BY ORDINAL_POSITION
         """
         let result = try await runStatement(sql)
@@ -71,7 +68,8 @@ public struct MySQLDriver: RelationalDriver {
                 dataType: row[1].displayText ?? "",
                 isNullable: row[2].displayText == "YES",
                 isPrimaryKey: row[3].displayText == "PRI",
-                defaultValue: row[4].displayText)
+                defaultValue: row[4].displayText
+            )
         }
     }
 
@@ -84,8 +82,12 @@ public struct MySQLDriver: RelationalDriver {
         await session.cancelInFlight()
     }
 
-    public func paginatedRows(database: String, table: String,
-                              limit: Int, offset: Int) async throws -> QueryResult {
+    public func paginatedRows(
+        database: String,
+        table: String,
+        limit: Int,
+        offset: Int
+    ) async throws -> QueryResult {
         try preflightManagedEngine()
         let qualified = try dialect.qualifiedTable(schema: database, table: table)
         let sql = dialect.paginate("SELECT * FROM \(qualified)", limit: limit, offset: offset)
@@ -101,12 +103,10 @@ public struct MySQLDriver: RelationalDriver {
         await session.shutdown()
     }
 
-    public func runSelect(_ statement: DMLStatement, database: String?) async throws -> QueryResult {
+    public func runSelect(_ statement: DMLStatement, database _: String?) async throws -> QueryResult {
         try preflightManagedEngine()
         return try await session.runSelect(statement)
     }
-
-    // MARK: - Connect + run
 
     private func runStatement(_ sql: String, database: String? = nil) async throws -> QueryResult {
         try preflightManagedEngine()
@@ -142,13 +142,15 @@ public struct MySQLDriver: RelationalDriver {
         } catch {
             throw MySQLErrorMapper.map(error, isManaged: profile.isManaged)
         }
-        
+
         try await Self.applyReadOnly(to: connection, profile: profile)
         return connection
     }
 
-    static func makeSessionConnection(profile: ConnectionProfile,
-                                      password: String?) async throws -> SessionConnection {
+    static func makeSessionConnection(
+        profile: ConnectionProfile,
+        password: String?
+    ) async throws -> SessionConnection {
         let group = try EventLoopProvider.shared.group()
         let address = try SocketAddress.makeAddressResolvingHost(profile.host, port: profile.port)
         let connection: MySQLConnection
@@ -168,8 +170,10 @@ public struct MySQLDriver: RelationalDriver {
         return MySQLSessionConnection(connection: connection, isManaged: profile.isManaged)
     }
 
-    private static func applyReadOnly(to connection: MySQLConnection,
-                                      profile: ConnectionProfile) async throws {
+    private static func applyReadOnly(
+        to connection: MySQLConnection,
+        profile: ConnectionProfile
+    ) async throws {
         guard profile.readOnly else { return }
         do {
             _ = try await connection.simpleQuery("SET SESSION TRANSACTION READ ONLY").get()
@@ -179,14 +183,12 @@ public struct MySQLDriver: RelationalDriver {
         }
     }
 
-
     func preflightManagedEngine() throws {
         guard profile.isManaged else { return }
         guard catalog.isInstalled(.mysql) else {
             throw DatabaseError.engineNotInstalled(kind: "MySQL")
         }
     }
-
 
     private func tlsConfiguration() -> TLSConfiguration? {
         Self.tlsConfiguration(for: profile)

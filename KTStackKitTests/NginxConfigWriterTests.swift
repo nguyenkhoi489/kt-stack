@@ -12,12 +12,17 @@ final class NginxConfigWriterTests: XCTestCase {
         let vhost = writer.vhost(
             domain: "demo.test",
             root: URL(fileURLWithPath: "/Users/me/Sites/WWW/demo/public"),
-            phpFpmSocket: paths.phpFpmSocket("demo"))
+            phpFpmSocket: paths.phpFpmSocket("demo")
+        )
 
-        XCTAssertTrue(vhost.contains("listen 0.0.0.0:80;"),
-                      "vhost must bind the wildcard privileged port")
-        XCTAssertFalse(vhost.contains("127.0.0.1"),
-                       "vhost must never bind a specific loopback interface (EACCES without root)")
+        XCTAssertTrue(
+            vhost.contains("listen 0.0.0.0:80;"),
+            "vhost must bind the wildcard privileged port"
+        )
+        XCTAssertFalse(
+            vhost.contains("127.0.0.1"),
+            "vhost must never bind a specific loopback interface (EACCES without root)"
+        )
     }
 
     func testCustomPortStillWildcard() {
@@ -25,7 +30,8 @@ final class NginxConfigWriterTests: XCTestCase {
             domain: "demo.test",
             root: URL(fileURLWithPath: "/tmp/site"),
             phpFpmSocket: paths.phpFpmSocket("demo"),
-            port: 8080)
+            port: 8080
+        )
         XCTAssertTrue(vhost.contains("listen 0.0.0.0:8080;"))
         XCTAssertFalse(vhost.contains("127.0.0.1"))
     }
@@ -36,9 +42,11 @@ final class NginxConfigWriterTests: XCTestCase {
 
     func testVhostWiresFastcgiToPoolSocket() {
         let socket = paths.phpFpmSocket("demo")
-        let vhost = writer.vhost(domain: "demo.test",
-                                 root: URL(fileURLWithPath: "/tmp/site"),
-                                 phpFpmSocket: socket)
+        let vhost = writer.vhost(
+            domain: "demo.test",
+            root: URL(fileURLWithPath: "/tmp/site"),
+            phpFpmSocket: socket
+        )
         XCTAssertTrue(vhost.contains("fastcgi_pass \"unix:\(socket.path)\";"))
         XCTAssertTrue(vhost.contains("server_name demo.test;"))
     }
@@ -75,7 +83,8 @@ final class NginxConfigWriterTests: XCTestCase {
         try? p.ensureDirectoryTree()
         defer { try? FileManager.default.removeItem(at: tmp) }
         XCTAssertThrowsError(try writer.writeDemo(
-            paths: p, domain: "bad;domain", siteRoot: URL(fileURLWithPath: "/tmp/site"), poolName: "demo"))
+            paths: p, domain: "bad;domain", siteRoot: URL(fileURLWithPath: "/tmp/site"), poolName: "demo"
+        ))
     }
 
     func testMasterConfigIncludesSitesEnabled() {
@@ -91,9 +100,11 @@ final class NginxConfigWriterTests: XCTestCase {
         let conf = writer.masterConfig(paths: spaced)
         XCTAssertTrue(conf.contains("pid \"\(spaced.nginxPid.path)\";"))
         XCTAssertTrue(conf.contains("access_log \"\(spaced.nginxAccessLog.path)\";"))
-        let vhost = writer.vhost(domain: "demo.test",
-                                 root: URL(fileURLWithPath: "/tmp/with space/site"),
-                                 phpFpmSocket: spaced.phpFpmSocket("8.4"))
+        let vhost = writer.vhost(
+            domain: "demo.test",
+            root: URL(fileURLWithPath: "/tmp/with space/site"),
+            phpFpmSocket: spaced.phpFpmSocket("8.4")
+        )
         XCTAssertTrue(vhost.contains("root \"/tmp/with space/site\";"))
         XCTAssertTrue(vhost.contains("fastcgi_pass \"unix:\(spaced.phpFpmSocket("8.4").path)\";"))
     }

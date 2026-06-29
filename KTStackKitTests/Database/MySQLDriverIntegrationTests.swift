@@ -7,8 +7,10 @@ import XCTest
 /// path is safe under rapid concurrent re-query (stressing the NIO→@MainActor result boundary).
 final class MySQLDriverIntegrationTests: XCTestCase {
     private func makeDriver() throws -> MySQLDriver {
-        try XCTSkipUnless(ProcessInfo.processInfo.environment["KTSTACK_DB_IT"] == "1",
-                          "Set KTSTACK_DB_IT=1 with the MySQL engine installed + running on :3306.")
+        try XCTSkipUnless(
+            ProcessInfo.processInfo.environment["KTSTACK_DB_IT"] == "1",
+            "Set KTSTACK_DB_IT=1 with the MySQL engine installed + running on :3306."
+        )
         let catalog = ServiceBinaryCatalog(paths: AppSupportPaths())
         try XCTSkipUnless(catalog.isInstalled(.mysql), "MySQL engine not installed.")
         return MySQLDriver(profile: .managedMySQL, password: nil)
@@ -29,7 +31,7 @@ final class MySQLDriverIntegrationTests: XCTestCase {
     func testListTablesAndColumnsForSystemTable() async throws {
         let driver = try makeDriver()
         let tables = try await driver.listTables(database: "mysql").map(\.name)
-        XCTAssertTrue(tables.contains("user"))   // mysql.user always exists
+        XCTAssertTrue(tables.contains("user")) // mysql.user always exists
 
         let columns = try await driver.columns(database: "mysql", table: "user")
         XCTAssertFalse(columns.isEmpty)
@@ -57,8 +59,12 @@ final class MySQLDriverIntegrationTests: XCTestCase {
 
     func testPaginationLimitsRows() async throws {
         let driver = try makeDriver()
-        let page = try await driver.paginatedRows(database: "information_schema",
-                                                  table: "COLUMNS", limit: 5, offset: 0)
+        let page = try await driver.paginatedRows(
+            database: "information_schema",
+            table: "COLUMNS",
+            limit: 5,
+            offset: 0
+        )
         XCTAssertLessThanOrEqual(page.rowCount, 5)
         XCTAssertFalse(page.columns.isEmpty)
     }
@@ -76,7 +82,9 @@ final class MySQLDriverIntegrationTests: XCTestCase {
                 }
             }
             var total = 0
-            for try await count in group { total += count }
+            for try await count in group {
+                total += count
+            }
             XCTAssertEqual(total, 20)
         }
     }

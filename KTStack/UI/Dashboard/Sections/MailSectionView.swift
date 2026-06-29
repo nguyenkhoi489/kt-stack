@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct MailSectionView: View {
     @ObservedObject var nav: DashboardNavigation
@@ -42,7 +42,7 @@ struct MailSectionView: View {
 
     @ViewBuilder
     private var content: some View {
-        if !mail.isReachable && mail.messages.isEmpty {
+        if !mail.isReachable, mail.messages.isEmpty {
             offlineState
         } else {
             HStack(spacing: 14) {
@@ -72,13 +72,14 @@ struct MailSectionView: View {
             .font(.jbMono(12.5)).foregroundStyle(KTColor.muted).multilineTextAlignment(.center)
     }
 
-    @ViewBuilder
     private var detailPane: some View {
         Group {
             if let detail = mail.detail {
-                MailMessageView(detail: detail,
-                                onDelete: { mail.delete(detail.ID) },
-                                rawURL: mail.rawURL(detail.ID))
+                MailMessageView(
+                    detail: detail,
+                    onDelete: { mail.delete(detail.ID) },
+                    rawURL: mail.rawURL(detail.ID)
+                )
             } else {
                 VStack(spacing: 6) {
                     Image(systemName: "envelope.open").font(.system(size: 42, weight: .light)).foregroundStyle(KTColor.faint)
@@ -95,9 +96,12 @@ struct MailSectionView: View {
     }
 
     private var offlineState: some View {
-        EmptyStateView(symbol: "envelope", title: "Mailpit is off",
-                       message: "Start Mailpit to catch outgoing mail from your sites and read it here.",
-                       actionTitle: "Start Mailpit") { services.toggle(.mailpit) }
+        EmptyStateView(
+            symbol: "envelope",
+            title: "Mailpit is off",
+            message: "Start Mailpit to catch outgoing mail from your sites and read it here.",
+            actionTitle: "Start Mailpit"
+        ) { services.toggle(.mailpit) }
     }
 }
 
@@ -127,8 +131,10 @@ struct MailListRow: View {
             }
             .padding(.horizontal, 10).padding(.vertical, 9)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .fill(active ? KTColor.accentSoft : Color.clear))
+            .background(
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .fill(active ? KTColor.accentSoft : Color.clear)
+            )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

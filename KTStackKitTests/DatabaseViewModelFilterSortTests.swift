@@ -3,39 +3,60 @@ import XCTest
 
 @MainActor
 final class DatabaseViewModelFilterSortTests: XCTestCase {
-
     private final class FilterStub: RelationalDriver, @unchecked Sendable {
         let kind: DatabaseKind = .mysql
         private(set) var runSelectCalls: [DMLStatement] = []
         private(set) var paginateCalls = 0
 
         func ping() async throws {}
-        func listDatabases() async throws -> [DatabaseInfo] { [DatabaseInfo(name: "db")] }
-        func listTables(database: String) async throws -> [TableInfo] { [TableInfo(name: "users")] }
-        func columns(database: String, table: String) async throws -> [ColumnInfo] {
-            [ColumnInfo(name: "id", dataType: "int", isNullable: false, isPrimaryKey: true),
-             ColumnInfo(name: "name", dataType: "text", isNullable: true, isPrimaryKey: false),
-             ColumnInfo(name: "age", dataType: "int", isNullable: true, isPrimaryKey: false)]
+        func listDatabases() async throws -> [DatabaseInfo] {
+            [DatabaseInfo(name: "db")]
         }
-        func indexes(database: String, table: String) async throws -> [IndexInfo] { [] }
-        func foreignKeys(database: String) async throws -> [ForeignKeyRelation] { [] }
-        func query(_ sql: String, database: String?) async throws -> QueryResult {
+
+        func listTables(database _: String) async throws -> [TableInfo] {
+            [TableInfo(name: "users")]
+        }
+
+        func columns(database _: String, table _: String) async throws -> [ColumnInfo] {
+            [
+                ColumnInfo(name: "id", dataType: "int", isNullable: false, isPrimaryKey: true),
+                ColumnInfo(name: "name", dataType: "text", isNullable: true, isPrimaryKey: false),
+                ColumnInfo(name: "age", dataType: "int", isNullable: true, isPrimaryKey: false),
+            ]
+        }
+
+        func indexes(database _: String, table _: String) async throws -> [IndexInfo] {
+            []
+        }
+
+        func foreignKeys(database _: String) async throws -> [ForeignKeyRelation] {
+            []
+        }
+
+        func query(_: String, database _: String?) async throws -> QueryResult {
             QueryResult(columns: [], rows: [])
         }
-        func paginatedRows(database: String, table: String,
-                           limit: Int, offset: Int) async throws -> QueryResult {
+
+        func paginatedRows(
+            database _: String,
+            table _: String,
+            limit _: Int,
+            offset _: Int
+        ) async throws -> QueryResult {
             paginateCalls += 1
             return QueryResult(columns: [ColumnMeta(name: "id")], rows: [[.int(1)], [.int(2)]])
         }
+
         func openSession() async throws {}
         func closeSession() async {}
-        func runSelect(_ statement: DMLStatement, database: String?) async throws -> QueryResult {
+        func runSelect(_ statement: DMLStatement, database _: String?) async throws -> QueryResult {
             runSelectCalls.append(statement)
             return QueryResult(columns: [ColumnMeta(name: "id")], rows: [[.int(1)]])
         }
-        func insert(database: String, table: String, values: [ColumnValue]) async throws {}
-        func update(database: String, table: String, values: [ColumnValue], key: [ColumnValue]) async throws {}
-        func delete(database: String, table: String, key: [ColumnValue]) async throws {}
+
+        func insert(database _: String, table _: String, values _: [ColumnValue]) async throws {}
+        func update(database _: String, table _: String, values _: [ColumnValue], key _: [ColumnValue]) async throws {}
+        func delete(database _: String, table _: String, key _: [ColumnValue]) async throws {}
     }
 
     private func browse(_ driver: FilterStub) async -> DatabaseViewModel {
@@ -66,8 +87,10 @@ final class DatabaseViewModelFilterSortTests: XCTestCase {
 
         XCTAssertEqual(vm.activeSort, SortSpec(column: "age", ascending: false))
         XCTAssertEqual(vm.pageOffset, 0)
-        XCTAssertEqual(driver.runSelectCalls.last?.sql,
-                       "SELECT * FROM `db`.`users` ORDER BY `age` DESC LIMIT 101 OFFSET 0")
+        XCTAssertEqual(
+            driver.runSelectCalls.last?.sql,
+            "SELECT * FROM `db`.`users` ORDER BY `age` DESC LIMIT 101 OFFSET 0"
+        )
     }
 
     func testToggleSortCyclesAscendingDescendingThenOff() async {

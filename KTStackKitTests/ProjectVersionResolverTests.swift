@@ -55,8 +55,11 @@ final class ProjectVersionResolverTests: XCTestCase {
     func testMaliciousMarkerRejectedNoFallbackVersion() throws {
         let proj = tmp.appendingPathComponent("evil")
         try FileManager.default.createDirectory(at: proj, withIntermediateDirectories: true)
-        try "8.4; rm -rf /\n".write(to: proj.appendingPathComponent(".php-version"),
-                                    atomically: true, encoding: .utf8)
+        try "8.4; rm -rf /\n".write(
+            to: proj.appendingPathComponent(".php-version"),
+            atomically: true,
+            encoding: .utf8
+        )
 
         let resolver = ProjectVersionResolver(homeOverride: tmp)
         XCTAssertNil(resolver.resolve(.php, forProjectAt: proj, walkUp: false))
@@ -87,8 +90,10 @@ final class ProjectVersionResolverTests: XCTestCase {
     }
 
     private func writeSitesStore(_ paths: AppSupportPaths, _ entries: [(path: String, php: String)]) throws {
-        try FileManager.default.createDirectory(at: paths.sitesRegistryFile.deletingLastPathComponent(),
-                                                withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(
+            at: paths.sitesRegistryFile.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
         let body = entries.map { #"{"path":"\#($0.path)","phpVersion":"\#($0.php)"}"# }.joined(separator: ",")
         try "[\(body)]".write(to: paths.sitesRegistryFile, atomically: true, encoding: .utf8)
     }

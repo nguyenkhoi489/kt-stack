@@ -16,23 +16,34 @@ final class SiteInstallTests: XCTestCase {
     }
 
     private func request(kind: NewSiteKind) -> NewSiteRequest {
-        NewSiteRequest(name: "demo", kind: kind, phpVersion: "8.4",
-                       folder: tmp.appendingPathComponent("demo"), domain: "demo.test",
-                       databaseName: "demo", siteTitle: "Demo",
-                       adminPassword: "Sup3rSecret!pw")
+        NewSiteRequest(
+            name: "demo",
+            kind: kind,
+            phpVersion: "8.4",
+            folder: tmp.appendingPathComponent("demo"),
+            domain: "demo.test",
+            databaseName: "demo",
+            siteTitle: "Demo",
+            adminPassword: "Sup3rSecret!pw"
+        )
     }
 
     func testCreateDatabaseFailsOnExistingDatabase() async throws {
-        try XCTSkipUnless(ProcessInfo.processInfo.environment["KTSTACK_DB_IT"] == "1",
-                          "Set KTSTACK_DB_IT=1 with the MySQL engine running on :3306.")
+        try XCTSkipUnless(
+            ProcessInfo.processInfo.environment["KTSTACK_DB_IT"] == "1",
+            "Set KTSTACK_DB_IT=1 with the MySQL engine running on :3306."
+        )
         let provisioner = DatabaseProvisioner(ensureEngine: {})
         let name = "ktstack_it_\(UUID().uuidString.prefix(8))"
         try await provisioner.createDatabase(name)
         defer { Task { try? await provisioner.dropDatabase(name) } }
         var thrown: Error?
         do { try await provisioner.createDatabase(name) } catch { thrown = error }
-        XCTAssertEqual(thrown as? DatabaseProvisioner.ProvisionError, .alreadyExists(name),
-                       "duplicate name must throw, never adopt an existing DB (H6)")
+        XCTAssertEqual(
+            thrown as? DatabaseProvisioner.ProvisionError,
+            .alreadyExists(name),
+            "duplicate name must throw, never adopt an existing DB (H6)"
+        )
         try await provisioner.dropDatabase(name)
         let exists = try await provisioner.exists(name)
         XCTAssertFalse(exists, "rollback must drop the created DB")
@@ -75,14 +86,18 @@ final class SiteInstallTests: XCTestCase {
     }
 
     func testLaravelCreateProjectArgsIgnoreMissingXMLWriterOnly() {
-        let missing = LaravelInstaller.createProjectArgs(composerPhar: "/x/composer.phar",
-                                                         name: "demo",
-                                                         loadedModules: ["xml", "dom"])
+        let missing = LaravelInstaller.createProjectArgs(
+            composerPhar: "/x/composer.phar",
+            name: "demo",
+            loadedModules: ["xml", "dom"]
+        )
         XCTAssertTrue(missing.contains("--ignore-platform-req=ext-xmlwriter"))
 
-        let present = LaravelInstaller.createProjectArgs(composerPhar: "/x/composer.phar",
-                                                         name: "demo",
-                                                         loadedModules: ["xmlwriter"])
+        let present = LaravelInstaller.createProjectArgs(
+            composerPhar: "/x/composer.phar",
+            name: "demo",
+            loadedModules: ["xmlwriter"]
+        )
         XCTAssertFalse(present.contains("--ignore-platform-req=ext-xmlwriter"))
     }
 
@@ -91,15 +106,19 @@ final class SiteInstallTests: XCTestCase {
         try "memory_limit = 512M\n".write(to: phpIni, atomically: true, encoding: .utf8)
 
         let runner = InstallCommandRunner(php: URL(fileURLWithPath: "/x/php"), phpIni: phpIni)
-        XCTAssertEqual(runner.phpArguments(["/x/wp.phar", "core", "download"]),
-                       ["-c", phpIni.path, "/x/wp.phar", "core", "download"])
+        XCTAssertEqual(
+            runner.phpArguments(["/x/wp.phar", "core", "download"]),
+            ["-c", phpIni.path, "/x/wp.phar", "core", "download"]
+        )
     }
 
     func testInstallCommandRunnerSkipsMissingManagedPHPIni() {
         let phpIni = tmp.appendingPathComponent("missing.ini")
         let runner = InstallCommandRunner(php: URL(fileURLWithPath: "/x/php"), phpIni: phpIni)
-        XCTAssertEqual(runner.phpArguments(["/x/composer.phar", "create-project"]),
-                       ["/x/composer.phar", "create-project"])
+        XCTAssertEqual(
+            runner.phpArguments(["/x/composer.phar", "create-project"]),
+            ["/x/composer.phar", "create-project"]
+        )
     }
 
     func testPharProvisionerRejectsUnverifiedCachedPhar() throws {
@@ -113,8 +132,14 @@ final class SiteInstallTests: XCTestCase {
     func testInstallServiceRemovesFolderWhenScaffoldFails() async throws {
         let folder = tmp.appendingPathComponent("demo")
         let service = SiteInstallService(database: DatabaseProvisioner(port: 0, ensureEngine: {}))
-        let req = NewSiteRequest(name: "demo", kind: .laravel, phpVersion: "8.4",
-                                 folder: folder, domain: "demo.test", databaseName: nil)
+        let req = NewSiteRequest(
+            name: "demo",
+            kind: .laravel,
+            phpVersion: "8.4",
+            folder: folder,
+            domain: "demo.test",
+            databaseName: nil
+        )
         do {
             _ = try await service.install(req, installer: FailingInstaller(), register: { _ in
                 XCTFail("register must not run after scaffold failure")
@@ -130,12 +155,19 @@ final class SiteInstallTests: XCTestCase {
         let folder = tmp.appendingPathComponent("taken")
         try fm.createDirectory(at: folder, withIntermediateDirectories: true)
         let service = SiteInstallService(database: DatabaseProvisioner(port: 0, ensureEngine: {}))
-        let req = NewSiteRequest(name: "taken", kind: .laravel, phpVersion: "8.4",
-                                 folder: folder, domain: "taken.test", databaseName: nil)
+        let req = NewSiteRequest(
+            name: "taken",
+            kind: .laravel,
+            phpVersion: "8.4",
+            folder: folder,
+            domain: "taken.test",
+            databaseName: nil
+        )
         var thrown: Error?
         do {
             _ = try await service.install(req, installer: FailingInstaller(), register: { _ in
-                throw InstallError.folderExists("x") }, emit: { _ in })
+                throw InstallError.folderExists("x")
+            }, emit: { _ in })
         } catch { thrown = error }
         XCTAssertEqual(thrown as? InstallError, .folderExists("taken"))
         XCTAssertTrue(fm.fileExists(atPath: folder.path), "pre-existing folder must NOT be deleted")
@@ -143,7 +175,7 @@ final class SiteInstallTests: XCTestCase {
 }
 
 private struct FailingInstaller: SiteInstaller {
-    func scaffold(into folder: URL, request: NewSiteRequest, emit: @Sendable (String) -> Void) async throws {
+    func scaffold(into _: URL, request _: NewSiteRequest, emit _: @Sendable (String) -> Void) async throws {
         throw InstallError.folderExists("scaffold blew up")
     }
 }

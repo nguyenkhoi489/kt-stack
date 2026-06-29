@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct KTAPITesterModal: View {
     let site: Site
@@ -14,8 +14,10 @@ struct KTAPITesterModal: View {
                     .contentShape(Rectangle())
                     .onTapGesture(perform: onClose)
                 card
-                    .frame(width: min(1180, geo.size.width - 56),
-                           height: min(760, geo.size.height - 56))
+                    .frame(
+                        width: min(1180, geo.size.width - 56),
+                        height: min(760, geo.size.height - 56)
+                    )
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }

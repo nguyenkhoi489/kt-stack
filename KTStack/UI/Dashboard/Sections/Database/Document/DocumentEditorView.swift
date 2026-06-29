@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct DocumentEditorView: View {
     @EnvironmentObject private var vm: DocumentViewModel
@@ -9,7 +9,7 @@ struct DocumentEditorView: View {
         case insert
         case edit(DocumentRecord)
         var id: String {
-            if case .edit(let record) = self { return "edit-\(record.id)" }
+            if case let .edit(record) = self { return "edit-\(record.id)" }
             return "insert"
         }
     }
@@ -59,7 +59,7 @@ struct DocumentEditorView: View {
     }
 
     private func hydrate() {
-        if case .edit(let record) = mode { json = record.json }
+        if case let .edit(record) = mode { json = record.json }
     }
 
     private func save() {
@@ -68,12 +68,11 @@ struct DocumentEditorView: View {
             return
         }
         Task {
-            let succeeded: Bool
-            switch mode {
+            let succeeded: Bool = switch mode {
             case .insert:
-                succeeded = await vm.insert(json: json)
-            case .edit(let record):
-                succeeded = await vm.update(record: record, json: json)
+                await vm.insert(json: json)
+            case let .edit(record):
+                await vm.update(record: record, json: json)
             }
             if succeeded { dismiss() } else { validationError = vm.editError }
         }

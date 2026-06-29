@@ -5,14 +5,14 @@ public final class XdebugController: @unchecked Sendable {
 
     public enum XdebugError: LocalizedError, Equatable {
         case notSupported(String)
-        case sharedObjectVerificationFailed(String)
+        case verificationFailed(String)
         case rollbackFailed(String, String)
         public var errorDescription: String? {
             switch self {
-            case .notSupported(let v): return "Xdebug isn't available for PHP \(v) on this platform."
-            case .sharedObjectVerificationFailed(let w): return "Xdebug failed to load: \(w)"
-            case .rollbackFailed(let reload, let rollback):
-                return "Xdebug reload failed (\(reload)) and rollback failed (\(rollback))."
+            case let .notSupported(v): "Xdebug isn't available for PHP \(v) on this platform."
+            case let .verificationFailed(w): "Xdebug failed to load: \(w)"
+            case let .rollbackFailed(reload, rollback):
+                "Xdebug reload failed (\(reload)) and rollback failed (\(rollback))."
             }
         }
     }
@@ -25,11 +25,13 @@ public final class XdebugController: @unchecked Sendable {
     private let reloadPool: (String) async throws -> Void
     private let loadVerifier: LoadVerifier
 
-    public init(paths: AppSupportPaths,
-                reloadPool: @escaping (String) async throws -> Void,
-                loadVerifier: LoadVerifier? = nil) {
+    public init(
+        paths: AppSupportPaths,
+        reloadPool: @escaping (String) async throws -> Void,
+        loadVerifier: LoadVerifier? = nil
+    ) {
         self.paths = paths
-        self.catalog = PHPExtensionCatalog(paths: paths)
+        catalog = PHPExtensionCatalog(paths: paths)
         let installer = PHPExtensionInstaller(paths: paths)
         self.installer = installer
         self.reloadPool = reloadPool
@@ -66,26 +68,29 @@ public final class XdebugController: @unchecked Sendable {
 
         let conf = confURL(version: version)
         let previous = try? Data(contentsOf: conf)
-        switch try installer.sharedObjectVerificationStatus(extID: "xdebug", phpVersion: version) {
+        switch try installer.verificationStatus(extID: "xdebug", phpVersion: version) {
         case .verified:
             break
         case .missingObject, .missingChecksum:
             do { try await installer.installSharedObjectOnly("xdebug", phpVersion: version) }
-            catch { throw XdebugError.sharedObjectVerificationFailed(error.localizedDescription) }
-        case .mismatch(_, _):
+            catch { throw XdebugError.verificationFailed(error.localizedDescription) }
+        case .mismatch:
             do { try installer.verifySharedObjectChecksum(extID: "xdebug", phpVersion: version) }
             catch {
-                throw XdebugError.sharedObjectVerificationFailed(error.localizedDescription)
+                throw XdebugError.verificationFailed(error.localizedDescription)
             }
         }
 
         let load = loadVerifier(version)
         guard load.loaded else {
-            throw XdebugError.sharedObjectVerificationFailed(load.warning ?? "shared object did not load")
+            throw XdebugError.verificationFailed(load.warning ?? "shared object did not load")
         }
 
-        try FileManager.default.createDirectory(at: conf.deletingLastPathComponent(),
-                                                withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        try FileManager.default.createDirectory(
+            at: conf.deletingLastPathComponent(),
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
         try iniContent(version: version).data(using: .utf8)!.write(to: conf, options: .atomic)
         PHPModules.invalidate(version: version)
         do {

@@ -28,7 +28,7 @@ final class PHPIniStoreTests: XCTestCase {
 
     func testSeedIsIdempotentAndDoesNotClobberEdits() throws {
         try store.write(version: "8.1", contents: "memory_limit = 1G\n")
-        try store.ensureSeeded(version: "8.1")   // must NOT overwrite the user's content
+        try store.ensureSeeded(version: "8.1") // must NOT overwrite the user's content
         XCTAssertEqual(try store.read(version: "8.1"), "memory_limit = 1G\n")
     }
 

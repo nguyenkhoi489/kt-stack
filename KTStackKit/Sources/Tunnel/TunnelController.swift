@@ -17,7 +17,7 @@ public actor TunnelController {
     private var cancelled = false
     private var logOffset: UInt64 = 0
 
-    private struct ProbeResult: Sendable {
+    private struct ProbeResult {
         let statusCode: Int
         let location: URL?
     }
@@ -28,14 +28,18 @@ public actor TunnelController {
 
     public init(paths: AppSupportPaths, siteID: UUID) {
         self.paths = paths
-        self.label = paths.tunnelLabel(siteID.uuidString)
-        self.logURL = paths.tunnelLog(siteID.uuidString)
-        self.launch = LaunchAgentManager(paths: paths)
+        label = paths.tunnelLabel(siteID.uuidString)
+        logURL = paths.tunnelLog(siteID.uuidString)
+        launch = LaunchAgentManager(paths: paths)
     }
 
-    public func start(binary: URL, originPort: Int, localDomain: String,
-                      onURL: @escaping @Sendable (URL) async -> Void = { _ in },
-                      onStatus: @escaping @Sendable (TunnelStatus) -> Void) async {
+    public func start(
+        binary: URL,
+        originPort: Int,
+        localDomain: String,
+        onURL: @escaping @Sendable (URL) async -> Void = { _ in },
+        onStatus: @escaping @Sendable (TunnelStatus) -> Void
+    ) async {
         if cancelled { return }
         userStopped = false
         logOffset = 0
@@ -51,7 +55,8 @@ public actor TunnelController {
             stdoutPath: logURL.path,
             stderrPath: logURL.path,
             keepAliveOnCrash: false,
-            runAtLoad: true)
+            runAtLoad: true
+        )
         do {
             try launch.bootstrap(spec)
         } catch {
@@ -69,9 +74,11 @@ public actor TunnelController {
         try? launch.bootout(label)
     }
 
-    private func awaitURL(localDomain: String,
-                          onURL: @escaping @Sendable (URL) async -> Void,
-                          onStatus: @escaping @Sendable (TunnelStatus) -> Void) async {
+    private func awaitURL(
+        localDomain: String,
+        onURL: @escaping @Sendable (URL) async -> Void,
+        onStatus: @escaping @Sendable (TunnelStatus) -> Void
+    ) async {
         let deadline = Date().addingTimeInterval(Self.parseTimeout)
         var buffer = ""
         var poll = 0
@@ -93,13 +100,18 @@ public actor TunnelController {
         }
         try? launch.bootout(label)
         if !userStopped {
-            onStatus(.error(connectivityDiagnosis()
-                ?? "URL not received within \(Int(Self.parseTimeout))s."))
+            onStatus(.error(
+                connectivityDiagnosis()
+                    ?? "URL not received within \(Int(Self.parseTimeout))s."
+            ))
         }
     }
 
-    private func probeThenPublish(url: URL, localDomain: String,
-                                  onStatus: @escaping @Sendable (TunnelStatus) -> Void) async {
+    private func probeThenPublish(
+        url: URL,
+        localDomain: String,
+        onStatus: @escaping @Sendable (TunnelStatus) -> Void
+    ) async {
         let deadline = Date().addingTimeInterval(Self.probeTimeout)
         var poll = 0
         while Date() < deadline {
@@ -108,7 +120,7 @@ public actor TunnelController {
             case .ready:
                 if !userStopped { onStatus(.active(url)) }
                 return
-            case .failed(let message):
+            case let .failed(message):
                 try? launch.bootout(label)
                 if !userStopped { onStatus(.error(message)) }
                 return
@@ -128,8 +140,10 @@ public actor TunnelController {
             return
         }
         if !userStopped {
-            onStatus(.error(connectivityDiagnosis()
-                ?? "Tunnel URL did not become reachable within \(Int(Self.probeTimeout))s. Check DNS/network and share again."))
+            onStatus(.error(
+                connectivityDiagnosis()
+                    ?? "Tunnel URL did not become reachable within \(Int(Self.probeTimeout))s. Check DNS/network and share again."
+            ))
         }
     }
 
@@ -140,10 +154,12 @@ public actor TunnelController {
     }
 
     static func connectivityDiagnosis(log: String) -> String? {
-        let blocked = ["QUIC connection failed",
-                       "HTTP/2 connection is blocked or unreachable",
-                       "Environment has critical failures",
-                       "Allow outbound QUIC traffic on port 7844"]
+        let blocked = [
+            "QUIC connection failed",
+            "HTTP/2 connection is blocked or unreachable",
+            "Environment has critical failures",
+            "Allow outbound QUIC traffic on port 7844",
+        ]
         if blocked.contains(where: log.contains) {
             return "Couldn't establish a Cloudflare tunnel — this network restricts cloudflared (UDP/QUIC, or outbound port 7844). It may still work on another network; try again or switch networks."
         }
@@ -171,28 +187,39 @@ public actor TunnelController {
         return String(data: data, encoding: .utf8) ?? ""
     }
 
-    static func probeDecision(statusCode: Int?, locationHost: String?,
-                              publicHost: String?, localDomain: String) -> ProbeDecision {
+    static func probeDecision(
+        statusCode: Int?,
+        locationHost: String?,
+        publicHost: String?,
+        localDomain: String
+    ) -> ProbeDecision {
         guard let statusCode else { return .pending }
         if Self.edgeErrorCodes.contains(statusCode) { return .pending }
         if (300..<400).contains(statusCode),
            let locationHost,
-           locationHost == localDomain || locationHost.hasSuffix(".test") {
+           locationHost == localDomain || locationHost.hasSuffix(".test")
+        {
             return .failed("Tunnel reached the site, but it redirects to local URL \(locationHost). Disable the local-domain redirect or update the app URL before sharing.")
         }
         if let locationHost, let publicHost,
-           (300..<400).contains(statusCode), locationHost != publicHost {
+           (300..<400).contains(statusCode), locationHost != publicHost
+        {
             return .failed("Tunnel reached the site, but it redirects to \(locationHost).")
         }
         return .ready
     }
 
-    private static func probeDecision(for result: ProbeResult?, publicURL: URL,
-                                      localDomain: String) -> ProbeDecision {
-        probeDecision(statusCode: result?.statusCode,
-                      locationHost: result?.location?.host,
-                      publicHost: publicURL.host,
-                      localDomain: localDomain)
+    private static func probeDecision(
+        for result: ProbeResult?,
+        publicURL: URL,
+        localDomain: String
+    ) -> ProbeDecision {
+        probeDecision(
+            statusCode: result?.statusCode,
+            locationHost: result?.location?.host,
+            publicHost: publicURL.host,
+            localDomain: localDomain
+        )
     }
 
     private static func httpProbe(of url: URL) async -> ProbeResult? {
@@ -217,10 +244,13 @@ public actor TunnelController {
 }
 
 private final class NoRedirectDelegate: NSObject, URLSessionTaskDelegate {
-    func urlSession(_ session: URLSession, task: URLSessionTask,
-                    willPerformHTTPRedirection response: HTTPURLResponse,
-                    newRequest request: URLRequest,
-                    completionHandler: @escaping (URLRequest?) -> Void) {
+    func urlSession(
+        _: URLSession,
+        task _: URLSessionTask,
+        willPerformHTTPRedirection _: HTTPURLResponse,
+        newRequest _: URLRequest,
+        completionHandler: @escaping (URLRequest?) -> Void
+    ) {
         completionHandler(nil)
     }
 }

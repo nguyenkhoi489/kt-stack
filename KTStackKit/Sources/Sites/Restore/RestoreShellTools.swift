@@ -38,7 +38,7 @@ enum RestoreShellTools {
         guard let handle = try? FileHandle(forReadingFrom: file) else { return false }
         defer { try? handle.close() }
         let magic = handle.readData(ofLength: 2)
-        return magic.count == 2 && magic[magic.startIndex] == 0x1f && magic[magic.index(after: magic.startIndex)] == 0x8b
+        return magic.count == 2 && magic[magic.startIndex] == 0x1F && magic[magic.index(after: magic.startIndex)] == 0x8B
     }
 
     @discardableResult

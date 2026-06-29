@@ -1,8 +1,7 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct ERDiagramView: View {
-
     @EnvironmentObject private var vm: DatabaseViewModel
 
     @State private var zoom: CGFloat = 1
@@ -25,15 +24,18 @@ struct ERDiagramView: View {
             tables: catalog.tables,
             columnsByTable: catalog.columnsByTable,
             primaryKeysByTable: pkByTable,
-            relations: catalog.relations)
+            relations: catalog.relations
+        )
     }
 
     var body: some View {
         Group {
             if vm.schemaCatalog.tables.isEmpty {
-                EmptyStateView(symbol: "rectangle.connected.to.line.below",
-                               title: "No tables",
-                               message: "Select a database with tables to see its ER diagram.")
+                EmptyStateView(
+                    symbol: "rectangle.connected.to.line.below",
+                    title: "No tables",
+                    message: "Select a database with tables to see its ER diagram."
+                )
             } else {
                 diagramCanvas
             }
@@ -58,12 +60,16 @@ struct ERDiagramView: View {
                             .position(x: node.rect.midX, y: node.rect.midY)
                     }
                 }
-                .frame(width: max(currentLayout.canvasSize.width, proxy.size.width),
-                       height: max(currentLayout.canvasSize.height, proxy.size.height),
-                       alignment: .topLeading)
+                .frame(
+                    width: max(currentLayout.canvasSize.width, proxy.size.width),
+                    height: max(currentLayout.canvasSize.height, proxy.size.height),
+                    alignment: .topLeading
+                )
                 .scaleEffect(zoom * gestureZoom, anchor: .topLeading)
-                .offset(x: pan.width + gesturePan.width,
-                        y: pan.height + gesturePan.height)
+                .offset(
+                    x: pan.width + gesturePan.width,
+                    y: pan.height + gesturePan.height
+                )
             }
             .contentShape(Rectangle())
             .simultaneousGesture(panGesture)
@@ -94,10 +100,14 @@ struct ERDiagramView: View {
     private func arrowHead(at tip: CGPoint, from origin: CGPoint) -> Path {
         let angle = atan2(tip.y - origin.y, tip.x - origin.x)
         let size: CGFloat = 8
-        let left = CGPoint(x: tip.x - size * cos(angle - .pi / 6),
-                           y: tip.y - size * sin(angle - .pi / 6))
-        let right = CGPoint(x: tip.x - size * cos(angle + .pi / 6),
-                            y: tip.y - size * sin(angle + .pi / 6))
+        let left = CGPoint(
+            x: tip.x - size * cos(angle - .pi / 6),
+            y: tip.y - size * sin(angle - .pi / 6)
+        )
+        let right = CGPoint(
+            x: tip.x - size * cos(angle + .pi / 6),
+            y: tip.y - size * sin(angle + .pi / 6)
+        )
         var path = Path()
         path.move(to: tip)
         path.addLine(to: left)
@@ -143,7 +153,8 @@ struct ERDiagramView: View {
         .background(Color(nsColor: .controlBackgroundColor))
         .overlay(
             RoundedRectangle(cornerRadius: 6)
-                .stroke(Color.secondary.opacity(0.35), lineWidth: 1))
+                .stroke(Color.secondary.opacity(0.35), lineWidth: 1)
+        )
         .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 

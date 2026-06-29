@@ -1,14 +1,16 @@
-import Foundation
 import Combine
+import Foundation
 
 public struct SiteRemovalCoordinator: Sendable {
     private let deleteFolder: @Sendable (Site) async throws -> Void
     private let dropDatabase: @Sendable (String) async throws -> Void
     private let removeRecord: @Sendable (Site) async -> Void
 
-    public init(deleteFolder: @escaping @Sendable (Site) async throws -> Void,
-                dropDatabase: @escaping @Sendable (String) async throws -> Void,
-                removeRecord: @escaping @Sendable (Site) async -> Void) {
+    public init(
+        deleteFolder: @escaping @Sendable (Site) async throws -> Void,
+        dropDatabase: @escaping @Sendable (String) async throws -> Void,
+        removeRecord: @escaping @Sendable (Site) async -> Void
+    ) {
         self.deleteFolder = deleteFolder
         self.dropDatabase = dropDatabase
         self.removeRecord = removeRecord
@@ -41,9 +43,11 @@ public final class SiteRegistry: ObservableObject {
 
     private let installedPHP: @Sendable () -> [String]
 
-    public init(storeURL: URL,
-                tld: String = AppPreferences.defaultTLD,
-                installedPHP: @escaping @Sendable () -> [String] = { BundledPHP.plannedVersions }) {
+    public init(
+        storeURL: URL,
+        tld: String = AppPreferences.defaultTLD,
+        installedPHP: @escaping @Sendable () -> [String] = { BundledPHP.plannedVersions }
+    ) {
         self.storeURL = storeURL
         self.tld = tld
         self.installedPHP = installedPHP
@@ -59,21 +63,22 @@ public final class SiteRegistry: ObservableObject {
 
         public var errorDescription: String? {
             switch self {
-            case .invalidDomain(let d): return "“\(d)” is not a valid domain."
-            case .wrongTLD(let d, let t): return "“\(d)” must end in .\(t) (MVP resolves only .\(t) automatically)."
-            case .domainTaken(let d):   return "Another site already uses “\(d)”."
-            case .notADirectory(let p): return "“\(p)” is not a folder."
-            case .unsafeDeletePath(let p): return "Refusing to delete unsafe site folder “\(p)”."
+            case let .invalidDomain(d): "“\(d)” is not a valid domain."
+            case let .wrongTLD(d, t): "“\(d)” must end in .\(t) (MVP resolves only .\(t) automatically)."
+            case let .domainTaken(d): "Another site already uses “\(d)”."
+            case let .notADirectory(p): "“\(p)” is not a folder."
+            case let .unsafeDeletePath(p): "Refusing to delete unsafe site folder “\(p)”."
             }
         }
     }
 
-    // MARK: - Mutators
-
     @discardableResult
-    public func add(folder: URL, phpVersion: String = BundledPHP.defaultVersion,
-                    respectProjectMarkers: Bool = true,
-                    databaseName: String? = nil) throws -> Site {
+    public func add(
+        folder: URL,
+        phpVersion: String = BundledPHP.defaultVersion,
+        respectProjectMarkers: Bool = true,
+        databaseName: String? = nil
+    ) throws -> Site {
         var isDir: ObjCBool = false
         guard FileManager.default.fileExists(atPath: folder.path, isDirectory: &isDir), isDir.boolValue else {
             throw RegistryError.notADirectory(folder.path)
@@ -84,16 +89,28 @@ public final class SiteRegistry: ObservableObject {
         let resolvedPHP = respectProjectMarkers
             ? resolveInitialPHP(folder: folder, fallback: phpVersion)
             : (knownPHPVersions().contains(phpVersion) ? phpVersion : (knownPHPVersions().first ?? BundledPHP.defaultVersion))
-        let site = Site(name: folder.lastPathComponent,
-                        path: folder.path,
-                        docroot: info.docroot.path,
-                        domain: domain,
-                        phpVersion: resolvedPHP,
-                        type: info.type,
-                        databaseName: databaseName)
+        var site = Site(
+            name: folder.lastPathComponent,
+            path: folder.path,
+            docroot: info.docroot.path,
+            domain: domain,
+            phpVersion: resolvedPHP,
+            type: info.type,
+            databaseName: databaseName
+        )
+        if info.type == .node { site.nodePort = nextFreeNodePort() }
         sites.append(site)
         persist()
         return site
+    }
+
+    public func nextFreeNodePort() -> Int {
+        let used = Set(sites.compactMap(\.nodePort))
+        let reserved: Set<Int> = [3306, 5432, 6379, 8025, 27017]
+        for port in 3000 ... 3999 where !used.contains(port) && !reserved.contains(port) {
+            return port
+        }
+        return 3000
     }
 
     public func remove(_ site: Site) {
@@ -106,7 +123,7 @@ public final class SiteRegistry: ObservableObject {
         remove(site)
     }
 
-    public func validateCanRemoveDeletingFolder(_ site: Site) throws {
+    public func validateCanRemoveFolder(_ site: Site) throws {
         let folder = URL(fileURLWithPath: site.path, isDirectory: true).standardizedFileURL
         try validateDeletableSiteFolder(folder)
         var isDirectory: ObjCBool = false
@@ -116,7 +133,7 @@ public final class SiteRegistry: ObservableObject {
 
     public func deleteFolderForRemoval(_ site: Site) throws {
         let folder = URL(fileURLWithPath: site.path, isDirectory: true).standardizedFileURL
-        try validateCanRemoveDeletingFolder(site)
+        try validateCanRemoveFolder(site)
         guard FileManager.default.fileExists(atPath: folder.path) else { return }
         try FileManager.default.removeItem(at: folder)
     }
@@ -147,21 +164,12 @@ public final class SiteRegistry: ObservableObject {
             ?? (known.first ?? BundledPHP.defaultVersion)
     }
 
-  
     public func setSecure(_ site: Site, _ secure: Bool) {
         update(site.id) { $0.secure = secure }
     }
 
-    public func setNodeCommand(_ site: Site, _ command: String?) {
-        let trimmed = command?.trimmingCharacters(in: .whitespacesAndNewlines)
-        update(site.id) { $0.nodeCommand = (trimmed?.isEmpty ?? true) ? nil : trimmed }
-    }
-
-    public func setNodeEnabled(_ site: Site, _ enabled: Bool, port: Int?) {
-        update(site.id) {
-            $0.nodeEnabled = enabled
-            if enabled, $0.nodePort == nil, let port { $0.nodePort = port }
-        }
+    public func setNodePort(_ site: Site, _ port: Int?) {
+        update(site.id) { $0.nodePort = port }
     }
 
     public func reinspect(_ site: Site) {
@@ -169,8 +177,6 @@ public final class SiteRegistry: ObservableObject {
         guard info.docroot.path != site.docroot || info.type != site.type else { return }
         update(site.id) { $0.docroot = info.docroot.path; $0.type = info.type }
     }
-
-    // MARK: - Validation
 
     public func validateDomain(_ domain: String, excluding id: UUID? = nil) throws {
         guard NginxConfigWriter.isValidDomain(domain) else { throw RegistryError.invalidDomain(domain) }
@@ -181,8 +187,6 @@ public final class SiteRegistry: ObservableObject {
             throw RegistryError.domainTaken(domain)
         }
     }
-
-    // MARK: - Private
 
     private func update(_ id: UUID, _ mutate: (inout Site) -> Void) {
         guard let idx = sites.firstIndex(where: { $0.id == id }) else { return }
@@ -203,16 +207,17 @@ public final class SiteRegistry: ObservableObject {
         // base = "<label>.test" → insert "-N" before the TLD.
         let label = base.replacingOccurrences(of: ".\(tld)", with: "")
         var n = 2
-        while sites.contains(where: { $0.domain == "\(label)-\(n).\(tld)" }) { n += 1 }
+        while sites.contains(where: { $0.domain == "\(label)-\(n).\(tld)" }) {
+            n += 1
+        }
         return "\(label)-\(n).\(tld)"
     }
 
     private func load() {
-        guard let data = try? Data(contentsOf: storeURL) else { return }   // absent file → fresh
+        guard let data = try? Data(contentsOf: storeURL) else { return } // absent file → fresh
         if let decoded = try? JSONDecoder().decode([Site].self, from: data) {
             sites = decoded
         } else {
-          
             let backup = storeURL.appendingPathExtension("bak")
             try? FileManager.default.removeItem(at: backup)
             try? FileManager.default.copyItem(at: storeURL, to: backup)
@@ -226,11 +231,11 @@ public final class SiteRegistry: ObservableObject {
             try FileManager.default.createDirectory(
                 at: storeURL.deletingLastPathComponent(),
                 withIntermediateDirectories: true,
-                attributes: [.posixPermissions: 0o700])
+                attributes: [.posixPermissions: 0o700]
+            )
             let data = try JSONEncoder().encode(sites)
             try data.write(to: storeURL, options: .atomic)
         } catch {
-           
             NSLog("KTStack: failed to persist site registry: \(error.localizedDescription)")
         }
         onChange?()

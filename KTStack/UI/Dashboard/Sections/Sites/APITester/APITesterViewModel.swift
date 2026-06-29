@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 enum RouteTab: Hashable { case web, api }
 
@@ -8,9 +8,9 @@ enum RequestBodyMode: String, CaseIterable, Hashable {
 
     var label: String {
         switch self {
-        case .none: return "None"
-        case .json: return "JSON"
-        case .form: return "Form"
+        case .none: "None"
+        case .json: "JSON"
+        case .form: "Form"
         }
     }
 }
@@ -56,15 +56,26 @@ final class APITesterViewModel: ObservableObject {
     static let methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"]
 
     static let adHocRouteID = "__ktstack_adhoc__"
-    static let adHocRoute = APIRoute(method: "GET", uri: adHocRouteID, name: "New request",
-                                     middleware: [], action: "", fields: [], rulesResolved: true)
+    static let adHocRoute = APIRoute(
+        method: "GET",
+        uri: adHocRouteID,
+        name: "New request",
+        middleware: [],
+        action: "",
+        fields: [],
+        rulesResolved: true
+    )
 
     private var drafts: [String: RequestDraft] = [:]
     private var siteKey = ""
 
-    var siteDomain: String { siteKey }
+    var siteDomain: String {
+        siteKey
+    }
 
-    var activeVariableCount: Int { variableNames.count }
+    var activeVariableCount: Int {
+        variableNames.count
+    }
 
     var variableNames: [String] {
         variables
@@ -72,8 +83,13 @@ final class APITesterViewModel: ObservableObject {
             .map { $0.key.trimmingCharacters(in: .whitespaces) }
     }
 
-    var webRoutes: [APIRoute] { filtered(routes.filter { !$0.isApi }) }
-    var apiRoutes: [APIRoute] { filtered(routes.filter { $0.isApi }) }
+    var webRoutes: [APIRoute] {
+        filtered(routes.filter { !$0.isApi })
+    }
+
+    var apiRoutes: [APIRoute] {
+        filtered(routes.filter(\.isApi))
+    }
 
     var visibleRoutes: [APIRoute] {
         guard showsTabs else { return filtered(routes) }
@@ -243,7 +259,7 @@ final class APITesterViewModel: ObservableObject {
         return APIRequestSpec(method: draftMethod, url: url, headers: headers, body: body)
     }
 
-    private func composeURL(route: APIRoute, site: Site) -> URL? {
+    private func composeURL(route _: APIRoute, site: Site) -> URL? {
         let scheme = site.secure ? "https" : "http"
         var path = normalizedDraftPath
         for param in requestDraft.pathParams {
@@ -291,9 +307,9 @@ final class APITesterViewModel: ObservableObject {
 
     private func contentType() -> String {
         switch requestDraft.bodyMode {
-        case .json: return "application/json"
-        case .form: return "application/x-www-form-urlencoded"
-        case .none: return "application/octet-stream"
+        case .json: "application/json"
+        case .form: "application/x-www-form-urlencoded"
+        case .none: "application/octet-stream"
         }
     }
 
@@ -327,7 +343,7 @@ final class APITesterViewModel: ObservableObject {
     }
 
     static func bodySkeleton(fields: [APIRouteRuleField]) -> String {
-        let required = fields.filter { $0.required }
+        let required = fields.filter(\.required)
         let chosen = required.isEmpty ? fields : required
         guard !chosen.isEmpty else { return "{\n  \n}" }
         let lines = chosen.map { "  \"\($0.name)\": \"\"" }.joined(separator: ",\n")

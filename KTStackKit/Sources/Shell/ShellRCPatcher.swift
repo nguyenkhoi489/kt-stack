@@ -1,5 +1,5 @@
-import Foundation
 import CryptoKit
+import Foundation
 
 struct ShellRCPatcher {
     static let startPrefix = "# >>> KTStack PATH (managed"
@@ -12,10 +12,10 @@ struct ShellRCPatcher {
         case duplicated(String)
         var errorDescription: String? {
             switch self {
-            case .tampered(let file):
-                return "KTStack PATH block in \(file) was edited by hand — fix or remove it manually, then re-apply."
-            case .duplicated(let file):
-                return "Multiple KTStack PATH blocks found in \(file) — remove the extras manually."
+            case let .tampered(file):
+                "KTStack PATH block in \(file) was edited by hand — fix or remove it manually, then re-apply."
+            case let .duplicated(file):
+                "Multiple KTStack PATH blocks found in \(file) — remove the extras manually."
             }
         }
     }

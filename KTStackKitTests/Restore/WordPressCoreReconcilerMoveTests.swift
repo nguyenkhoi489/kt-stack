@@ -28,12 +28,14 @@ final class WordPressCoreReconcilerMoveTests: XCTestCase {
             sourceURL: "https://old.test",
             wpVersion: nil,
             isContentOnly: false,
-            kind: .duplicatorZip)
+            kind: .duplicatorZip
+        )
 
         let target = root.appendingPathComponent("sites/site", isDirectory: true)
         let reconciler = WordPressCoreReconciler(
             php: URL(fileURLWithPath: "/usr/bin/true"), phpIni: nil,
-            wpCliPhar: URL(fileURLWithPath: "/dev/null"))
+            wpCliPhar: URL(fileURLWithPath: "/dev/null")
+        )
         let result = try await reconciler.reconcile(payload: payload, targetDocroot: target) { _ in }
 
         XCTAssertNil(result.coreVersion)

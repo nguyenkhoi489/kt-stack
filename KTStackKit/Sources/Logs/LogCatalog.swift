@@ -10,7 +10,9 @@ public struct LogSource: Identifiable, Sendable, Hashable {
 
 public struct LogCatalog: Sendable {
     private let paths: AppSupportPaths
-    public init(paths: AppSupportPaths) { self.paths = paths }
+    public init(paths: AppSupportPaths) {
+        self.paths = paths
+    }
 
     public func sources(siteDomains: [String], phpVersions: [String]) -> [LogSource] {
         let fm = FileManager.default
@@ -28,11 +30,17 @@ public struct LogCatalog: Sendable {
             }
         }
         for domain in siteDomains.sorted() {
-            for (suffix, label, url) in [("access", "access", paths.siteAccessLog(domain)),
-                                         ("error", "error", paths.siteErrorLog(domain))] {
+            for (suffix, label, url) in [
+                ("access", "access", paths.siteAccessLog(domain)),
+                ("error", "error", paths.siteErrorLog(domain)),
+            ] {
                 if fm.fileExists(atPath: url.path) {
-                    out.append(LogSource(id: "site-\(domain)-\(suffix)", displayName: "\(domain) · \(label)",
-                                         kind: .site, url: url))
+                    out.append(LogSource(
+                        id: "site-\(domain)-\(suffix)",
+                        displayName: "\(domain) · \(label)",
+                        kind: .site,
+                        url: url
+                    ))
                 }
             }
         }

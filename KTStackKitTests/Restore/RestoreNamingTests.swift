@@ -19,7 +19,7 @@ final class RestoreNamingTests: XCTestCase {
     }
 
     func testUniqueNameSuffixesOnCollision() async throws {
-        let taken: Set<String> = ["shop", "shop_2", "shop_3"]
+        let taken: Set = ["shop", "shop_2", "shop_3"]
         let name = try await RestoreNaming.uniqueName(base: "shop") { taken.contains($0) }
         XCTAssertEqual(name, "shop_4")
     }

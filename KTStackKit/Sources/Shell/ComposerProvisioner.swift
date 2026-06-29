@@ -8,7 +8,9 @@ public struct ComposerProvisioner: Sendable {
     }
 
     private let paths: AppSupportPaths
-    public init(paths: AppSupportPaths) { self.paths = paths }
+    public init(paths: AppSupportPaths) {
+        self.paths = paths
+    }
 
     public var isProvisioned: Bool {
         guard FileManager.default.fileExists(atPath: paths.composerPhar.path),
@@ -21,8 +23,12 @@ public struct ComposerProvisioner: Sendable {
         if isProvisioned { return paths.composerPhar }
         try paths.ensureDirectoryTree()
         let dest = try await RuntimeDownloader(paths: paths)
-            .downloadVerifiedFile(url: Self.downloadURL, sha256: Self.sha256, to: paths.composerPhar,
-                                  onProgress: onProgress)
+            .downloadVerifiedFile(
+                url: Self.downloadURL,
+                sha256: Self.sha256,
+                to: paths.composerPhar,
+                onProgress: onProgress
+            )
         try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: dest.path)
         return dest
     }

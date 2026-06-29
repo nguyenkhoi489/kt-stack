@@ -1,11 +1,13 @@
-import Foundation
 import Combine
-
+import Foundation
 
 @MainActor
 public final class LogTailController: ObservableObject {
     @Published public private(set) var lines: [LogLine] = []
-    @Published public var filter = "" { didSet { recompute() } }
+    @Published public var filter = "" {
+        didSet { recompute() }
+    }
+
     @Published public var isLive = true
     @Published public private(set) var currentSourceID: String?
 
@@ -13,8 +15,8 @@ public final class LogTailController: ObservableObject {
     private var reader: LogTailReader?
     private var currentSourceURL: URL?
 
-    public init(capacity: Int = 5_000) {
-        self.store = LogLineStore(capacity: capacity)
+    public init(capacity: Int = 5000) {
+        store = LogLineStore(capacity: capacity)
     }
 
     public func select(_ source: LogSource?) {
@@ -33,7 +35,6 @@ public final class LogTailController: ObservableObject {
         r.start()
     }
 
-    
     public func clear() {
         if let url = currentSourceURL, let fh = try? FileHandle(forWritingTo: url) {
             try? fh.truncate(atOffset: 0)
@@ -48,5 +49,7 @@ public final class LogTailController: ObservableObject {
         recompute()
     }
 
-    private func recompute() { lines = store.filtered(filter) }
+    private func recompute() {
+        lines = store.filtered(filter)
+    }
 }

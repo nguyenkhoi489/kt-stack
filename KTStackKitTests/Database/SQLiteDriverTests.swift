@@ -6,7 +6,6 @@ import XCTest
 /// typed-cell round-trips, schema introspection (PK + index), row CRUD with the one-row guard, and
 /// the read-only contract enforced by opening the file read-only.
 final class SQLiteDriverTests: XCTestCase {
-
     private var tempDir: URL!
 
     override func setUpWithError() throws {
@@ -21,9 +20,16 @@ final class SQLiteDriverTests: XCTestCase {
 
     private func makeDriver(readOnly: Bool = false) -> SQLiteDriver {
         let path = tempDir.appendingPathComponent("test.db").path
-        let profile = ConnectionProfile(name: "t", kind: .sqlite, host: "", port: 0,
-                                        user: "", database: SQLiteDriver.mainDatabase,
-                                        filePath: path, readOnly: readOnly)
+        let profile = ConnectionProfile(
+            name: "t",
+            kind: .sqlite,
+            host: "",
+            port: 0,
+            user: "",
+            database: SQLiteDriver.mainDatabase,
+            filePath: path,
+            readOnly: readOnly
+        )
         return SQLiteDriver(profile: profile)
     }
 
@@ -34,8 +40,15 @@ final class SQLiteDriverTests: XCTestCase {
     }
 
     func testMissingFilePathFailsClearly() async {
-        let profile = ConnectionProfile(name: "x", kind: .sqlite, host: "", port: 0,
-                                        user: "", database: "main", filePath: nil)
+        let profile = ConnectionProfile(
+            name: "x",
+            kind: .sqlite,
+            host: "",
+            port: 0,
+            user: "",
+            database: "main",
+            filePath: nil
+        )
         let driver = SQLiteDriver(profile: profile)
         do { try await driver.ping(); XCTFail("expected failure") }
         catch { XCTAssertTrue(error is DatabaseError) }
@@ -45,10 +58,15 @@ final class SQLiteDriverTests: XCTestCase {
         let driver = makeDriver()
         try await seedSchema(driver)
         _ = try await driver.query(
-            "INSERT INTO notes (id, body, score, data) VALUES (1, 'hello', 1.5, NULL)", database: nil)
+            "INSERT INTO notes (id, body, score, data) VALUES (1, 'hello', 1.5, NULL)", database: nil
+        )
 
-        let page = try await driver.paginatedRows(database: "main", table: "notes",
-                                                  limit: 100, offset: 0)
+        let page = try await driver.paginatedRows(
+            database: "main",
+            table: "notes",
+            limit: 100,
+            offset: 0
+        )
         XCTAssertEqual(page.columnNames, ["id", "body", "score", "data"])
         XCTAssertEqual(page.rows.count, 1)
         XCTAssertEqual(page.rows[0][0], .int(1))
@@ -103,22 +121,40 @@ final class SQLiteDriverTests: XCTestCase {
             ColumnValue(column: "data", value: .blob(blob)),
         ])
 
-        var rows = try await driver.paginatedRows(database: "main", table: "notes",
-                                                  limit: 10, offset: 0).rows
+        var rows = try await driver.paginatedRows(
+            database: "main",
+            table: "notes",
+            limit: 10,
+            offset: 0
+        ).rows
         XCTAssertEqual(rows.count, 1)
         XCTAssertEqual(rows[0][3], .blob(blob))
 
-        try await driver.update(database: "main", table: "notes",
-                                values: [ColumnValue(column: "body", value: .text("edited"))],
-                                key: [ColumnValue(column: "id", value: .int(7))])
-        rows = try await driver.paginatedRows(database: "main", table: "notes",
-                                              limit: 10, offset: 0).rows
+        try await driver.update(
+            database: "main",
+            table: "notes",
+            values: [ColumnValue(column: "body", value: .text("edited"))],
+            key: [ColumnValue(column: "id", value: .int(7))]
+        )
+        rows = try await driver.paginatedRows(
+            database: "main",
+            table: "notes",
+            limit: 10,
+            offset: 0
+        ).rows
         XCTAssertEqual(rows[0][1], .text("edited"))
 
-        try await driver.delete(database: "main", table: "notes",
-                                key: [ColumnValue(column: "id", value: .int(7))])
-        let after = try await driver.paginatedRows(database: "main", table: "notes",
-                                                   limit: 10, offset: 0)
+        try await driver.delete(
+            database: "main",
+            table: "notes",
+            key: [ColumnValue(column: "id", value: .int(7))]
+        )
+        let after = try await driver.paginatedRows(
+            database: "main",
+            table: "notes",
+            limit: 10,
+            offset: 0
+        )
         XCTAssertEqual(after.rowCount, 0)
     }
 
@@ -126,8 +162,11 @@ final class SQLiteDriverTests: XCTestCase {
         let driver = makeDriver()
         try await seedSchema(driver)
         do {
-            try await driver.delete(database: "main", table: "notes",
-                                    key: [ColumnValue(column: "id", value: .int(999))])
+            try await driver.delete(
+                database: "main",
+                table: "notes",
+                key: [ColumnValue(column: "id", value: .int(999))]
+            )
             XCTFail("expected the zero-row guard to reject")
         } catch {
             XCTAssertTrue(error is DatabaseError)
@@ -135,7 +174,7 @@ final class SQLiteDriverTests: XCTestCase {
     }
 
     func testReadOnlyConnectionRejectsWrites() async throws {
-        try await seedSchema(makeDriver())               // create the file writable first
+        try await seedSchema(makeDriver()) // create the file writable first
         let readOnly = makeDriver(readOnly: true)
         do {
             try await readOnly.insert(database: "main", table: "notes", values: [

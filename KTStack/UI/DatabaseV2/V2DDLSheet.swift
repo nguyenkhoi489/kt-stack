@@ -1,11 +1,13 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct V2DDLSheet: View {
     enum Mode: Identifiable {
         case createTable
         case addColumn
-        var id: String { self == .createTable ? "create" : "add" }
+        var id: String {
+            self == .createTable ? "create" : "add"
+        }
     }
 
     @ObservedObject var vm: DatabaseV2ViewModel
@@ -23,8 +25,13 @@ struct V2DDLSheet: View {
         var primaryKey = false
     }
 
-    private var isCreate: Bool { mode == .createTable }
-    private var title: String { isCreate ? "New Table" : "Add Column" }
+    private var isCreate: Bool {
+        mode == .createTable
+    }
+
+    private var title: String {
+        isCreate ? "New Table" : "Add Column"
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -76,7 +83,6 @@ struct V2DDLSheet: View {
         }
     }
 
-    @ViewBuilder
     private func columnDraftRow(_ draft: Binding<DraftColumn>) -> some View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
@@ -87,7 +93,7 @@ struct V2DDLSheet: View {
                     .textFieldStyle(.roundedBorder)
                     .font(.jbMono(12.5))
                     .frame(width: 150)
-                if isCreate && columnDrafts.count > 1 {
+                if isCreate, columnDrafts.count > 1 {
                     Button {
                         columnDrafts.removeAll { $0.id == draft.wrappedValue.id }
                     } label: {
@@ -127,7 +133,7 @@ struct V2DDLSheet: View {
     private var isValid: Bool {
         let allFilled = columnDrafts.allSatisfy {
             !$0.name.trimmingCharacters(in: .whitespaces).isEmpty &&
-            !$0.type.trimmingCharacters(in: .whitespaces).isEmpty
+                !$0.type.trimmingCharacters(in: .whitespaces).isEmpty
         }
         guard allFilled else { return false }
         if isCreate { return !tableName.trimmingCharacters(in: .whitespaces).isEmpty }

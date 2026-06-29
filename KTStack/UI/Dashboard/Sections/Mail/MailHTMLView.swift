@@ -4,7 +4,9 @@ import WebKit
 struct MailHTMLView: NSViewRepresentable {
     let html: String
 
-    func makeCoordinator() -> Coordinator { Coordinator() }
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
 
     func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
@@ -32,7 +34,8 @@ struct MailHTMLView: NSViewRepresentable {
             } else {
                 let json = #"[{"trigger":{"url-filter":".*"},"action":{"type":"block"}}]"#
                 WKContentRuleListStore.default().compileContentRuleList(
-                    forIdentifier: "ktstack-mail-block-all", encodedContentRuleList: json) { [weak webView] list, _ in
+                    forIdentifier: "ktstack-mail-block-all", encodedContentRuleList: json
+                ) { [weak webView] list, _ in
                     Self.ruleList = list
                     guard let webView else { return }
                     self.load(webView, html: html, rules: list)
@@ -43,18 +46,21 @@ struct MailHTMLView: NSViewRepresentable {
         private func load(_ webView: WKWebView, html: String, rules: WKContentRuleList?) {
             webView.configuration.userContentController.removeAllContentRuleLists()
             guard let rules else {
-               
                 webView.loadHTMLString(
                     "<body style='font:13px -apple-system;color:#888;padding:16px'>Could not render this message safely.</body>",
-                    baseURL: nil)
+                    baseURL: nil
+                )
                 return
             }
             webView.configuration.userContentController.add(rules)
             webView.loadHTMLString(html, baseURL: nil)
         }
 
-        func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
-                     decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        func webView(
+            _: WKWebView,
+            decidePolicyFor navigationAction: WKNavigationAction,
+            decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+        ) {
             let scheme = navigationAction.request.url?.scheme?.lowercased()
             if scheme == nil || scheme == "about" || scheme == "data" {
                 decisionHandler(.allow)

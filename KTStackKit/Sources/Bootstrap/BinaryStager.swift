@@ -1,6 +1,5 @@
 import Foundation
 
-
 public struct BinaryStager {
     public enum StageError: LocalizedError {
         case missingSource(String)
@@ -9,17 +8,15 @@ public struct BinaryStager {
 
         public var errorDescription: String? {
             switch self {
-            case .missingSource(let p):   return "Bundled binary not found: \(p)"
-            case .signatureInvalid(let p): return "Code signature check failed for \(p) — refusing to run a possibly tampered binary."
-            case .copyFailed(let n, let m): return "Could not stage \(n): \(m)"
+            case let .missingSource(p): "Bundled binary not found: \(p)"
+            case let .signatureInvalid(p): "Code signature check failed for \(p) — refusing to run a possibly tampered binary."
+            case let .copyFailed(n, m): "Could not stage \(n): \(m)"
             }
         }
     }
 
-
     public static let binBinaries = ["nginx", "dnsmasq", "mkcert"]
 
-    
     public static let optionalBinaryNames = ["mailpit"]
 
     private let bundleBinDir: URL
@@ -32,29 +29,33 @@ public struct BinaryStager {
         self.fileManager = fileManager
     }
 
-
     public func stageIfNeeded() throws {
         try paths.ensureDirectoryTree(fileManager: fileManager)
         RestoreStagingArea(paths: paths).sweepOrphans(keeping: [])
         for name in Self.binBinaries {
-            try stage(from: bundleBinDir.appendingPathComponent(name),
-                      to: paths.bin.appendingPathComponent(name), displayName: name)
+            try stage(
+                from: bundleBinDir.appendingPathComponent(name),
+                to: paths.bin.appendingPathComponent(name),
+                displayName: name
+            )
         }
         try stagePHPRuntimes()
         for name in Self.optionalBinaryNames where fileManager.isReadableFile(
-            atPath: bundleBinDir.appendingPathComponent(name).path) {
-            try stage(from: bundleBinDir.appendingPathComponent(name),
-                      to: paths.bin.appendingPathComponent(name), displayName: name)
+            atPath: bundleBinDir.appendingPathComponent(name).path
+        ) {
+            try stage(
+                from: bundleBinDir.appendingPathComponent(name),
+                to: paths.bin.appendingPathComponent(name),
+                displayName: name
+            )
         }
     }
 
-
     private func stagePHPRuntimes() throws {
-        
         if fileManager.isReadableFile(atPath: bundleBinDir.appendingPathComponent("php-fpm").path) {
             try stagePHPVersion(BundledPHP.defaultVersion, fpmSource: "php-fpm", cliSource: "php")
         }
-       
+
         for version in BundledPHP.plannedVersions where version != BundledPHP.defaultVersion {
             let fpm = "php-fpm-\(version)"
             guard fileManager.isReadableFile(atPath: bundleBinDir.appendingPathComponent(fpm).path) else { continue }
@@ -64,11 +65,17 @@ public struct BinaryStager {
 
     private func stagePHPVersion(_ version: String, fpmSource: String, cliSource: String) throws {
         let binDir = paths.runtimeBin("php", version)
-        try fileManager.createDirectory(at: binDir, withIntermediateDirectories: true,
-                                        attributes: [.posixPermissions: 0o700])
-        try stage(from: bundleBinDir.appendingPathComponent(fpmSource),
-                  to: binDir.appendingPathComponent("php-fpm"), displayName: fpmSource)
-     
+        try fileManager.createDirectory(
+            at: binDir,
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
+        try stage(
+            from: bundleBinDir.appendingPathComponent(fpmSource),
+            to: binDir.appendingPathComponent("php-fpm"),
+            displayName: fpmSource
+        )
+
         let cli = bundleBinDir.appendingPathComponent(cliSource)
         if fileManager.isReadableFile(atPath: cli.path) {
             try stage(from: cli, to: binDir.appendingPathComponent("php"), displayName: cliSource)
@@ -99,13 +106,12 @@ public struct BinaryStager {
     private func enforceSignature(at url: URL) throws {
         guard !Self.verifySignature(at: url) else { return }
         #if DEBUG
-        NSLog("KTStack: skipping signature check for unsigned binary in DEBUG build: \(url.path)")
+            NSLog("KTStack: skipping signature check for unsigned binary in DEBUG build: \(url.path)")
         #else
-        throw StageError.signatureInvalid(url.path)
+            throw StageError.signatureInvalid(url.path)
         #endif
     }
 
-    
     private func shouldRestage(source: URL, dest: URL) throws -> Bool {
         guard fileManager.fileExists(atPath: dest.path) else { return true }
         let s = try fileManager.attributesOfItem(atPath: source.path)
@@ -117,7 +123,6 @@ public struct BinaryStager {
         let dDate = (d[.modificationDate] as? Date) ?? .distantPast
         return sDate > dDate
     }
-
 
     static func verifySignature(at url: URL) -> Bool {
         let proc = Process()

@@ -13,7 +13,10 @@ public struct APIRouteRuleField: Sendable, Hashable, Codable {
 }
 
 public struct APIRoute: Sendable, Identifiable, Hashable, Codable {
-    public var id: String { method + " " + uri }
+    public var id: String {
+        method + " " + uri
+    }
+
     public let method: String
     public let uri: String
     public let name: String?
@@ -22,13 +25,15 @@ public struct APIRoute: Sendable, Identifiable, Hashable, Codable {
     public let fields: [APIRouteRuleField]
     public let rulesResolved: Bool
 
-    public init(method: String,
-                uri: String,
-                name: String?,
-                middleware: [String],
-                action: String,
-                fields: [APIRouteRuleField],
-                rulesResolved: Bool) {
+    public init(
+        method: String,
+        uri: String,
+        name: String?,
+        middleware: [String],
+        action: String,
+        fields: [APIRouteRuleField],
+        rulesResolved: Bool
+    ) {
         self.method = method
         self.uri = uri
         self.name = name
@@ -42,7 +47,9 @@ public struct APIRoute: Sendable, Identifiable, Hashable, Codable {
         case method, uri, name, middleware, action, fields, rulesResolved
     }
 
-    public var isApi: Bool { middleware.contains { $0.lowercased() == "api" } }
+    public var isApi: Bool {
+        middleware.contains { $0.lowercased() == "api" }
+    }
 
     public var isClosure: Bool {
         action == "Closure" || !action.contains("@")

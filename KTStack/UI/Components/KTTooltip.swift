@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 private struct KTTooltipPayload {
     let text: String
@@ -7,7 +7,7 @@ private struct KTTooltipPayload {
 }
 
 private struct KTTooltipKey: PreferenceKey {
-    static var defaultValue: KTTooltipPayload? = nil
+    static var defaultValue: KTTooltipPayload?
     static func reduce(value: inout KTTooltipPayload?, nextValue: () -> KTTooltipPayload?) {
         if let next = nextValue() { value = next }
     }

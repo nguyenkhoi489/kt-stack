@@ -1,15 +1,14 @@
 import Foundation
 
-
 public struct NginxConfigWriter {
-   
     public static let listenAddress = "0.0.0.0"
 
     public init() {}
 
-    static func q(_ path: String) -> String { "\"\(path)\"" }
+    static func q(_ path: String) -> String {
+        "\"\(path)\""
+    }
 
-   
     public func masterConfig(paths: AppSupportPaths, secureCatchAll: Bool = false) -> String {
         """
         worker_processes auto;
@@ -54,18 +53,17 @@ public struct NginxConfigWriter {
         """
         if secure {
             blocks += "\n\n" + """
-            server {
-                listen \(Self.listenAddress):443 ssl default_server;
-                server_name _;
-                ssl_certificate \(Self.q(paths.catchAllCert.path));
-                ssl_certificate_key \(Self.q(paths.catchAllKey.path));
-                return 444;
-            }
-        """
+                server {
+                    listen \(Self.listenAddress):443 ssl default_server;
+                    server_name _;
+                    ssl_certificate \(Self.q(paths.catchAllCert.path));
+                    ssl_certificate_key \(Self.q(paths.catchAllKey.path));
+                    return 444;
+                }
+            """
         }
         return blocks
     }
-
 
     public static func logDirectives(access: URL?, error: URL?) -> String {
         var lines: [String] = []
@@ -74,9 +72,14 @@ public struct NginxConfigWriter {
         return lines.isEmpty ? "" : "\n" + lines.joined(separator: "\n")
     }
 
-
-    public func vhost(domain: String, root: URL, phpFpmSocket: URL, port: Int = 80,
-                      accessLog: URL? = nil, errorLog: URL? = nil) -> String {
+    public func vhost(
+        domain: String,
+        root: URL,
+        phpFpmSocket: URL,
+        port: Int = 80,
+        accessLog: URL? = nil,
+        errorLog: URL? = nil
+    ) -> String {
         """
         server {
             listen \(Self.listenAddress):\(port);
@@ -116,8 +119,13 @@ public struct NginxConfigWriter {
         """
     }
 
-    public func vhostStatic(domain: String, root: URL, port: Int = 80,
-                            accessLog: URL? = nil, errorLog: URL? = nil) -> String {
+    public func vhostStatic(
+        domain: String,
+        root: URL,
+        port: Int = 80,
+        accessLog: URL? = nil,
+        errorLog: URL? = nil
+    ) -> String {
         """
         server {
             listen \(Self.listenAddress):\(port);
@@ -136,8 +144,13 @@ public struct NginxConfigWriter {
         """
     }
 
-    public func vhostNodeProxy(domain: String, nodePort: Int, port: Int = 80,
-                               accessLog: URL? = nil, errorLog: URL? = nil) -> String {
+    public func vhostNodeProxy(
+        domain: String,
+        nodePort: Int,
+        port: Int = 80,
+        accessLog: URL? = nil,
+        errorLog: URL? = nil
+    ) -> String {
         """
         server {
             listen \(Self.listenAddress):\(port);
@@ -169,13 +182,12 @@ public struct NginxConfigWriter {
         case invalidPath(String)
         public var errorDescription: String? {
             switch self {
-            case .invalidDomain(let d): return "Invalid site domain: “\(d)”."
-            case .invalidPath(let p):   return "Invalid site path: “\(p)”."
+            case let .invalidDomain(d): "Invalid site domain: “\(d)”."
+            case let .invalidPath(p): "Invalid site path: “\(p)”."
             }
         }
     }
 
-  
     public static func isValidDomain(_ domain: String) -> Bool {
         let label = "[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?"
         return domain.range(of: "^\(label)(\\.\(label))+$", options: .regularExpression) != nil
@@ -185,13 +197,14 @@ public struct NginxConfigWriter {
         !path.isEmpty && path.rangeOfCharacter(from: CharacterSet(charactersIn: ";{}\n\r")) == nil
     }
 
-  
     @discardableResult
-    public func writeDemo(paths: AppSupportPaths,
-                          domain: String,
-                          siteRoot: URL,
-                          poolName: String,
-                          port: Int = 80) throws -> (conf: URL, vhost: URL) {
+    public func writeDemo(
+        paths: AppSupportPaths,
+        domain: String,
+        siteRoot: URL,
+        poolName: String,
+        port: Int = 80
+    ) throws -> (conf: URL, vhost: URL) {
         guard Self.isValidDomain(domain) else { throw ConfigError.invalidDomain(domain) }
         guard Self.isSafePath(siteRoot.path) else { throw ConfigError.invalidPath(siteRoot.path) }
         try masterConfig(paths: paths)

@@ -9,11 +9,25 @@ final class QueryTabWorkspaceTests: XCTestCase {
         private(set) var queryCalls: [(sql: String, database: String?)] = []
 
         func ping() async throws {}
-        func listDatabases() async throws -> [DatabaseInfo] { [DatabaseInfo(name: "app")] }
-        func listTables(database: String) async throws -> [TableInfo] { [TableInfo(name: "users")] }
-        func columns(database: String, table: String) async throws -> [ColumnInfo] { [] }
-        func indexes(database: String, table: String) async throws -> [IndexInfo] { [] }
-        func foreignKeys(database: String) async throws -> [ForeignKeyRelation] { [] }
+        func listDatabases() async throws -> [DatabaseInfo] {
+            [DatabaseInfo(name: "app")]
+        }
+
+        func listTables(database _: String) async throws -> [TableInfo] {
+            [TableInfo(name: "users")]
+        }
+
+        func columns(database _: String, table _: String) async throws -> [ColumnInfo] {
+            []
+        }
+
+        func indexes(database _: String, table _: String) async throws -> [IndexInfo] {
+            []
+        }
+
+        func foreignKeys(database _: String) async throws -> [ForeignKeyRelation] {
+            []
+        }
 
         func query(_ sql: String, database: String?) async throws -> QueryResult {
             if queryDelay > .zero { try? await Task.sleep(for: queryDelay) }
@@ -21,19 +35,19 @@ final class QueryTabWorkspaceTests: XCTestCase {
             return QueryResult(columns: [ColumnMeta(name: "sql")], rows: [[.text(sql)]])
         }
 
-        func paginatedRows(database: String, table: String, limit: Int, offset: Int) async throws -> QueryResult {
+        func paginatedRows(database _: String, table _: String, limit _: Int, offset _: Int) async throws -> QueryResult {
             QueryResult(columns: [ColumnMeta(name: "id")], rows: [[.int(1)]])
         }
 
         func openSession() async throws {}
         func closeSession() async {}
-        func runSelect(_ statement: DMLStatement, database: String?) async throws -> QueryResult {
+        func runSelect(_: DMLStatement, database _: String?) async throws -> QueryResult {
             QueryResult(columns: [], rows: [])
         }
 
-        func insert(database: String, table: String, values: [ColumnValue]) async throws {}
-        func update(database: String, table: String, values: [ColumnValue], key: [ColumnValue]) async throws {}
-        func delete(database: String, table: String, key: [ColumnValue]) async throws {}
+        func insert(database _: String, table _: String, values _: [ColumnValue]) async throws {}
+        func update(database _: String, table _: String, values _: [ColumnValue], key _: [ColumnValue]) async throws {}
+        func delete(database _: String, table _: String, key _: [ColumnValue]) async throws {}
     }
 
     private func temporaryHistoryStore() -> QueryHistoryStore {
@@ -43,9 +57,11 @@ final class QueryTabWorkspaceTests: XCTestCase {
     }
 
     private func makeVM(_ driver: StubDriver) -> DatabaseViewModel {
-        DatabaseViewModel(makeDriver: { _, _ in driver },
-                          passwordFor: { _ in nil },
-                          historyStore: temporaryHistoryStore())
+        DatabaseViewModel(
+            makeDriver: { _, _ in driver },
+            passwordFor: { _ in nil },
+            historyStore: temporaryHistoryStore()
+        )
     }
 
     func testQueryTabsKeepSQLAndResultsIsolated() async {

@@ -1,8 +1,7 @@
-import Foundation
 import CoreGraphics
+import Foundation
 
 public enum ERLayoutEngine {
-
     public struct Config: Sendable, Equatable {
         public let nodeWidth: CGFloat
         public let headerHeight: CGFloat
@@ -12,13 +11,15 @@ public enum ERLayoutEngine {
         public let verticalSpacing: CGFloat
         public let padding: CGFloat
 
-        public init(nodeWidth: CGFloat = 220,
-                    headerHeight: CGFloat = 28,
-                    rowHeight: CGFloat = 18,
-                    columnsPerRow: Int = 4,
-                    horizontalSpacing: CGFloat = 60,
-                    verticalSpacing: CGFloat = 40,
-                    padding: CGFloat = 40) {
+        public init(
+            nodeWidth: CGFloat = 220,
+            headerHeight: CGFloat = 28,
+            rowHeight: CGFloat = 18,
+            columnsPerRow: Int = 4,
+            horizontalSpacing: CGFloat = 60,
+            verticalSpacing: CGFloat = 40,
+            padding: CGFloat = 40
+        ) {
             self.nodeWidth = nodeWidth
             self.headerHeight = headerHeight
             self.rowHeight = rowHeight
@@ -31,11 +32,13 @@ public enum ERLayoutEngine {
         public static let `default` = Config()
     }
 
-    public static func layout(tables: [String],
-                              columnsByTable: [String: [String]],
-                              primaryKeysByTable: [String: Set<String>] = [:],
-                              relations: [ForeignKeyRelation],
-                              config: Config = .default) -> ERDiagramLayout {
+    public static func layout(
+        tables: [String],
+        columnsByTable: [String: [String]],
+        primaryKeysByTable: [String: Set<String>] = [:],
+        relations: [ForeignKeyRelation],
+        config: Config = .default
+    ) -> ERDiagramLayout {
         guard !tables.isEmpty else { return .empty }
 
         let ordered = orderTables(tables, relations: relations)
@@ -91,7 +94,8 @@ public enum ERLayoutEngine {
                 columns: cols,
                 primaryKeyColumns: primaryKeysByTable[table] ?? [],
                 foreignKeyColumns: fksByTable[table] ?? [],
-                rect: rect))
+                rect: rect
+            ))
         }
 
         let canvasWidth = config.padding * 2
@@ -103,15 +107,18 @@ public enum ERLayoutEngine {
         return ERDiagramLayout(
             nodes: nodes,
             edges: edges,
-            canvasSize: CGSize(width: canvasWidth, height: canvasHeight))
+            canvasSize: CGSize(width: canvasWidth, height: canvasHeight)
+        )
     }
 
     private static func nodeHeight(columnCount: Int, config: Config) -> CGFloat {
         config.headerHeight + CGFloat(max(1, columnCount)) * config.rowHeight + 8
     }
 
-    private static func relationCount(relations: [ForeignKeyRelation],
-                                       tables: Set<String>) -> [String: Int] {
+    private static func relationCount(
+        relations: [ForeignKeyRelation],
+        tables: Set<String>
+    ) -> [String: Int] {
         var counts: [String: Int] = [:]
         for rel in relations where tables.contains(rel.fromTable) && tables.contains(rel.toTable) {
             counts[rel.fromTable, default: 0] += 1
@@ -128,7 +135,7 @@ public enum ERLayoutEngine {
         return map
     }
 
-    private static func orderTables(_ tables: [String], relations: [ForeignKeyRelation]) -> [String] {
+    private static func orderTables(_ tables: [String], relations _: [ForeignKeyRelation]) -> [String] {
         var seen = Set<String>()
         var ordered: [String] = []
         for name in tables where seen.insert(name).inserted {
@@ -137,8 +144,10 @@ public enum ERLayoutEngine {
         return ordered
     }
 
-    private static func buildEdges(relations: [ForeignKeyRelation],
-                                    rectsByTable: [String: CGRect]) -> [EREdge] {
+    private static func buildEdges(
+        relations: [ForeignKeyRelation],
+        rectsByTable: [String: CGRect]
+    ) -> [EREdge] {
         var seen = Set<String>()
         var edges: [EREdge] = []
         for rel in relations {
@@ -152,7 +161,8 @@ public enum ERLayoutEngine {
                 fromTable: rel.fromTable,
                 toTable: rel.toTable,
                 fromPoint: fromPoint,
-                toPoint: toPoint))
+                toPoint: toPoint
+            ))
         }
         return edges
     }

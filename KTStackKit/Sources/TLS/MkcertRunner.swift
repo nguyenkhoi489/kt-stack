@@ -9,18 +9,23 @@ public struct MkcertRunner {
         self.caroot = caroot
     }
 
-    
     public var caExists: Bool {
         FileManager.default.fileExists(atPath: caroot.appendingPathComponent("rootCA.pem").path)
     }
 
-    public func install() throws { try run(["-install"]) }
+    public func install() throws {
+        try run(["-install"])
+    }
 
-    public func uninstall() throws { try run(["-uninstall"]) }
+    public func uninstall() throws {
+        try run(["-uninstall"])
+    }
 
     public func mint(domain: String, certFile: URL, keyFile: URL) throws {
-        try FileManager.default.createDirectory(at: certFile.deletingLastPathComponent(),
-                                                withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(
+            at: certFile.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
         try run(Self.mintArgs(domain: domain, certFile: certFile, keyFile: keyFile))
     }
 
@@ -37,15 +42,21 @@ public struct MkcertRunner {
         let pipe = Pipe()
         proc.standardOutput = pipe
         proc.standardError = pipe
-        try FileManager.default.createDirectory(at: caroot, withIntermediateDirectories: true,
-                                                attributes: [.posixPermissions: 0o700])
+        try FileManager.default.createDirectory(
+            at: caroot,
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
         try proc.run()
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         proc.waitUntilExit()
         let output = String(data: data, encoding: .utf8) ?? ""
         guard proc.terminationStatus == 0 else {
-            throw NSError(domain: "KTStack.mkcert", code: Int(proc.terminationStatus),
-                          userInfo: [NSLocalizedDescriptionKey: "mkcert \(args.first ?? "") failed: \(output)"])
+            throw NSError(
+                domain: "KTStack.mkcert",
+                code: Int(proc.terminationStatus),
+                userInfo: [NSLocalizedDescriptionKey: "mkcert \(args.first ?? "") failed: \(output)"]
+            )
         }
         return output
     }

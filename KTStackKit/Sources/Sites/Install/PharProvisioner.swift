@@ -18,7 +18,8 @@ public struct PharProvisioner: Sendable {
             paths: paths,
             url: URL(string: "https://github.com/wp-cli/wp-cli/releases/download/v2.12.0/wp-cli-2.12.0.phar")!,
             sha256: "ce34ddd838f7351d6759068d09793f26755463b4a4610a5a5c0a97b68220d85c",
-            dest: paths.wpCliPhar)
+            dest: paths.wpCliPhar
+        )
     }
 
     public var isProvisioned: Bool {

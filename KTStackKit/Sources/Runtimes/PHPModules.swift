@@ -1,11 +1,11 @@
 import Foundation
 
 public enum PHPModules {
-    
     private final class Cache: @unchecked Sendable {
         let lock = NSLock()
         var byVersion: [String: [String]] = [:]
     }
+
     private static let cache = Cache()
 
     public static func list(version: String, paths: AppSupportPaths = AppSupportPaths()) -> [String] {
@@ -18,13 +18,15 @@ public enum PHPModules {
         return mods
     }
 
-    
     public static func invalidate(version: String) {
         cache.lock.lock(); cache.byVersion[version] = nil; cache.lock.unlock()
     }
 
-    public static func loadedModules(version: String, scanDir: URL,
-                                     paths: AppSupportPaths = AppSupportPaths()) -> [String] {
+    public static func loadedModules(
+        version: String,
+        scanDir: URL,
+        paths: AppSupportPaths = AppSupportPaths()
+    ) -> [String] {
         let php = paths.phpBinary(version: version)
         guard FileManager.default.isExecutableFile(atPath: php.path) else { return [] }
         let proc = Process()

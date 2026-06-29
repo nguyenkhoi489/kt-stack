@@ -1,6 +1,6 @@
-import SwiftUI
 import AppKit
 import KTStackKit
+import SwiftUI
 
 struct KTVariableTextField: NSViewRepresentable {
     @Binding var text: String
@@ -31,13 +31,17 @@ struct KTVariableTextField: NSViewRepresentable {
         if field.stringValue != text { field.stringValue = text }
     }
 
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
 
     final class Coordinator: NSObject, NSTextFieldDelegate {
         var parent: KTVariableTextField
         private var isCompleting = false
 
-        init(_ parent: KTVariableTextField) { self.parent = parent }
+        init(_ parent: KTVariableTextField) {
+            self.parent = parent
+        }
 
         func controlTextDidChange(_ notification: Notification) {
             guard let field = notification.object as? NSTextField else { return }
@@ -56,9 +60,13 @@ struct KTVariableTextField: NSViewRepresentable {
             isCompleting = false
         }
 
-        func control(_ control: NSControl, textView: NSTextView,
-                     completions words: [String], forPartialWordRange charRange: NSRange,
-                     indexOfSelectedItem index: UnsafeMutablePointer<Int>) -> [String] {
+        func control(
+            _: NSControl,
+            textView: NSTextView,
+            completions _: [String],
+            forPartialWordRange charRange: NSRange,
+            indexOfSelectedItem _: UnsafeMutablePointer<Int>
+        ) -> [String] {
             let full = textView.string as NSString
             let partial = full.substring(with: charRange).lowercased()
             return parent.variableNames

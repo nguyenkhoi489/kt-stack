@@ -3,13 +3,17 @@ import Foundation
 public struct RuntimeDownloader: Sendable {
     public struct Progress: Sendable {
         public let received: Int64
-        public let total: Int64        // -1 when the server omits Content-Length
-        public var fraction: Double { total > 0 ? min(1, Double(received) / Double(total)) : 0 }
+        public let total: Int64 // -1 when the server omits Content-Length
+        public var fraction: Double {
+            total > 0 ? min(1, Double(received) / Double(total)) : 0
+        }
     }
 
     public struct ExtractError: LocalizedError {
         public let message: String
-        public var errorDescription: String? { message }
+        public var errorDescription: String? {
+            message
+        }
     }
 
     static func requireHTTPS(_ url: URL) throws {
@@ -18,25 +22,36 @@ public struct RuntimeDownloader: Sendable {
         }
     }
 
-    static func isRedirectAllowed(to url: URL) -> Bool { url.scheme?.lowercased() == "https" }
+    static func isRedirectAllowed(to url: URL) -> Bool {
+        url.scheme?.lowercased() == "https"
+    }
 
     private let paths: AppSupportPaths
-    public init(paths: AppSupportPaths) { self.paths = paths }
+    public init(paths: AppSupportPaths) {
+        self.paths = paths
+    }
 
-  
     @discardableResult
-    public func install(_ release: RuntimeRelease,
-                        onProgress: @escaping @Sendable (Progress) -> Void) async throws -> URL {
+    public func install(
+        _ release: RuntimeRelease,
+        onProgress: @escaping @Sendable (Progress) -> Void
+    ) async throws -> URL {
         try await installArchive(
             url: release.url, sha256: release.sha256,
             into: paths.runtimeDir(release.language.rawValue, release.version),
             markerRelPath: release.language.executableRelPath,
-            onProgress: onProgress)
+            onProgress: onProgress
+        )
     }
 
     @discardableResult
-    public func installArchive(url: URL, sha256: String, into dest: URL, markerRelPath: String,
-                               onProgress: @escaping @Sendable (Progress) -> Void) async throws -> URL {
+    public func installArchive(
+        url: URL,
+        sha256: String,
+        into dest: URL,
+        markerRelPath: String,
+        onProgress: @escaping @Sendable (Progress) -> Void
+    ) async throws -> URL {
         try paths.ensureDirectoryTree()
         let coordinator = DownloadCoordinator { received, total in
             onProgress(Progress(received: received, total: total))
@@ -53,10 +68,9 @@ public struct RuntimeDownloader: Sendable {
         let fm = FileManager.default
         if fm.fileExists(atPath: dest.path) { try fm.removeItem(at: dest) }
         try fm.createDirectory(at: dest.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try fm.moveItem(at: payload, to: dest)        // atomic within the same volume
-        Self.stripQuarantine(dest)                    // else an ad-hoc-signed php-fpm may be Gatekeeper-blocked
+        try fm.moveItem(at: payload, to: dest) // atomic within the same volume
+        Self.stripQuarantine(dest) // else an ad-hoc-signed php-fpm may be Gatekeeper-blocked
 
-      
         guard fm.isExecutableFile(atPath: dest.appendingPathComponent(markerRelPath).path) else {
             try? fm.removeItem(at: dest)
             throw ExtractError(message: "Archive did not contain \(markerRelPath).")
@@ -65,8 +79,13 @@ public struct RuntimeDownloader: Sendable {
     }
 
     @discardableResult
-    public func installSharedObject(url: URL, sha256: String, soName: String, into modulesDir: URL,
-                                    onProgress: @escaping @Sendable (Progress) -> Void) async throws -> URL {
+    public func installSharedObject(
+        url: URL,
+        sha256: String,
+        soName: String,
+        into modulesDir: URL,
+        onProgress: @escaping @Sendable (Progress) -> Void
+    ) async throws -> URL {
         try paths.ensureDirectoryTree()
         let coordinator = DownloadCoordinator { received, total in
             onProgress(Progress(received: received, total: total))
@@ -76,7 +95,7 @@ public struct RuntimeDownloader: Sendable {
 
         try Task.checkCancellation()
         try ChecksumVerifier.verify(archive, expected: sha256)
-        let payload = try extract(archive)        // single top-level dir, e.g. imagick/
+        let payload = try extract(archive) // single top-level dir, e.g. imagick/
         defer { try? FileManager.default.removeItem(at: payload.deletingLastPathComponent()) }
 
         let fm = FileManager.default
@@ -85,22 +104,29 @@ public struct RuntimeDownloader: Sendable {
             throw ExtractError(message: "Archive did not contain \(soName).")
         }
         try Task.checkCancellation()
-        try fm.createDirectory(at: modulesDir, withIntermediateDirectories: true,
-                               attributes: [.posixPermissions: 0o700])
+        try fm.createDirectory(
+            at: modulesDir,
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
         let dest = modulesDir.appendingPathComponent(soName)
         let payloadItems = try fm.contentsOfDirectory(at: payload, includingPropertiesForKeys: nil)
         for item in payloadItems {
             let target = modulesDir.appendingPathComponent(item.lastPathComponent)
             if fm.fileExists(atPath: target.path) { try fm.removeItem(at: target) }
             try fm.moveItem(at: item, to: target)
-            Self.stripQuarantine(target)          // ad-hoc-signed .so + private dylibs are quarantined by URLSession
+            Self.stripQuarantine(target) // ad-hoc-signed .so + private dylibs are quarantined by URLSession
         }
         return dest
     }
 
     @discardableResult
-    public func downloadVerifiedFile(url: URL, sha256: String, to dest: URL,
-                                     onProgress: @escaping @Sendable (Progress) -> Void = { _ in }) async throws -> URL {
+    public func downloadVerifiedFile(
+        url: URL,
+        sha256: String,
+        to dest: URL,
+        onProgress: @escaping @Sendable (Progress) -> Void = { _ in }
+    ) async throws -> URL {
         try Self.requireHTTPS(url)
         let coordinator = DownloadCoordinator { received, total in
             onProgress(Progress(received: received, total: total))
@@ -174,16 +200,23 @@ private final class DownloadCoordinator: NSObject, URLSessionDownloadDelegate, @
         } onCancel: { [task] in task?.cancel() }
     }
 
-    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
-                    didWriteData _: Int64, totalBytesWritten written: Int64,
-                    totalBytesExpectedToWrite expected: Int64) {
+    func urlSession(
+        _: URLSession,
+        downloadTask _: URLSessionDownloadTask,
+        didWriteData _: Int64,
+        totalBytesWritten written: Int64,
+        totalBytesExpectedToWrite expected: Int64
+    ) {
         onProgress(written, expected)
     }
 
-
-    func urlSession(_ session: URLSession, task: URLSessionTask,
-                    willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest,
-                    completionHandler: @escaping (URLRequest?) -> Void) {
+    func urlSession(
+        _: URLSession,
+        task _: URLSessionTask,
+        willPerformHTTPRedirection _: HTTPURLResponse,
+        newRequest request: URLRequest,
+        completionHandler: @escaping (URLRequest?) -> Void
+    ) {
         if let url = request.url, RuntimeDownloader.isRedirectAllowed(to: url) {
             completionHandler(request)
         } else {
@@ -191,20 +224,23 @@ private final class DownloadCoordinator: NSObject, URLSessionDownloadDelegate, @
         }
     }
 
-    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
-                    didFinishDownloadingTo location: URL) {
-       
+    func urlSession(
+        _: URLSession,
+        downloadTask _: URLSessionDownloadTask,
+        didFinishDownloadingTo location: URL
+    ) {
         let dest = FileManager.default.temporaryDirectory
             .appendingPathComponent("ktstack-dl-\(UUID().uuidString)")
         do { try FileManager.default.moveItem(at: location, to: dest); saved = dest }
         catch { saveError = error }
     }
 
-    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+    func urlSession(_ session: URLSession, task _: URLSessionTask, didCompleteWithError error: Error?) {
         defer { continuation = nil; session.finishTasksAndInvalidate() }
         if let error { continuation?.resume(throwing: error); return }
         if let saved { continuation?.resume(returning: saved); return }
         continuation?.resume(throwing: saveError ?? RuntimeDownloader.ExtractError(
-            message: "Download finished but the file could not be saved."))
+            message: "Download finished but the file could not be saved."
+        ))
     }
 }

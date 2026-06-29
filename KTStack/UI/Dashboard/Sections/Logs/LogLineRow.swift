@@ -1,6 +1,5 @@
-import SwiftUI
 import KTStackKit
-
+import SwiftUI
 
 struct LogLineRow: View {
     let line: LogLine
@@ -21,17 +20,17 @@ struct LogLineRow: View {
 
     private var gutterColor: Color {
         switch line.severity {
-        case .info:    return .clear
-        case .warning: return Color.KDStatus.warning
-        case .error:   return Color.KDStatus.error
+        case .info: .clear
+        case .warning: Color.KDStatus.warning
+        case .error: Color.KDStatus.error
         }
     }
 
     private var textColor: Color {
         switch line.severity {
-        case .info:    return .primary
-        case .warning: return Color.KDStatus.warning
-        case .error:   return Color.KDStatus.error
+        case .info: .primary
+        case .warning: Color.KDStatus.warning
+        case .error: Color.KDStatus.error
         }
     }
 }

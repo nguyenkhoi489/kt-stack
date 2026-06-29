@@ -4,7 +4,9 @@ public struct ProjectVersionResolver: Sendable {
     private let base = VersionResolver()
     private let homeOverride: URL?
 
-    public init(homeOverride: URL? = nil) { self.homeOverride = homeOverride }
+    public init(homeOverride: URL? = nil) {
+        self.homeOverride = homeOverride
+    }
 
     public static func isValidVersion(_ value: String) -> Bool {
         value.range(of: "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$", options: .regularExpression) != nil
@@ -35,8 +37,12 @@ public struct ProjectVersionResolver: Sendable {
         return best.map { ($0, false) }
     }
 
-    public func selectVersion(_ lang: RuntimeLanguage, forProjectAt cwd: URL,
-                              installed: [String], preferred: String? = nil) -> String? {
+    public func selectVersion(
+        _ lang: RuntimeLanguage,
+        forProjectAt cwd: URL,
+        installed: [String],
+        preferred: String? = nil
+    ) -> String? {
         let valid = installed.filter(Self.isValidVersion)
         if let marker = resolve(lang, forProjectAt: cwd), valid.contains(marker) { return marker }
         if let preferred, valid.contains(preferred) { return preferred }

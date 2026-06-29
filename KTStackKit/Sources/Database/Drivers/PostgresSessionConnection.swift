@@ -1,7 +1,7 @@
 import Foundation
-import PostgresNIO
-import NIOCore
 import Logging
+import NIOCore
+import PostgresNIO
 
 final class PostgresSessionConnection: SessionConnection, @unchecked Sendable {
     private let connection: PostgresConnection
@@ -14,13 +14,17 @@ final class PostgresSessionConnection: SessionConnection, @unchecked Sendable {
         self.isManaged = isManaged
     }
 
-    var isLive: Bool { !connection.isClosed }
+    var isLive: Bool {
+        !connection.isClosed
+    }
 
     func useDatabase(_ database: String) async throws {
         let quoted = try SQLDialect.forKind(.postgres).quoteIdent(database)
         do {
-            _ = try await connection.query(PostgresQuery(unsafeSQL: "SET search_path TO \(quoted)"),
-                                           logger: logger)
+            _ = try await connection.query(
+                PostgresQuery(unsafeSQL: "SET search_path TO \(quoted)"),
+                logger: logger
+            )
         } catch {
             throw PostgresErrorMapper.map(error, isManaged: isManaged)
         }
@@ -37,8 +41,10 @@ final class PostgresSessionConnection: SessionConnection, @unchecked Sendable {
 
     func runSelect(_ statement: DMLStatement) async throws -> QueryResult {
         do {
-            let query = PostgresQuery(unsafeSQL: statement.sql,
-                                      binds: PostgresCellMapper.bindings(statement.binds))
+            let query = PostgresQuery(
+                unsafeSQL: statement.sql,
+                binds: PostgresCellMapper.bindings(statement.binds)
+            )
             let rows = try await connection.query(query, logger: logger).collect()
             return PostgresCellMapper.result(from: rows)
         } catch {

@@ -2,11 +2,10 @@ import SwiftUI
 
 public extension Font {
     static func jbMono(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
-        let face: String
-        switch weight {
-        case .bold, .heavy, .black: face = "JetBrainsMono-Bold"
-        case .semibold: face = "JetBrainsMono-SemiBold"
-        default: face = "JetBrainsMono-Medium"
+        let face = switch weight {
+        case .bold, .heavy, .black: "JetBrainsMono-Bold"
+        case .semibold: "JetBrainsMono-SemiBold"
+        default: "JetBrainsMono-Medium"
         }
         return .custom(face, size: size)
     }

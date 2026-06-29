@@ -2,7 +2,6 @@ import XCTest
 @testable import KTStackKit
 
 final class ServiceMetricsSamplerTests: XCTestCase {
-
     func testParseCPUTimeMinuteOnly() {
         XCTAssertEqual(ServiceMetricsSampler.parseCPUTime("0:03.04")!, 3.04, accuracy: 0.001)
         XCTAssertEqual(ServiceMetricsSampler.parseCPUTime("51:10.24")!, 3070.24, accuracy: 0.001)
@@ -39,8 +38,10 @@ final class ServiceMetricsSamplerTests: XCTestCase {
           400    30000   0:09.00 redis-server *:6379
         """
         let rows = ServiceMetricsSampler.parse(raw)
-        XCTAssertEqual(rows.map(\.basename),
-                       ["nginx", "nginx", "php-fpm", "php-fpm", "redis-server"])
+        XCTAssertEqual(
+            rows.map(\.basename),
+            ["nginx", "nginx", "php-fpm", "php-fpm", "redis-server"]
+        )
     }
 
     func testAggregateSumsMultiProcessAndComputesCPUDelta() {
@@ -48,8 +49,8 @@ final class ServiceMetricsSamplerTests: XCTestCase {
         let earlier = now.addingTimeInterval(-1)
         let current = [
             ParsedServiceProcess(pid: 200, rssBytes: 100_000 * 1024, cpuSeconds: 5.0, basename: "postgres"),
-            ParsedServiceProcess(pid: 201, rssBytes: 80_000 * 1024, cpuSeconds: 2.0, basename: "postgres"),
-            ParsedServiceProcess(pid: 500, rssBytes: 10_000 * 1024, cpuSeconds: 1.0, basename: "cupsd"),
+            ParsedServiceProcess(pid: 201, rssBytes: 80000 * 1024, cpuSeconds: 2.0, basename: "postgres"),
+            ParsedServiceProcess(pid: 500, rssBytes: 10000 * 1024, cpuSeconds: 1.0, basename: "cupsd"),
         ]
         let previous: [Int32: ProcessCPUSample] = [
             200: ProcessCPUSample(cpuSeconds: 4.0, sampledAt: earlier),
@@ -69,13 +70,13 @@ final class ServiceMetricsSamplerTests: XCTestCase {
     func testAggregateFirstSeenPidCountsMemoryNotCPU() {
         let now = Date()
         let current = [
-            ParsedServiceProcess(pid: 400, rssBytes: 30_000 * 1024, cpuSeconds: 9.0, basename: "redis-server"),
+            ParsedServiceProcess(pid: 400, rssBytes: 30000 * 1024, cpuSeconds: 9.0, basename: "redis-server"),
         ]
         let outcome = ServiceMetricsSampler.aggregate(current: current, previous: [:], now: now)
 
         let redis = outcome.metrics[.redis]
         XCTAssertNotNil(redis)
         XCTAssertEqual(redis!.cpuPercent, 0, accuracy: 0.001)
-        XCTAssertEqual(redis!.memoryBytes, Int64(30_000) * 1024)
+        XCTAssertEqual(redis!.memoryBytes, Int64(30000) * 1024)
     }
 }

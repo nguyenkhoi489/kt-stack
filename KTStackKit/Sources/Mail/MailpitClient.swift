@@ -3,7 +3,9 @@ import Foundation
 public struct MailpitClient: Sendable {
     public struct APIError: LocalizedError {
         public let status: Int
-        public var errorDescription: String? { "Mailpit API returned HTTP \(status)." }
+        public var errorDescription: String? {
+            "Mailpit API returned HTTP \(status)."
+        }
     }
 
     private let baseURL: URL
@@ -13,10 +15,9 @@ public struct MailpitClient: Sendable {
         self.baseURL = baseURL
         let cfg = URLSessionConfiguration.ephemeral
         cfg.timeoutIntervalForRequest = 5
-        self.session = URLSession(configuration: cfg)
+        session = URLSession(configuration: cfg)
     }
 
-   
     public func list(limit: Int = 200) async throws -> MailListResponse {
         try await get("/messages?limit=\(limit)")
     }
@@ -25,8 +26,9 @@ public struct MailpitClient: Sendable {
         try await get("/message/\(id)")
     }
 
-    public func rawURL(id: String) -> URL { baseURL.appendingPathComponent("message/\(id)/raw") }
-
+    public func rawURL(id: String) -> URL {
+        baseURL.appendingPathComponent("message/\(id)/raw")
+    }
 
     public func delete(ids: [String]) async throws {
         var req = URLRequest(url: baseURL.appendingPathComponent("messages"))
@@ -36,9 +38,9 @@ public struct MailpitClient: Sendable {
         _ = try await send(req)
     }
 
-    public func deleteAll() async throws { try await delete(ids: []) }
-
-    // MARK: - Private
+    public func deleteAll() async throws {
+        try await delete(ids: [])
+    }
 
     private func get<T: Decodable>(_ path: String) async throws -> T {
         let data = try await send(URLRequest(url: url(path)))

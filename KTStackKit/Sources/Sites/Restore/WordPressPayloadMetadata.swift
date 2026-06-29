@@ -55,7 +55,8 @@ enum WordPressPayloadMetadata {
         let pattern = #"\$table_prefix\s*=\s*['\"]([A-Za-z0-9_]+)['\"]"#
         guard let regex = try? NSRegularExpression(pattern: pattern),
               let match = regex.firstMatch(in: contents, range: NSRange(contents.startIndex..., in: contents)),
-              let range = Range(match.range(at: 1), in: contents) else {
+              let range = Range(match.range(at: 1), in: contents)
+        else {
             return "wp_"
         }
         return String(contents[range])
@@ -68,7 +69,8 @@ enum WordPressPayloadMetadata {
         let pattern = #"['\"](?:siteurl|home)['\"]\s*,\s*['\"](https?://[^'\"]+)['\"]"#
         guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]),
               let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
-              let range = Range(match.range(at: 1), in: text) else {
+              let range = Range(match.range(at: 1), in: text)
+        else {
             return nil
         }
         return String(text[range])
@@ -79,7 +81,8 @@ enum WordPressPayloadMetadata {
         let pattern = #"CREATE TABLE\s+`?([A-Za-z0-9_]+?)(?:options|users)`?\s"#
         guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]),
               let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
-              let range = Range(match.range(at: 1), in: text) else {
+              let range = Range(match.range(at: 1), in: text)
+        else {
             return nil
         }
         let prefix = String(text[range])

@@ -2,7 +2,6 @@ import XCTest
 @testable import KTStackKit
 
 final class BackupProviderValidationTests: XCTestCase {
-
     func testSQLiteProviderAlwaysAvailable() {
         XCTAssertTrue(SQLiteBackupProvider().isAvailable)
         XCTAssertEqual(SQLiteBackupProvider().fileExtension, "sqlite")
@@ -10,11 +9,21 @@ final class BackupProviderValidationTests: XCTestCase {
 
     func testSQLiteProviderRejectsBackupWithoutFilePath() async {
         let provider = SQLiteBackupProvider()
-        let profile = ConnectionProfile(name: "missing", kind: .sqlite, host: "",
-                                        port: 0, user: "", database: "main")
+        let profile = ConnectionProfile(
+            name: "missing",
+            kind: .sqlite,
+            host: "",
+            port: 0,
+            user: "",
+            database: "main"
+        )
         do {
-            try await provider.backup(profile: profile, password: nil,
-                                       database: "main", to: URL(fileURLWithPath: "/tmp/out.sqlite"))
+            try await provider.backup(
+                profile: profile,
+                password: nil,
+                database: "main",
+                to: URL(fileURLWithPath: "/tmp/out.sqlite")
+            )
             XCTFail("expected failure")
         } catch {}
     }
@@ -22,19 +31,21 @@ final class BackupProviderValidationTests: XCTestCase {
     /// MySQL provider reports unavailable when neither the managed catalog nor the system search
     /// paths hold the client tools. System paths are pinned empty so a Homebrew install on the dev
     /// machine can't mask the assertion.
-    func testMySQLProviderUnavailableWhenEngineMissing() async throws {
+    func testMySQLProviderUnavailableWhenEngineMissing() throws {
         let tmp = FileManager.default.temporaryDirectory
             .appendingPathComponent("ktstack-empty-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tmp) }
-        let service = DumpService(catalog: ServiceBinaryCatalog(paths: AppSupportPaths(root: tmp)),
-                                  systemToolSearchPaths: [])
+        let service = DumpService(
+            catalog: ServiceBinaryCatalog(paths: AppSupportPaths(root: tmp)),
+            systemToolSearchPaths: []
+        )
         let provider = MySQLBackupProvider(dumpService: service)
         XCTAssertFalse(provider.isAvailable)
         XCTAssertFalse(service.isEngineInstalled)
     }
 
-    func testMySQLBackupAvailableViaSystemTools() async throws {
+    func testMySQLBackupAvailableViaSystemTools() throws {
         let tmp = FileManager.default.temporaryDirectory
             .appendingPathComponent("ktstack-empty-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
@@ -42,14 +53,16 @@ final class BackupProviderValidationTests: XCTestCase {
         let stubDir = try Self.makeStubToolDir(tools: ["mysqldump", "mysql"])
         defer { try? FileManager.default.removeItem(at: stubDir) }
 
-        let service = DumpService(catalog: ServiceBinaryCatalog(paths: AppSupportPaths(root: tmp)),
-                                  systemToolSearchPaths: [stubDir])
+        let service = DumpService(
+            catalog: ServiceBinaryCatalog(paths: AppSupportPaths(root: tmp)),
+            systemToolSearchPaths: [stubDir]
+        )
         XCTAssertTrue(MySQLBackupProvider(dumpService: service).isAvailable)
         XCTAssertTrue(service.isEngineInstalled)
         XCTAssertTrue(service.requiredBinariesPresent)
     }
 
-    func testRequiredBinariesPresentNeedsBothClients() async throws {
+    func testRequiredBinariesPresentNeedsBothClients() throws {
         let tmp = FileManager.default.temporaryDirectory
             .appendingPathComponent("ktstack-empty-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
@@ -57,8 +70,10 @@ final class BackupProviderValidationTests: XCTestCase {
         let stubDir = try Self.makeStubToolDir(tools: ["mysqldump"])
         defer { try? FileManager.default.removeItem(at: stubDir) }
 
-        let service = DumpService(catalog: ServiceBinaryCatalog(paths: AppSupportPaths(root: tmp)),
-                                  systemToolSearchPaths: [stubDir])
+        let service = DumpService(
+            catalog: ServiceBinaryCatalog(paths: AppSupportPaths(root: tmp)),
+            systemToolSearchPaths: [stubDir]
+        )
         XCTAssertTrue(service.isEngineInstalled)
         XCTAssertFalse(service.requiredBinariesPresent)
     }
@@ -76,7 +91,7 @@ final class BackupProviderValidationTests: XCTestCase {
     }
 
     /// Postgres runner must check executable existence per binary, not just the catalog URL.
-    func testPostgresRunnerUnavailableWhenBinariesMissing() async throws {
+    func testPostgresRunnerUnavailableWhenBinariesMissing() throws {
         let tmp = FileManager.default.temporaryDirectory
             .appendingPathComponent("ktstack-empty-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
@@ -85,7 +100,7 @@ final class BackupProviderValidationTests: XCTestCase {
         XCTAssertFalse(runner.isAvailable)
     }
 
-    func testFactorySurfacesReasonWhenProviderUnavailable() async throws {
+    func testFactorySurfacesReasonWhenProviderUnavailable() throws {
         let tmp = FileManager.default.temporaryDirectory
             .appendingPathComponent("ktstack-empty-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
@@ -94,15 +109,13 @@ final class BackupProviderValidationTests: XCTestCase {
         let original = FileManager.default.currentDirectoryPath
         defer { FileManager.default.changeCurrentDirectoryPath(original) }
 
-        if case .unavailable(let reason) = BackupProviderFactory.make(for: .mysql) {
+        if case let .unavailable(reason) = BackupProviderFactory.make(for: .mysql) {
             XCTAssertTrue(reason.lowercased().contains("mysql"))
         }
-        if case .unavailable(let reason) = BackupProviderFactory.make(for: .mongodb) {
+        if case let .unavailable(reason) = BackupProviderFactory.make(for: .mongodb) {
             XCTAssertTrue(reason.lowercased().contains("mongodb"))
         }
     }
-
-    // MARK: - version-skew gate
 
     func testSessionRefusesIncompatibleMajorVersion() async throws {
         let tmp = FileManager.default.temporaryDirectory
@@ -118,10 +131,16 @@ final class BackupProviderValidationTests: XCTestCase {
         let provider = StubBackupProvider(fileExtension: "dump")
         let set = try await library.create(
             kind: .postgres, profile: .managedPostgres, databases: ["app"],
-            using: provider, password: nil, engineVersion: "16.4")
+            using: provider, password: nil, engineVersion: "16.4"
+        )
         do {
-            try await session.restore(set: set, database: "app", profile: .managedPostgres,
-                                       password: nil, target: .newDatabase("app_restored"))
+            try await session.restore(
+                set: set,
+                database: "app",
+                profile: .managedPostgres,
+                password: nil,
+                target: .newDatabase("app_restored")
+            )
             XCTFail("expected version-skew refusal")
         } catch let error as DatabaseError {
             XCTAssertTrue(error.message.contains("16.4"))
@@ -129,13 +148,11 @@ final class BackupProviderValidationTests: XCTestCase {
         }
     }
 
-    func testSessionAllowsSameMajorVersion() async throws {
+    func testSessionAllowsSameMajorVersion() {
         XCTAssertEqual(BackupSession.majorVersion("17.10"), "17")
         XCTAssertEqual(BackupSession.majorVersion("9.6.0"), "9")
         XCTAssertEqual(BackupSession.majorVersion("100.10.0"), "100")
     }
-
-    // MARK: - userDatabaseNames filter (prevents mysqldump on information_schema)
 
     func testUserDatabaseNamesDropsMySQLSystemSchemas() {
         let all = ["information_schema", "performance_schema", "mysql", "sys", "app", "blog"]
@@ -157,7 +174,9 @@ final class BackupProviderValidationTests: XCTestCase {
     }
 
     func testUserDatabaseNamesIsCaseInsensitive() {
-        XCTAssertEqual(BackupSession.userDatabaseNames(["INFORMATION_SCHEMA", "app"], for: .mysql),
-                       ["app"])
+        XCTAssertEqual(
+            BackupSession.userDatabaseNames(["INFORMATION_SCHEMA", "app"], for: .mysql),
+            ["app"]
+        )
     }
 }

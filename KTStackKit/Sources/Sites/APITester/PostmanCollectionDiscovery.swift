@@ -19,11 +19,13 @@ public struct PostmanCollectionDiscovery: Sendable {
 
     private func locateCollection(folder: URL, fileManager: FileManager) -> URL? {
         let candidates = [folder] + ((try? fileManager.contentsOfDirectory(
-            at: folder, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles])) ?? [])
+            at: folder, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles]
+        )) ?? [])
             .filter { (try? $0.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true }
         for dir in candidates {
             guard let entries = try? fileManager.contentsOfDirectory(
-                at: dir, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]) else { continue }
+                at: dir, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]
+            ) else { continue }
             if let match = entries.first(where: { $0.lastPathComponent.lowercased().contains("postman_collection") }) {
                 return match
             }
@@ -55,8 +57,15 @@ public struct PostmanCollectionDiscovery: Sendable {
             return nil
         }
         guard method != "HEAD", let path = path(from: urlValue) else { return nil }
-        return APIRoute(method: method, uri: path, name: name,
-                        middleware: [], action: "", fields: [], rulesResolved: false)
+        return APIRoute(
+            method: method,
+            uri: path,
+            name: name,
+            middleware: [],
+            action: "",
+            fields: [],
+            rulesResolved: false
+        )
     }
 
     static func path(from urlValue: Any?) -> String? {

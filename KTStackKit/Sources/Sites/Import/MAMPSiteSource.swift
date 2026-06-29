@@ -8,14 +8,21 @@ public struct MAMPSiteSource: ExternalSiteSource {
         vhostsFile = root.appendingPathComponent("conf/apache/extra/httpd-vhosts.conf")
     }
 
-    public var isAvailable: Bool { FileManager.default.fileExists(atPath: vhostsFile.path) }
+    public var isAvailable: Bool {
+        FileManager.default.fileExists(atPath: vhostsFile.path)
+    }
 
     public func discover() -> [DiscoveredSite] {
         guard let text = try? String(contentsOf: vhostsFile, encoding: .utf8) else { return [] }
         return Self.parseVirtualHosts(text).map {
-            DiscoveredSite(tool: tool, name: URL(fileURLWithPath: $0.docroot).lastPathComponent,
-                           path: URL(fileURLWithPath: $0.docroot), domain: $0.serverName,
-                           phpVersion: nil, experimental: true)
+            DiscoveredSite(
+                tool: tool,
+                name: URL(fileURLWithPath: $0.docroot).lastPathComponent,
+                path: URL(fileURLWithPath: $0.docroot),
+                domain: $0.serverName,
+                phpVersion: nil,
+                experimental: true
+            )
         }
     }
 

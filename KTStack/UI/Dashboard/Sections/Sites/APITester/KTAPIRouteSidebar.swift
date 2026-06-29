@@ -1,15 +1,15 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 enum KTAPIMethodStyle {
     static func tint(_ method: String) -> KTTint {
         switch method.uppercased() {
-        case "GET":    return KTTint(fg: Color(hex: 0x1FA463), bg: Color(hex: 0xE7F8EE))
-        case "POST":   return KTTint(fg: Color(hex: 0xC07A00), bg: Color(hex: 0xFFF3DC))
-        case "PUT":    return KTTint(fg: Color(hex: 0x2F6BFF), bg: Color(hex: 0xEAF1FF))
-        case "PATCH":  return KTTint(fg: Color(hex: 0x8B5CF6), bg: Color(hex: 0xF1ECFF))
-        case "DELETE": return KTTint(fg: Color(hex: 0xD93A2E), bg: Color(hex: 0xFFF0EE))
-        default:       return KTTint(fg: Color(hex: 0x6B6B76), bg: Color(hex: 0xEFEFF3))
+        case "GET": KTTint(fg: Color(hex: 0x1FA463), bg: Color(hex: 0xE7F8EE))
+        case "POST": KTTint(fg: Color(hex: 0xC07A00), bg: Color(hex: 0xFFF3DC))
+        case "PUT": KTTint(fg: Color(hex: 0x2F6BFF), bg: Color(hex: 0xEAF1FF))
+        case "PATCH": KTTint(fg: Color(hex: 0x8B5CF6), bg: Color(hex: 0xF1ECFF))
+        case "DELETE": KTTint(fg: Color(hex: 0xD93A2E), bg: Color(hex: 0xFFF0EE))
+        default: KTTint(fg: Color(hex: 0x6B6B76), bg: Color(hex: 0xEFEFF3))
         }
     }
 }
@@ -97,10 +97,14 @@ struct KTAPIRouteSidebar: View {
     }
 
     private var tabs: some View {
-        KTSegmentedTabs(items: [.init(value: RouteTab.web, label: "Web"),
-                                .init(value: .api, label: "API")],
-                        selection: $vm.tab)
-            .padding(.horizontal, 12).padding(.top, 12).padding(.bottom, 8)
+        KTSegmentedTabs(
+            items: [
+                .init(value: RouteTab.web, label: "Web"),
+                .init(value: .api, label: "API"),
+            ],
+            selection: $vm.tab
+        )
+        .padding(.horizontal, 12).padding(.top, 12).padding(.bottom, 8)
     }
 
     private var searchField: some View {
@@ -167,8 +171,10 @@ struct KTAPIRouteSidebar: View {
             }
             .padding(.horizontal, 10).padding(.vertical, 7)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 7, style: .continuous)
-                .fill(active ? KTColor.accentSoft : Color.clear))
+            .background(
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(active ? KTColor.accentSoft : Color.clear)
+            )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

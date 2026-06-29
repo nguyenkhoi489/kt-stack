@@ -9,8 +9,10 @@ final class TunnelModelsTests: XCTestCase {
         2026-06-16T05:34:38Z INF |  https://settlement-outdoor-ruth-hill.trycloudflare.com   |
         2026-06-16T05:34:38Z INF +-----------------------------------------------+
         """
-        XCTAssertEqual(TrycloudflareURL.first(in: banner)?.absoluteString,
-                       "https://settlement-outdoor-ruth-hill.trycloudflare.com")
+        XCTAssertEqual(
+            TrycloudflareURL.first(in: banner)?.absoluteString,
+            "https://settlement-outdoor-ruth-hill.trycloudflare.com"
+        )
     }
 
     func testPartialBufferYieldsNilUntilURLComplete() {
@@ -49,18 +51,25 @@ final class TunnelModelsTests: XCTestCase {
     }
 
     func testProbeKeepsDNSFailuresPending() {
-        XCTAssertEqual(TunnelController.probeDecision(statusCode: nil, locationHost: nil,
-                                                      publicHost: "demo.trycloudflare.com",
-                                                      localDomain: "app.test"),
-                       .pending)
+        XCTAssertEqual(
+            TunnelController.probeDecision(
+                statusCode: nil,
+                locationHost: nil,
+                publicHost: "demo.trycloudflare.com",
+                localDomain: "app.test"
+            ),
+            .pending
+        )
     }
 
     func testProbeRejectsRedirectBackToLocalDomain() {
-        let decision = TunnelController.probeDecision(statusCode: 301,
-                                                      locationHost: "app.test",
-                                                      publicHost: "demo.trycloudflare.com",
-                                                      localDomain: "app.test")
-        guard case .failed(let message) = decision else {
+        let decision = TunnelController.probeDecision(
+            statusCode: 301,
+            locationHost: "app.test",
+            publicHost: "demo.trycloudflare.com",
+            localDomain: "app.test"
+        )
+        guard case let .failed(message) = decision else {
             XCTFail("Expected failed redirect decision, got \(decision)")
             return
         }
@@ -68,10 +77,15 @@ final class TunnelModelsTests: XCTestCase {
     }
 
     func testProbeAcceptsReachablePublicResponse() {
-        XCTAssertEqual(TunnelController.probeDecision(statusCode: 200, locationHost: nil,
-                                                      publicHost: "demo.trycloudflare.com",
-                                                      localDomain: "app.test"),
-                       .ready)
+        XCTAssertEqual(
+            TunnelController.probeDecision(
+                statusCode: 200,
+                locationHost: nil,
+                publicHost: "demo.trycloudflare.com",
+                localDomain: "app.test"
+            ),
+            .ready
+        )
     }
 
     func testDiagnosisReportsBlockedEdgeFromCloudflaredLog() {

@@ -1,6 +1,5 @@
-import SwiftUI
 import KTStackKit
-
+import SwiftUI
 
 struct ConnectionSidebarView: View {
     @EnvironmentObject private var store: ConnectionStore
@@ -8,19 +7,19 @@ struct ConnectionSidebarView: View {
     @EnvironmentObject private var documentVM: DocumentViewModel
     @State private var sheet: SheetMode?
 
-
     enum SheetMode: Identifiable {
         case add
         case edit(ConnectionProfile)
         var id: String {
             switch self {
-            case .add: return "add"
-            case .edit(let profile): return profile.id.uuidString
+            case .add: "add"
+            case let .edit(profile): profile.id.uuidString
             }
         }
+
         /// The profile to prefill, or nil when adding.
         var editingProfile: ConnectionProfile? {
-            if case .edit(let profile) = self { return profile }
+            if case let .edit(profile) = self { return profile }
             return nil
         }
     }
@@ -95,22 +94,26 @@ struct ConnectionSidebarView: View {
 
     private func icon(for kind: DatabaseKind) -> String {
         switch kind {
-        case .mysql:    return "cylinder.split.1x2"
-        case .mongodb:  return "doc.text"
-        case .postgres, .sqlite: return "cylinder"
+        case .mysql: "cylinder.split.1x2"
+        case .mongodb: "doc.text"
+        case .postgres, .sqlite: "cylinder"
         }
     }
 
     @ViewBuilder
     private func stateIcon(for profile: ConnectionProfile) -> some View {
         if profile.kind == .mongodb {
-            stateIcon(connecting: documentVM.connection == .connecting,
-                      connected: documentVM.connection == .connected,
-                      failed: isFailed(documentVM.connection))
+            stateIcon(
+                connecting: documentVM.connection == .connecting,
+                connected: documentVM.connection == .connected,
+                failed: isFailed(documentVM.connection)
+            )
         } else {
-            stateIcon(connecting: vm.connection == .connecting,
-                      connected: vm.connection == .connected,
-                      failed: isFailed(vm.connection))
+            stateIcon(
+                connecting: vm.connection == .connecting,
+                connected: vm.connection == .connected,
+                failed: isFailed(vm.connection)
+            )
         }
     }
 

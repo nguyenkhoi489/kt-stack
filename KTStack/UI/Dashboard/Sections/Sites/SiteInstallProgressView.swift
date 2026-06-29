@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct SiteInstallProgressView: View {
     let events: [InstallEvent]
@@ -22,11 +22,11 @@ struct SiteInstallProgressView: View {
 
     private func glyph(for phase: InstallPhase) -> String {
         switch phase {
-        case .preparing:          return "shippingbox"
-        case .configuringDatabase: return "cylinder.split.1x2"
-        case .scaffolding:        return "hammer"
-        case .finalizing:         return "globe"
-        case .done:               return "checkmark.circle"
+        case .preparing: "shippingbox"
+        case .configuringDatabase: "cylinder.split.1x2"
+        case .scaffolding: "hammer"
+        case .finalizing: "globe"
+        case .done: "checkmark.circle"
         }
     }
 }

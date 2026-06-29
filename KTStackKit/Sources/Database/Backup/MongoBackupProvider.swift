@@ -7,31 +7,50 @@ public struct MongoBackupProvider: BackupProvider {
     private let catalog: MongoToolsCatalog
 
     public init(paths: AppSupportPaths = AppSupportPaths()) {
-        self.catalog = MongoToolsCatalog(paths: paths)
+        catalog = MongoToolsCatalog(paths: paths)
     }
 
-    public var fileExtension: String { "" }
-    public var isAvailable: Bool { catalog.isInstalled }
+    public var fileExtension: String {
+        ""
+    }
 
-    public func backup(profile: ConnectionProfile, password: String?,
-                       database: String, to artifactURL: URL) async throws {
+    public var isAvailable: Bool {
+        catalog.isInstalled
+    }
+
+    public func backup(
+        profile: ConnectionProfile,
+        password: String?,
+        database: String,
+        to artifactURL: URL
+    ) async throws {
         try Self.validateMongoName(database, label: "database")
         let mongodump = try resolve("bin/mongodump")
         try FileManager.default.createDirectory(at: artifactURL, withIntermediateDirectories: true)
         let config = try writeConfigFile(password)
         defer { if let config { try? FileManager.default.removeItem(at: config) } }
         do {
-            try await run(mongodump,
-                          args: try connectionArgs(profile, config: config) + ["--db", database,
-                                                                                "--out", artifactURL.path])
+            try await run(
+                mongodump,
+                args: connectionArgs(profile, config: config) + [
+                    "--db",
+                    database,
+                    "--out",
+                    artifactURL.path,
+                ]
+            )
         } catch {
             try? FileManager.default.removeItem(at: artifactURL)
             throw error
         }
     }
 
-    public func restore(profile: ConnectionProfile, password: String?,
-                        from artifactURL: URL, into target: RestoreTarget) async throws {
+    public func restore(
+        profile: ConnectionProfile,
+        password: String?,
+        from artifactURL: URL,
+        into target: RestoreTarget
+    ) async throws {
         let artifact = try resolvedArtifact(artifactURL)
         let database = artifact.database
         try Self.validateMongoName(database, label: "database")
@@ -41,22 +60,39 @@ public struct MongoBackupProvider: BackupProvider {
         defer { if let config { try? FileManager.default.removeItem(at: config) } }
 
         switch target {
-        case .newDatabase(let name):
+        case let .newDatabase(name):
             try Self.validateMongoName(name, label: "database")
-            try await run(mongorestore,
-                          args: try connectionArgs(profile, config: config)
-                              + ["--nsFrom", "\(database).*", "--nsTo", "\(name).*",
-                                 artifact.url.path])
+            try await run(
+                mongorestore,
+                args: connectionArgs(profile, config: config)
+                    + [
+                        "--nsFrom",
+                        "\(database).*",
+                        "--nsTo",
+                        "\(name).*",
+                        artifact.url.path,
+                    ]
+            )
         case .overwrite:
-            try await overwrite(database: database, sourceDatabase: database, from: artifact.url,
-                                profile: profile, password: password,
-                                mongorestore: mongorestore, config: config)
+            try await overwrite(
+                database: database,
+                sourceDatabase: database,
+                from: artifact.url,
+                profile: profile,
+                password: password,
+                mongorestore: mongorestore,
+                config: config
+            )
         }
     }
 
-    public func restore(profile: ConnectionProfile, password: String?,
-                        from artifactURL: URL, intoDatabase target: String,
-                        replaceExisting: Bool) async throws {
+    public func restore(
+        profile: ConnectionProfile,
+        password: String?,
+        from artifactURL: URL,
+        intoDatabase target: String,
+        replaceExisting: Bool
+    ) async throws {
         let artifact = try resolvedArtifact(artifactURL)
         try Self.validateMongoName(target, label: "database")
         try Self.validateMongoName(artifact.database, label: "database")
@@ -66,53 +102,93 @@ public struct MongoBackupProvider: BackupProvider {
         defer { if let config { try? FileManager.default.removeItem(at: config) } }
 
         if replaceExisting {
-            try await overwrite(database: target, sourceDatabase: artifact.database, from: artifact.url,
-                                profile: profile, password: password,
-                                mongorestore: mongorestore, config: config)
+            try await overwrite(
+                database: target,
+                sourceDatabase: artifact.database,
+                from: artifact.url,
+                profile: profile,
+                password: password,
+                mongorestore: mongorestore,
+                config: config
+            )
         } else {
-            try await run(mongorestore,
-                          args: try connectionArgs(profile, config: config)
-                              + ["--nsFrom", "\(artifact.database).*", "--nsTo", "\(target).*",
-                                 artifact.url.path])
+            try await run(
+                mongorestore,
+                args: connectionArgs(profile, config: config)
+                    + [
+                        "--nsFrom",
+                        "\(artifact.database).*",
+                        "--nsTo",
+                        "\(target).*",
+                        artifact.url.path,
+                    ]
+            )
         }
     }
 
-    private func overwrite(database: String, sourceDatabase: String, from artifactURL: URL,
-                           profile: ConnectionProfile, password: String?,
-                           mongorestore: URL, config: URL?) async throws {
+    private func overwrite(
+        database: String,
+        sourceDatabase: String,
+        from artifactURL: URL,
+        profile: ConnectionProfile,
+        password _: String?,
+        mongorestore: URL,
+        config: URL?
+    ) async throws {
         let mongodump = try resolve("bin/mongodump")
         let safetyDir = FileManager.default.temporaryDirectory
             .appendingPathComponent("ktstack-mongo-safety-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: safetyDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: safetyDir) }
 
-        try await run(mongodump,
-                      args: try connectionArgs(profile, config: config) + ["--db", database,
-                                                                            "--out", safetyDir.path])
+        try await run(
+            mongodump,
+            args: connectionArgs(profile, config: config) + [
+                "--db",
+                database,
+                "--out",
+                safetyDir.path,
+            ]
+        )
         do {
-            try await run(mongorestore,
-                          args: try connectionArgs(profile, config: config)
-                              + ["--drop", "--nsFrom", "\(sourceDatabase).*", "--nsTo", "\(database).*",
-                                 artifactURL.path])
+            try await run(
+                mongorestore,
+                args: connectionArgs(profile, config: config)
+                    + [
+                        "--drop",
+                        "--nsFrom",
+                        "\(sourceDatabase).*",
+                        "--nsTo",
+                        "\(database).*",
+                        artifactURL.path,
+                    ]
+            )
         } catch {
             // Rollback restores the safety dump but `--drop` only removes collections that EXIST in
             // the safety set. Any collection the failing artifact added before the failure survives
             // the rollback (mixed state). Surface this in the error so the user inspects.
             let safetySource = safetyDir.appendingPathComponent(database)
             if FileManager.default.fileExists(atPath: safetySource.path) {
-                try? await run(mongorestore,
-                               args: try connectionArgs(profile, config: config)
-                                   + ["--drop", "--nsFrom", "\(database).*", "--nsTo", "\(database).*",
-                                      safetySource.path])
+                try? await run(
+                    mongorestore,
+                    args: try connectionArgs(profile, config: config)
+                        + [
+                            "--drop",
+                            "--nsFrom",
+                            "\(database).*",
+                            "--nsTo",
+                            "\(database).*",
+                            safetySource.path,
+                        ]
+                )
             }
             throw DatabaseError.connection(
                 "Restore failed and \"\(database)\" was rolled back to the safety snapshot. "
-                + "Any collection added by the failing restore before failure may still be present "
-                + "— inspect before retrying. Cause: \(Self.message(error))")
+                    + "Any collection added by the failing restore before failure may still be present "
+                    + "— inspect before retrying. Cause: \(Self.message(error))"
+            )
         }
     }
-
-    // MARK: - Tooling
 
     private func resolve(_ relPath: String) throws -> URL {
         guard let url = catalog.binary(relPath) else {
@@ -143,7 +219,7 @@ public struct MongoBackupProvider: BackupProvider {
         guard let password, !password.isEmpty else { return nil }
         for scalar in password.unicodeScalars {
             // Control chars (incl. NUL/newline/tab) would corrupt the single-line YAML scalar.
-            if scalar.value < 0x20 || scalar.value == 0x7f {
+            if scalar.value < 0x20 || scalar.value == 0x7F {
                 throw DatabaseError.connection("Password contains a character the MongoDB tools config can't carry.")
             }
         }
@@ -155,7 +231,8 @@ public struct MongoBackupProvider: BackupProvider {
         let created = FileManager.default.createFile(
             atPath: url.path,
             contents: Data(yaml.utf8),
-            attributes: [.posixPermissions: 0o600])
+            attributes: [.posixPermissions: 0o600]
+        )
         guard created else {
             throw DatabaseError.connection("Couldn't write the temporary MongoDB client config.")
         }
@@ -178,7 +255,8 @@ public struct MongoBackupProvider: BackupProvider {
         let children = try FileManager.default.contentsOfDirectory(
             at: url,
             includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles])
+            options: [.skipsHiddenFiles]
+        )
         let databaseFolders = children.filter { child in
             (try? child.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
                 && Self.containsBSONFiles(child)
@@ -193,7 +271,8 @@ public struct MongoBackupProvider: BackupProvider {
         guard let children = try? FileManager.default.contentsOfDirectory(
             at: url,
             includingPropertiesForKeys: nil,
-            options: [.skipsHiddenFiles]) else { return false }
+            options: [.skipsHiddenFiles]
+        ) else { return false }
         return children.contains { $0.pathExtension.lowercased() == "bson" }
     }
 
@@ -212,7 +291,8 @@ public struct MongoBackupProvider: BackupProvider {
                     try proc.run()
                 } catch {
                     cont.resume(throwing: DatabaseError.connection(
-                        "Couldn't launch \(executable.lastPathComponent): \(error.localizedDescription)"))
+                        "Couldn't launch \(executable.lastPathComponent): \(error.localizedDescription)"
+                    ))
                     return
                 }
                 let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
@@ -223,7 +303,8 @@ public struct MongoBackupProvider: BackupProvider {
                     let message = String(data: errData, encoding: .utf8)?
                         .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                     cont.resume(throwing: DatabaseError.connection(
-                        "\(executable.lastPathComponent) failed (exit \(proc.terminationStatus)): \(message)"))
+                        "\(executable.lastPathComponent) failed (exit \(proc.terminationStatus)): \(message)"
+                    ))
                 }
             }
         }

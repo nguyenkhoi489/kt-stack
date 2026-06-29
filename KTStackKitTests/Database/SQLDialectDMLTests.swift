@@ -17,12 +17,19 @@ final class SQLDialectDMLTests: XCTestCase {
     }
 
     func testUpdateBindsValuesThenCompositeKey() throws {
-        let stmt = try d.update(schema: "app", table: "user",
+        let stmt = try d.update(
+            schema: "app",
+            table: "user",
             values: [ColumnValue(column: "email", value: .text("a@b.c"))],
-            key: [ColumnValue(column: "Host", value: .text("localhost")),
-                  ColumnValue(column: "User", value: .text("root"))])
-        XCTAssertEqual(stmt.sql,
-            "UPDATE `app`.`user` SET `email` = ? WHERE `Host` = ? AND `User` = ?")
+            key: [
+                ColumnValue(column: "Host", value: .text("localhost")),
+                ColumnValue(column: "User", value: .text("root")),
+            ]
+        )
+        XCTAssertEqual(
+            stmt.sql,
+            "UPDATE `app`.`user` SET `email` = ? WHERE `Host` = ? AND `User` = ?"
+        )
         // SET values first, then key values — positional with the placeholders.
         XCTAssertEqual(stmt.binds, [.text("a@b.c"), .text("localhost"), .text("root")])
     }
@@ -38,27 +45,41 @@ final class SQLDialectDMLTests: XCTestCase {
 
     func testEmptyValuesRejected() {
         XCTAssertThrowsError(try d.insert(schema: "a", table: "t", values: []))
-        XCTAssertThrowsError(try d.update(schema: "a", table: "t", values: [],
-                                          key: [ColumnValue(column: "id", value: .int(1))]))
+        XCTAssertThrowsError(try d.update(
+            schema: "a",
+            table: "t",
+            values: [],
+            key: [ColumnValue(column: "id", value: .int(1))]
+        ))
     }
 
     func testKeylessWriteRejected() {
         // A keyless UPDATE/DELETE would touch every row — the dialect never emits one.
-        XCTAssertThrowsError(try d.update(schema: "a", table: "t",
-            values: [ColumnValue(column: "x", value: .int(1))], key: []))
+        XCTAssertThrowsError(try d.update(
+            schema: "a",
+            table: "t",
+            values: [ColumnValue(column: "x", value: .int(1))],
+            key: []
+        ))
         XCTAssertThrowsError(try d.delete(schema: "a", table: "t", key: []))
     }
 
     func testNullKeyRejected() {
         // `col = NULL` never matches — a NULL key can't identify a row.
-        XCTAssertThrowsError(try d.delete(schema: "a", table: "t",
-            key: [ColumnValue(column: "id", value: .null)]))
+        XCTAssertThrowsError(try d.delete(
+            schema: "a",
+            table: "t",
+            key: [ColumnValue(column: "id", value: .null)]
+        ))
     }
 
     func testIdentifierInjectionInColumnIsNeutralized() throws {
         // A column name with a backtick is doubled, not allowed to break out.
-        let stmt = try d.insert(schema: "a", table: "t",
-            values: [ColumnValue(column: "ev`il", value: .text("x"))])
+        let stmt = try d.insert(
+            schema: "a",
+            table: "t",
+            values: [ColumnValue(column: "ev`il", value: .text("x"))]
+        )
         XCTAssertEqual(stmt.sql, "INSERT INTO `a`.`t` (`ev``il`) VALUES (?)")
     }
 }

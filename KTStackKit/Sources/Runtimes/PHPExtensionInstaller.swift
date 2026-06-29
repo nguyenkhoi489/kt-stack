@@ -1,30 +1,29 @@
 import Foundation
 
-
 public struct PHPExtensionInstaller: Sendable {
     public enum InstallResult: Sendable, Equatable {
         case installed
-       
+
         case installedButFailedToLoad(warning: String?)
     }
 
     public enum InstallError: LocalizedError {
         case noReleaseAvailable(ext: String, phpVersion: String)
-        case sharedObjectChecksumMissing(ext: String, phpVersion: String)
-        case sharedObjectChecksumMismatch(ext: String, expected: String, actual: String)
+        case checksumMissing(ext: String, phpVersion: String)
+        case checksumMismatch(ext: String, expected: String, actual: String)
         public var errorDescription: String? {
             switch self {
-            case .noReleaseAvailable(let ext, let v):
-                return "No \(ext) build is available for PHP \(v)."
-            case .sharedObjectChecksumMissing(let ext, let v):
-                return "\(ext).so for PHP \(v) has no verification record."
-            case .sharedObjectChecksumMismatch(let ext, let expected, let actual):
-                return "\(ext).so checksum mismatch. Expected \(expected.prefix(12))…, got \(actual.prefix(12))…"
+            case let .noReleaseAvailable(ext, v):
+                "No \(ext) build is available for PHP \(v)."
+            case let .checksumMissing(ext, v):
+                "\(ext).so for PHP \(v) has no verification record."
+            case let .checksumMismatch(ext, expected, actual):
+                "\(ext).so checksum mismatch. Expected \(expected.prefix(12))…, got \(actual.prefix(12))…"
             }
         }
     }
 
-    public enum SharedObjectVerificationStatus: Equatable, Sendable {
+    public enum VerificationStatus: Equatable, Sendable {
         case missingObject
         case missingChecksum
         case verified
@@ -35,10 +34,9 @@ public struct PHPExtensionInstaller: Sendable {
     private let catalog: PHPExtensionCatalog
     public init(paths: AppSupportPaths) {
         self.paths = paths
-        self.catalog = PHPExtensionCatalog(paths: paths)
+        catalog = PHPExtensionCatalog(paths: paths)
     }
 
-   
     public func iniContent(forExtID extID: String, phpVersion: String) -> String {
         let directive = PHPExtensionCatalog.descriptor(extID)?.loadDirective ?? .module
         switch directive {
@@ -62,12 +60,13 @@ public struct PHPExtensionInstaller: Sendable {
         soURL(extID, phpVersion).appendingPathExtension("sha256")
     }
 
-    public func sharedObjectVerificationStatus(extID: String, phpVersion: String) throws -> SharedObjectVerificationStatus {
+    public func verificationStatus(extID: String, phpVersion: String) throws -> VerificationStatus {
         let so = soURL(extID, phpVersion)
         guard FileManager.default.fileExists(atPath: so.path) else { return .missingObject }
         let checksum = sharedObjectChecksumURL(extID: extID, phpVersion: phpVersion)
         guard let expected = try? String(contentsOf: checksum, encoding: .utf8)
-            .split(whereSeparator: \.isWhitespace).first.map(String.init) else {
+            .split(whereSeparator: \.isWhitespace).first.map(String.init)
+        else {
             return .missingChecksum
         }
         let actual = try ChecksumVerifier.sha256(of: so)
@@ -77,26 +76,29 @@ public struct PHPExtensionInstaller: Sendable {
     }
 
     public func verifySharedObjectChecksum(extID: String, phpVersion: String) throws {
-        switch try sharedObjectVerificationStatus(extID: extID, phpVersion: phpVersion) {
+        switch try verificationStatus(extID: extID, phpVersion: phpVersion) {
         case .verified:
             return
         case .missingObject:
             throw InstallError.noReleaseAvailable(ext: extID, phpVersion: phpVersion)
         case .missingChecksum:
-            throw InstallError.sharedObjectChecksumMissing(ext: extID, phpVersion: phpVersion)
-        case .mismatch(let expected, let actual):
-            throw InstallError.sharedObjectChecksumMismatch(ext: extID, expected: expected, actual: actual)
+            throw InstallError.checksumMissing(ext: extID, phpVersion: phpVersion)
+        case let .mismatch(expected, actual):
+            throw InstallError.checksumMismatch(ext: extID, expected: expected, actual: actual)
         }
     }
-   
+
     public func extensionDirIniURL(phpVersion: String) -> URL {
         paths.phpExtConfDir(version: phpVersion).appendingPathComponent("00-extension-dir.ini")
     }
 
     public func writeExtensionDirIni(phpVersion: String) throws {
         let dir = paths.phpExtConfDir(version: phpVersion)
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true,
-                                                attributes: [.posixPermissions: 0o700])
+        try FileManager.default.createDirectory(
+            at: dir,
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
         let body = "extension_dir = \"\(paths.phpModulesDir(version: phpVersion).path)\"\n"
         try body.write(to: extensionDirIniURL(phpVersion: phpVersion), atomically: true, encoding: .utf8)
     }
@@ -111,26 +113,33 @@ public struct PHPExtensionInstaller: Sendable {
     }
 
     public func writeBaseExtensionInis(phpVersion: String) {
-        try? FileManager.default.createDirectory(at: paths.phpExtConfDir(version: phpVersion),
-                                                 withIntermediateDirectories: true,
-                                                 attributes: [.posixPermissions: 0o700])
+        try? FileManager.default.createDirectory(
+            at: paths.phpExtConfDir(version: phpVersion),
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
         for base in Self.baseSharedObjects {
             let so = soURL(base.id, phpVersion)
             guard FileManager.default.fileExists(atPath: so.path) else { continue }
-            let body: String
-            switch base.directive {
-            case .module:        body = "extension=\(base.id).so\n"
-            case .zendExtension: body = "zend_extension=\(so.path)\n"
+            let body = switch base.directive {
+            case .module: "extension=\(base.id).so\n"
+            case .zendExtension: "zend_extension=\(so.path)\n"
             }
-            try? body.write(to: baseExtensionIniURL(extID: base.id, phpVersion: phpVersion),
-                            atomically: true, encoding: .utf8)
+            try? body.write(
+                to: baseExtensionIniURL(extID: base.id, phpVersion: phpVersion),
+                atomically: true,
+                encoding: .utf8
+            )
         }
     }
 
     public func placeSharedObject(from local: URL, extID: String, phpVersion: String) throws {
         let modules = paths.phpModulesDir(version: phpVersion)
-        try FileManager.default.createDirectory(at: modules, withIntermediateDirectories: true,
-                                                attributes: [.posixPermissions: 0o700])
+        try FileManager.default.createDirectory(
+            at: modules,
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
         let dest = soURL(extID, phpVersion)
         if FileManager.default.fileExists(atPath: dest.path) { try FileManager.default.removeItem(at: dest) }
         try FileManager.default.copyItem(at: local, to: dest)
@@ -154,25 +163,37 @@ public struct PHPExtensionInstaller: Sendable {
     }
 
     @discardableResult
-    public func installSharedObjectOnly(_ extID: String, phpVersion: String,
-                                        onProgress: @escaping @Sendable (RuntimeDownloader.Progress) -> Void = { _ in })
-        async throws -> URL {
+    public func installSharedObjectOnly(
+        _ extID: String,
+        phpVersion: String,
+        onProgress: @escaping @Sendable (RuntimeDownloader.Progress) -> Void = { _ in }
+    )
+        async throws -> URL
+    {
         guard let release = catalog.release(extID, phpVersion: phpVersion) else {
             throw InstallError.noReleaseAvailable(ext: extID, phpVersion: phpVersion)
         }
         let installed = try await RuntimeDownloader(paths: paths).installSharedObject(
             url: release.url, sha256: release.sha256, soName: "\(extID).so",
-            into: paths.phpModulesDir(version: phpVersion), onProgress: onProgress)
+            into: paths.phpModulesDir(version: phpVersion), onProgress: onProgress
+        )
         let checksum = try ChecksumVerifier.sha256(of: installed)
-        try checksum.write(to: sharedObjectChecksumURL(extID: extID, phpVersion: phpVersion),
-                           atomically: true, encoding: .utf8)
+        try checksum.write(
+            to: sharedObjectChecksumURL(extID: extID, phpVersion: phpVersion),
+            atomically: true,
+            encoding: .utf8
+        )
         return installed
     }
 
     @discardableResult
-    public func install(_ extID: String, phpVersion: String,
-                        onProgress: @escaping @Sendable (RuntimeDownloader.Progress) -> Void = { _ in })
-        async throws -> InstallResult {
+    public func install(
+        _ extID: String,
+        phpVersion: String,
+        onProgress: @escaping @Sendable (RuntimeDownloader.Progress) -> Void = { _ in }
+    )
+        async throws -> InstallResult
+    {
         try await installSharedObjectOnly(extID, phpVersion: phpVersion, onProgress: onProgress)
         try writeExtensionDirIni(phpVersion: phpVersion)
         PHPModules.invalidate(version: phpVersion)
@@ -187,13 +208,15 @@ public struct PHPExtensionInstaller: Sendable {
         return .installed
     }
 
-  
     public func uninstall(_ extID: String, phpVersion: String) throws {
         let fm = FileManager.default
-        for url in [extensionIniURL(extID: extID, phpVersion: phpVersion),
-                    soURL(extID, phpVersion),
-                    sharedObjectChecksumURL(extID: extID, phpVersion: phpVersion)]
-        where fm.fileExists(atPath: url.path) {
+        for url in [
+            extensionIniURL(extID: extID, phpVersion: phpVersion),
+            soURL(extID, phpVersion),
+            sharedObjectChecksumURL(extID: extID, phpVersion: phpVersion),
+        ]
+            where fm.fileExists(atPath: url.path)
+        {
             try fm.removeItem(at: url)
         }
         if extID == "imagick" {
@@ -211,7 +234,7 @@ public struct PHPExtensionInstaller: Sendable {
         let directive = PHPExtensionCatalog.descriptor(extID)?.loadDirective ?? .module
         var args = ["-n", "-d", "extension_dir=\(modules.path)"]
         switch directive {
-        case .module:        args += ["-d", "extension=\(extID).so"]
+        case .module: args += ["-d", "extension=\(extID).so"]
         case .zendExtension: args += ["-d", "zend_extension=\(soURL(extID, phpVersion).path)"]
         }
         args.append("-m")
@@ -220,7 +243,9 @@ public struct PHPExtensionInstaller: Sendable {
         proc.executableURL = php
         proc.arguments = args
         var env = ProcessInfo.processInfo.environment
-        for (key, value) in ImageMagickEnvironment.variables(modulesDir: modules) { env[key] = value }
+        for (key, value) in ImageMagickEnvironment.variables(modulesDir: modules) {
+            env[key] = value
+        }
         proc.environment = env
         let out = Pipe(); let err = Pipe()
         proc.standardOutput = out; proc.standardError = err
@@ -229,15 +254,15 @@ public struct PHPExtensionInstaller: Sendable {
         let errText = String(data: err.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
         proc.waitUntilExit()
 
-      
         let modulesList = outText.split(whereSeparator: \.isNewline)
             .map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
         let loaded = proc.terminationStatus == 0 && modulesList.contains(extID.lowercased())
-      
+
         let warning = (errText + "\n" + outText).split(whereSeparator: \.isNewline)
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .first { $0.range(of: "Unable to load", options: .caseInsensitive) != nil
-                  || $0.range(of: "Failed loading", options: .caseInsensitive) != nil }
+                || $0.range(of: "Failed loading", options: .caseInsensitive) != nil
+            }
         return (loaded, loaded ? nil : warning)
     }
 

@@ -6,9 +6,6 @@ import XCTest
 /// gate, not a trust boundary. Covers path-traversal, dnsmasq-config (newline) injection, and the
 /// execution chokepoints that render attacker-influenced values into root-run scripts.
 final class SecurityHardeningTests: XCTestCase {
-
-    // MARK: - DNSConstants.isValidTLD / validatedTLD
-
     func testValidTLDAcceptsNormalTLDs() {
         for t in ["test", "localhost", "internal", "dev.local", "a", "x1"] {
             XCTAssertTrue(DNSConstants.isValidTLD(t), "\(t) should be valid")
@@ -48,13 +45,13 @@ final class SecurityHardeningTests: XCTestCase {
         XCTAssertEqual(try DNSConstants.resolverPathChecked(for: "test"), "/etc/resolver/test")
     }
 
-    // MARK: - SudoFallbackInstaller execution chokepoints (root-run paths)
-
     /// `writeScripts` is the chokepoint for install/uninstall/reset run paths — it must refuse a
     /// malicious stored TLD before staging a root script that renders it into a heredoc.
     func testSudoFallbackWriteScriptsRejectsMaliciousTLD() {
-        let bad = SudoFallbackInstaller(bundledDnsmasq: URL(fileURLWithPath: "/tmp/dnsmasq"),
-                                        tld: "test\nserver=evil")
+        let bad = SudoFallbackInstaller(
+            bundledDnsmasq: URL(fileURLWithPath: "/tmp/dnsmasq"),
+            tld: "test\nserver=evil"
+        )
         XCTAssertThrowsError(try bad.writeScripts(to: SudoFallbackInstaller.freshStagingDir()))
     }
 
@@ -72,8 +69,6 @@ final class SecurityHardeningTests: XCTestCase {
         XCTAssertThrowsError(try inst.runSetTLDWithAdminPrivileges(old: "test", new: "../../etc/x"))
         XCTAssertThrowsError(try inst.runSetTLDWithAdminPrivileges(old: "x\ninject", new: "test"))
     }
-
-    // MARK: - On-demand binary signature check at launch
 
     func testSignatureVerifierPassesOnSignedSystemBinary() {
         // /bin/ls is Apple-signed → a valid, strict signature.
@@ -101,9 +96,15 @@ final class SecurityHardeningTests: XCTestCase {
         let paths = AppSupportPaths(root: URL(fileURLWithPath: "/tmp/ktstack-sec-test"))
         let runner = LaunchdServiceRunner(
             kind: .redis, label: "com.ktstack.sec-test",
-            preflightPorts: [], probe: .tcp(port: 1), agents: LaunchAgentManager(paths: paths))
-        let spec = LaunchAgentSpec(label: "com.ktstack.sec-test", programArguments: [tmp.path],
-                                   workingDirectory: "/tmp", stdoutPath: "/tmp/x.log", stderrPath: "/tmp/x.log")
+            preflightPorts: [], probe: .tcp(port: 1), agents: LaunchAgentManager(paths: paths)
+        )
+        let spec = LaunchAgentSpec(
+            label: "com.ktstack.sec-test",
+            programArguments: [tmp.path],
+            workingDirectory: "/tmp",
+            stdoutPath: "/tmp/x.log",
+            stderrPath: "/tmp/x.log"
+        )
         do {
             try await runner.start(spec: spec)
             XCTFail("start must throw before bootstrapping an unsigned binary")
@@ -111,8 +112,6 @@ final class SecurityHardeningTests: XCTestCase {
             // expected — signature check throws before any launchd op
         }
     }
-
-    // MARK: - Download transport hardening (HTTPS-only + redirect)
 
     func testRequireHTTPSRejectsNonHTTPS() {
         XCTAssertThrowsError(try RuntimeDownloader.requireHTTPS(URL(string: "http://example.com/x.tgz")!))

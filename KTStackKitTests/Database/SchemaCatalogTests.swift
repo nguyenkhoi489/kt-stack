@@ -2,10 +2,10 @@ import XCTest
 @testable import KTStackKit
 
 final class SchemaCatalogTests: XCTestCase {
-
     private let catalog = SchemaCatalog(
         tables: ["Users", "orders"],
-        columnsByTable: ["Users": ["id", "name"], "orders": ["id", "total"]])
+        columnsByTable: ["Users": ["id", "name"], "orders": ["id", "total"]]
+    )
 
     func testColumnsLookupIsCaseInsensitive() {
         XCTAssertEqual(catalog.columns(of: "Users"), ["id", "name"])

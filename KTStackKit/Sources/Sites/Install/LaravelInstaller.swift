@@ -11,27 +11,37 @@ public struct LaravelInstaller: SiteInstaller {
         self.composerPhar = composerPhar
     }
 
-    public func scaffold(into folder: URL, request: NewSiteRequest,
-                         emit: @Sendable (String) -> Void) async throws {
+    public func scaffold(
+        into folder: URL,
+        request: NewSiteRequest,
+        emit: @Sendable (String) -> Void
+    ) async throws {
         let runner = InstallCommandRunner(php: php, phpIni: phpIni)
         let parent = folder.deletingLastPathComponent()
 
         emit("Creating Laravel project (composer)…")
         let modules = try runner.loadedModules(cwd: parent)
-        _ = try runner.runPHP(Self.createProjectArgs(composerPhar: composerPhar.path,
-                                                     name: request.name,
-                                                     loadedModules: modules), cwd: parent)
+        _ = try runner.runPHP(Self.createProjectArgs(
+            composerPhar: composerPhar.path,
+            name: request.name,
+            loadedModules: modules
+        ), cwd: parent)
 
         emit("Configuring .env…")
         try Self.configureEnv(in: folder, request: request)
 
         emit("Generating application key…")
-        _ = try runner.runPHP([folder.appendingPathComponent("artisan").path,
-                               "key:generate", "--force"], cwd: folder)
+        _ = try runner.runPHP([
+            folder.appendingPathComponent("artisan").path,
+            "key:generate",
+            "--force",
+        ], cwd: folder)
     }
 
     struct EnvMissing: LocalizedError {
-        var errorDescription: String? { "composer create-project did not produce a .env file." }
+        var errorDescription: String? {
+            "composer create-project did not produce a .env file."
+        }
     }
 
     static func configureEnv(in folder: URL, request: NewSiteRequest) throws {

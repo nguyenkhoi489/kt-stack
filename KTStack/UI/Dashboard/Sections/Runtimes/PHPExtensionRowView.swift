@@ -1,6 +1,5 @@
-import SwiftUI
 import KTStackKit
-
+import SwiftUI
 
 struct PHPExtensionRowView: View {
     let ext: PHPExtension

@@ -2,7 +2,6 @@ import XCTest
 @testable import KTStackKit
 
 final class LegacyKDWarmMigrationTests: XCTestCase {
-
     private func tempDir() throws -> URL {
         let dir = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("kt-mig-\(UUID().uuidString)", isDirectory: true)

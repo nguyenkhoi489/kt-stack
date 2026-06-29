@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct PHPExtensionsSheet: View {
     let version: String
@@ -36,7 +36,8 @@ struct PHPExtensionsSheet: View {
                             progress: model.progress[row.ext.id],
                             error: model.errors[row.ext.id],
                             onInstall: { Task { await model.install(row.ext.id, reloadPool: reloadPool) } },
-                            onUninstall: { pendingUninstall = row.ext })
+                            onUninstall: { pendingUninstall = row.ext }
+                        )
                         Divider()
                     }
                 }
@@ -56,7 +57,7 @@ struct PHPExtensionsSheet: View {
     }
 
     private func reloadPool(_ version: String) async throws {
-        try await server.restartPHPPool(version: version)  
+        try await server.restartPHPPool(version: version)
     }
 
     private func uninstallAlert(_ ext: PHPExtension) -> Alert {
@@ -66,6 +67,7 @@ struct PHPExtensionsSheet: View {
             primaryButton: .destructive(Text("Uninstall")) {
                 Task { await model.uninstall(ext.id, reloadPool: reloadPool) }
             },
-            secondaryButton: .cancel())
+            secondaryButton: .cancel()
+        )
     }
 }

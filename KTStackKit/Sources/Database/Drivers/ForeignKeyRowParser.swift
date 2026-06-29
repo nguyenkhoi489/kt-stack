@@ -1,7 +1,6 @@
 import Foundation
 
 public enum ForeignKeyRowParser {
-
     public static func parseRelational(_ rows: [[Cell]]) -> [ForeignKeyRelation] {
         rows.compactMap { row in
             guard row.count >= 4,
@@ -11,11 +10,13 @@ public enum ForeignKeyRowParser {
                   let toColumn = row[3].displayText, !toColumn.isEmpty
             else { return nil }
             let name = row.count >= 5 ? row[4].displayText : nil
-            return ForeignKeyRelation(fromTable: fromTable,
-                                       fromColumn: fromColumn,
-                                       toTable: toTable,
-                                       toColumn: toColumn,
-                                       constraintName: name?.isEmpty == false ? name : nil)
+            return ForeignKeyRelation(
+                fromTable: fromTable,
+                fromColumn: fromColumn,
+                toTable: toTable,
+                toColumn: toColumn,
+                constraintName: name?.isEmpty == false ? name : nil
+            )
         }
     }
 }

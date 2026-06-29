@@ -1,8 +1,8 @@
 import Foundation
-import PostgresNIO
+import Logging
 import NIOCore
 import NIOSSL
-import Logging
+import PostgresNIO
 
 /// Relational driver for PostgreSQL via PostgresNIO. A PG connection is bound to a single database, so
 /// the schema browser's "database" maps to a PostgreSQL **schema** (switchable without reconnecting),
@@ -20,24 +20,28 @@ public struct PostgresDriver: RelationalDriver {
     let logger = Logger(label: "ktstack.postgres")
     let session: ConnectionSession
 
-    public init(profile: ConnectionProfile,
-                password: String?,
-                catalog: ServiceBinaryCatalog = ServiceBinaryCatalog(paths: AppSupportPaths())) {
+    public init(
+        profile: ConnectionProfile,
+        password: String?,
+        catalog: ServiceBinaryCatalog = ServiceBinaryCatalog(paths: AppSupportPaths())
+    ) {
         self.profile = profile
         self.password = password
         self.catalog = catalog
         let capturedProfile = profile
         let capturedPassword = password
         let capturedLogger = logger
-        self.session = ConnectionSession {
+        session = ConnectionSession {
             let connection = try await PostgresDriver.establishConnection(
-                profile: capturedProfile, password: capturedPassword, logger: capturedLogger)
-            return PostgresSessionConnection(connection: connection, logger: capturedLogger,
-                                             isManaged: capturedProfile.isManaged)
+                profile: capturedProfile, password: capturedPassword, logger: capturedLogger
+            )
+            return PostgresSessionConnection(
+                connection: connection,
+                logger: capturedLogger,
+                isManaged: capturedProfile.isManaged
+            )
         }
     }
-
-    // MARK: - RelationalDriver
 
     public func ping() async throws {
         _ = try await runQuery(PostgresQuery(unsafeSQL: "SELECT 1"))
@@ -46,8 +50,10 @@ public struct PostgresDriver: RelationalDriver {
     /// Schemas in the connected database stand in for MySQL-style "databases" so the browse flow
     /// (pick a database → list its tables) works unchanged.
     public func listDatabases() async throws -> [DatabaseInfo] {
-        let result = try await runQuery(PostgresQuery(unsafeSQL:
-            "SELECT schema_name FROM information_schema.schemata ORDER BY schema_name"))
+        let result = try await runQuery(PostgresQuery(
+            unsafeSQL:
+            "SELECT schema_name FROM information_schema.schemata ORDER BY schema_name"
+        ))
         return result.rows.compactMap { $0.first?.displayText }.map(DatabaseInfo.init(name:))
     }
 
@@ -74,8 +80,12 @@ public struct PostgresDriver: RelationalDriver {
         await session.cancelInFlight()
     }
 
-    public func paginatedRows(database: String, table: String,
-                              limit: Int, offset: Int) async throws -> QueryResult {
+    public func paginatedRows(
+        database: String,
+        table: String,
+        limit: Int,
+        offset: Int
+    ) async throws -> QueryResult {
         try preflightManagedEngine()
         let qualified = try dialect.qualifiedTable(schema: database, table: table)
         let sql = dialect.paginate("SELECT * FROM \(qualified)", limit: limit, offset: offset)
@@ -91,12 +101,10 @@ public struct PostgresDriver: RelationalDriver {
         await session.shutdown()
     }
 
-    public func runSelect(_ statement: DMLStatement, database: String?) async throws -> QueryResult {
+    public func runSelect(_ statement: DMLStatement, database _: String?) async throws -> QueryResult {
         try preflightManagedEngine()
         return try await session.runSelect(statement)
     }
-
-    // MARK: - Connect + run
 
     func runQuery(_ query: PostgresQuery) async throws -> QueryResult {
         try preflightManagedEngine()
@@ -115,15 +123,19 @@ public struct PostgresDriver: RelationalDriver {
         try await Self.establishConnection(profile: profile, password: password, logger: logger)
     }
 
-    static func establishConnection(profile: ConnectionProfile, password: String?,
-                                    logger: Logger) async throws -> PostgresConnection {
+    static func establishConnection(
+        profile: ConnectionProfile,
+        password: String?,
+        logger: Logger
+    ) async throws -> PostgresConnection {
         let group = try EventLoopProvider.shared.group()
         let connection: PostgresConnection
         do {
             connection = try await PostgresConnection.connect(
                 on: group.next(),
-                configuration: try makeConfiguration(profile: profile, password: password),
-                id: 1, logger: logger)
+                configuration: makeConfiguration(profile: profile, password: password),
+                id: 1, logger: logger
+            )
         } catch {
             throw PostgresErrorMapper.map(error, isManaged: profile.isManaged)
         }
@@ -145,15 +157,18 @@ public struct PostgresDriver: RelationalDriver {
         }
     }
 
-    private static func makeConfiguration(profile: ConnectionProfile,
-                                          password: String?) throws -> PostgresConnection.Configuration {
-        PostgresConnection.Configuration(
+    private static func makeConfiguration(
+        profile: ConnectionProfile,
+        password: String?
+    ) throws -> PostgresConnection.Configuration {
+        try PostgresConnection.Configuration(
             host: profile.host,
             port: profile.port,
             username: profile.user,
             password: password,
             database: profile.database.isEmpty ? nil : profile.database,
-            tls: try makeTLS(profile: profile))
+            tls: makeTLS(profile: profile)
+        )
     }
 
     /// PostgresNIO's TLS has no separate "verify hostname only" tier, so `require`/`verifyFull` both
@@ -165,13 +180,13 @@ public struct PostgresDriver: RelationalDriver {
             return .disable
         case .prefer:
             config.certificateVerification = .none
-            return .prefer(try NIOSSLContext(configuration: config))
+            return try .prefer(NIOSSLContext(configuration: config))
         case .require:
             config.certificateVerification = .noHostnameVerification
-            return .require(try NIOSSLContext(configuration: config))
+            return try .require(NIOSSLContext(configuration: config))
         case .verifyFull:
             config.certificateVerification = .fullVerification
-            return .require(try NIOSSLContext(configuration: config))
+            return try .require(NIOSSLContext(configuration: config))
         }
     }
 }

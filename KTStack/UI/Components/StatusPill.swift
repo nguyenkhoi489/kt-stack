@@ -1,6 +1,5 @@
-import SwiftUI
 import KTStackKit
-
+import SwiftUI
 
 struct StatusPill: View {
     private let status: ServiceStatus

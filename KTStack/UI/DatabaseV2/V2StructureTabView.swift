@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct V2StructureTabView: View {
     @ObservedObject var vm: DatabaseV2ViewModel

@@ -10,7 +10,9 @@ public struct ValetSiteSource: ExternalSiteSource {
         linkedDir = home.appendingPathComponent(".config/valet/Sites")
     }
 
-    public var isAvailable: Bool { FileManager.default.fileExists(atPath: configFile.path) }
+    public var isAvailable: Bool {
+        FileManager.default.fileExists(atPath: configFile.path)
+    }
 
     public func discover() -> [DiscoveredSite] {
         Self.discover(tool: tool, configFile: configFile, linkedDir: linkedDir, experimental: false)
@@ -26,22 +28,34 @@ public struct ValetSiteSource: ExternalSiteSource {
 
         func append(name: String, path: URL) {
             let domain = "\(SiteInspector.slug(name)).\(tld)"
-            let site = DiscoveredSite(tool: tool, name: name, path: path, domain: domain,
-                                      phpVersion: nil, experimental: experimental)
+            let site = DiscoveredSite(
+                tool: tool,
+                name: name,
+                path: path,
+                domain: domain,
+                phpVersion: nil,
+                experimental: experimental
+            )
             if seen.insert(site.id).inserted { sites.append(site) }
         }
 
         for parked in (config["paths"] as? [String]) ?? [] {
             let root = URL(fileURLWithPath: parked)
-            let entries = (try? fm.contentsOfDirectory(at: root, includingPropertiesForKeys: [.isDirectoryKey],
-                                                       options: [.skipsHiddenFiles])) ?? []
+            let entries = (try? fm.contentsOfDirectory(
+                at: root,
+                includingPropertiesForKeys: [.isDirectoryKey],
+                options: [.skipsHiddenFiles]
+            )) ?? []
             for entry in entries where (try? entry.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true {
                 append(name: entry.lastPathComponent, path: entry)
             }
         }
 
-        let links = (try? fm.contentsOfDirectory(at: linkedDir, includingPropertiesForKeys: nil,
-                                                 options: [.skipsHiddenFiles])) ?? []
+        let links = (try? fm.contentsOfDirectory(
+            at: linkedDir,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        )) ?? []
         for link in links {
             let resolved = URL(fileURLWithPath: (link.path as NSString).resolvingSymlinksInPath)
             var isDir: ObjCBool = false

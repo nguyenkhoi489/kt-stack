@@ -1,6 +1,6 @@
+import KTStackKit
 import SwiftUI
 import UniformTypeIdentifiers
-import KTStackKit
 
 struct RestoreBackupSheet: View {
     let site: Site
@@ -37,7 +37,7 @@ struct RestoreBackupSheet: View {
         .padding(KDSpacing.space4)
         .frame(width: 560)
         .fileImporter(isPresented: $showPicker, allowedContentTypes: allowedTypes) { result in
-            if case .success(let url) = result {
+            if case let .success(url) = result {
                 let scoped = url.startAccessingSecurityScopedResource()
                 model.selectFile(url, installed: server.availableVersions)
                 if scoped { url.stopAccessingSecurityScopedResource() }
@@ -99,16 +99,20 @@ struct RestoreBackupSheet: View {
     }
 
     private var replaceNotice: some View {
-        Label("This replaces everything in \(site.path) with the restored site.",
-              systemImage: "trash")
-            .font(KDFont.footnote).foregroundStyle(Color.KDStatus.warning)
+        Label(
+            "This replaces everything in \(site.path) with the restored site.",
+            systemImage: "trash"
+        )
+        .font(KDFont.footnote).foregroundStyle(Color.KDStatus.warning)
     }
 
     private var trustNotice: some View {
         VStack(alignment: .leading, spacing: KDSpacing.space1) {
-            Label("A backup can contain executable PHP (installer, plugins, mu-plugins). Restore only backups you trust.",
-                  systemImage: "exclamationmark.shield")
-                .font(KDFont.footnote).foregroundStyle(Color.KDStatus.warning)
+            Label(
+                "A backup can contain executable PHP (installer, plugins, mu-plugins). Restore only backups you trust.",
+                systemImage: "exclamationmark.shield"
+            )
+            .font(KDFont.footnote).foregroundStyle(Color.KDStatus.warning)
             Toggle("I trust this backup", isOn: $model.trusted)
         }
     }

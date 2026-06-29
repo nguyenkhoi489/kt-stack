@@ -10,7 +10,7 @@ public struct VersionResolver: Sendable {
         for lang in RuntimeLanguage.allCases {
             if let v = rc[lang.rawValue], !v.isEmpty { result[lang] = v }
         }
-      
+
         merge(&result, .php, fromFile: readFile(dir, ".php-version"))
         merge(&result, .node, fromFile: readFile(dir, ".nvmrc"))
         return result
@@ -28,12 +28,10 @@ public struct VersionResolver: Sendable {
             let key = line[..<eq].trimmingCharacters(in: .whitespaces).lowercased()
             var value = line[line.index(after: eq)...].trimmingCharacters(in: .whitespaces)
             value = value.trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
-            if !key.isEmpty && !value.isEmpty { map[key] = value }
+            if !key.isEmpty, !value.isEmpty { map[key] = value }
         }
         return map
     }
-
-    // MARK: - Private
 
     private func merge(_ result: inout [RuntimeLanguage: String], _ lang: RuntimeLanguage, fromFile text: String) {
         guard result[lang] == nil else { return }

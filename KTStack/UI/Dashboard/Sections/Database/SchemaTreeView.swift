@@ -1,6 +1,5 @@
-import SwiftUI
 import KTStackKit
-
+import SwiftUI
 
 struct SchemaTreeView: View {
     @EnvironmentObject private var vm: DatabaseViewModel
@@ -33,18 +32,24 @@ struct SchemaTreeView: View {
                         .controlSize(.small)
                 }
                 Spacer(minLength: 0)
-                SchemaHeaderButton(systemImage: "externaldrive.badge.timemachine",
-                                   help: backupsHelp,
-                                   isEnabled: canOpenBackups,
-                                   action: onOpenBackups)
-                SchemaHeaderButton(systemImage: "plus",
-                                   help: createDatabaseHelp,
-                                   isEnabled: canCreateDatabase,
-                                   action: onCreateDatabase)
-                SchemaHeaderButton(systemImage: importExportSystemImage,
-                                   help: importExportHelp,
-                                   isEnabled: canImportExport,
-                                   action: onImportExport)
+                SchemaHeaderButton(
+                    systemImage: "externaldrive.badge.timemachine",
+                    help: backupsHelp,
+                    isEnabled: canOpenBackups,
+                    action: onOpenBackups
+                )
+                SchemaHeaderButton(
+                    systemImage: "plus",
+                    help: createDatabaseHelp,
+                    isEnabled: canCreateDatabase,
+                    action: onCreateDatabase
+                )
+                SchemaHeaderButton(
+                    systemImage: importExportSystemImage,
+                    help: importExportHelp,
+                    isEnabled: canImportExport,
+                    action: onImportExport
+                )
             }
             .padding(.horizontal, KDSpacing.space3)
             .padding(.vertical, KDSpacing.space2)
@@ -58,17 +63,25 @@ struct SchemaTreeView: View {
             DropDatabaseConfirmationSheet(database: db)
                 .environmentObject(vm)
         }
-        .alert("Run this SQL?",
-               isPresented: .init(get: { vm.pendingDDL != nil && sidebarDDLActive && confirmDropDb == nil },
-                                  set: { if !$0 { cancelSidebarDDL() } }),
-               presenting: vm.pendingDDL) { _ in
+        .alert(
+            "Run this SQL?",
+            isPresented: .init(
+                get: { vm.pendingDDL != nil && sidebarDDLActive && confirmDropDb == nil },
+                set: { if !$0 { cancelSidebarDDL() } }
+            ),
+            presenting: vm.pendingDDL
+        ) { _ in
             Button("Run", role: .destructive) { confirmSidebarDDL() }
             Button("Cancel", role: .cancel) { cancelSidebarDDL() }
         } message: { Text($0) }
-        .alert("DDL error",
-               isPresented: .init(get: { vm.ddlError != nil && sidebarDDLActive },
-                                  set: { if !$0 { vm.clearDDLError(); sidebarDDLActive = false } }),
-               presenting: vm.ddlError) { _ in
+        .alert(
+            "DDL error",
+            isPresented: .init(
+                get: { vm.ddlError != nil && sidebarDDLActive },
+                set: { if !$0 { vm.clearDDLError(); sidebarDDLActive = false } }
+            ),
+            presenting: vm.ddlError
+        ) { _ in
             Button("OK", role: .cancel) { vm.clearDDLError(); sidebarDDLActive = false }
         } message: { Text($0) }
     }
@@ -99,7 +112,7 @@ struct SchemaTreeView: View {
     @ViewBuilder
     private var selectedDatabaseList: some View {
         if let database = vm.selectedDatabase {
-            if vm.isBusy && vm.tables.isEmpty {
+            if vm.isBusy, vm.tables.isEmpty {
                 VStack(spacing: KDSpacing.space2) {
                     Spacer()
                     ProgressView()
@@ -181,7 +194,7 @@ struct SchemaTreeView: View {
             }
         }
         .contextMenu {
-            if !table.isView && !vm.isReadOnlyConnection {
+            if !table.isView, !vm.isReadOnlyConnection {
                 Button("Add Column…") {
                     Task {
                         await vm.select(table: table)

@@ -2,9 +2,14 @@ import Foundation
 
 public final class MySQLController: ManagedService, @unchecked Sendable {
     public let kind = ServiceKind.mysql
-    public var detail: String { ":3306" }
-    public var logsURL: URL? { paths.serviceLog("mysql") }
-   
+    public var detail: String {
+        ":3306"
+    }
+
+    public var logsURL: URL? {
+        paths.serviceLog("mysql")
+    }
+
     public var isInstalled: Bool {
         guard let binary else { return false }
         return FileManager.default.isExecutableFile(atPath: binary.path)
@@ -13,16 +18,39 @@ public final class MySQLController: ManagedService, @unchecked Sendable {
     private let paths: AppSupportPaths
     private let runner: LaunchdServiceRunner
     private let catalog: ServiceBinaryCatalog
-    private var binary: URL? { catalog.binary(.mysql, "bin/mysqld") }
-    private var dataDir: URL { paths.serviceData("mysql") }
-    private var configFile: URL { paths.serviceConfig("mysql", ext: "cnf") }
+    private let activeVersionProvider: () -> String?
 
-    public init(paths: AppSupportPaths, agents: LaunchAgentManager) {
+    private var binary: URL? {
+        guard let v = activeVersionProvider() else { return nil }
+        return catalog.binary(.mysql, "bin/mysqld", version: v)
+    }
+
+    private var dataDir: URL {
+        guard let v = activeVersionProvider() else { return paths.serviceData("mysql") }
+        return paths.serviceData("mysql", version: v)
+    }
+
+    private var configFile: URL {
+        paths.serviceConfig("mysql", ext: "cnf")
+    }
+
+    public init(
+        paths: AppSupportPaths,
+        agents: LaunchAgentManager,
+        activeVersion: (() -> String?)? = nil
+    ) {
         self.paths = paths
-        self.catalog = ServiceBinaryCatalog(paths: paths)
-        self.runner = LaunchdServiceRunner(
+        let cat = ServiceBinaryCatalog(paths: paths)
+        catalog = cat
+        runner = LaunchdServiceRunner(
             kind: .mysql, label: ServiceKind.mysql.launchdLabel,
-            preflightPorts: [3306], probe: .tcp(port: 3306), agents: agents)
+            preflightPorts: [3306], probe: .tcp(port: 3306), agents: agents
+        )
+        if let activeVersion {
+            activeVersionProvider = activeVersion
+        } else {
+            activeVersionProvider = { cat.installedVersions(.mysql).max { $0.compare($1, options: .numeric) == .orderedAscending } }
+        }
     }
 
     public func start() async throws {
@@ -31,21 +59,28 @@ public final class MySQLController: ManagedService, @unchecked Sendable {
         try initializeIfNeeded(binary: binary)
         try await runner.start(spec: spec(binary: binary))
     }
-    public func stop() async throws { try runner.stop() }
+
+    public func stop() async throws {
+        try runner.stop()
+    }
+
     public func restart() async throws {
         guard let binary else { throw ServiceNotInstalled(.mysql) }
         try await runner.restart(spec: spec(binary: binary))
     }
-    public func probe() async -> ServiceStatus { isInstalled ? await runner.probe() : .stopped }
 
-  
+    public func probe() async -> ServiceStatus {
+        isInstalled ? await runner.probe() : .stopped
+    }
+
     private func initializeIfNeeded(binary: URL) throws {
         try ServiceInitializer.ensureDir(dataDir)
         guard !ServiceInitializer.isInitialized(dataDir, marker: "mysql") else { return }
         try ServiceInitializer.run(
             binary,
             ["--defaults-file=\(configFile.path)", "--initialize-insecure"],
-            tool: "mysqld")
+            tool: "mysqld"
+        )
     }
 
     private func writeConfig() throws {
@@ -67,6 +102,7 @@ public final class MySQLController: ManagedService, @unchecked Sendable {
             programArguments: [binary.path, "--defaults-file=\(configFile.path)"],
             workingDirectory: dataDir.path,
             stdoutPath: paths.serviceLog("mysql").path,
-            stderrPath: paths.serviceLog("mysql").path)
+            stderrPath: paths.serviceLog("mysql").path
+        )
     }
 }

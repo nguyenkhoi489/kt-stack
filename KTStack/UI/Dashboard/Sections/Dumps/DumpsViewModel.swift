@@ -1,6 +1,6 @@
-import SwiftUI
 import Combine
 import KTStackKit
+import SwiftUI
 
 @MainActor
 final class DumpsViewModel: ObservableObject {

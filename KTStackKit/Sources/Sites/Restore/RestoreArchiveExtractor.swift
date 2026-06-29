@@ -1,8 +1,11 @@
 import Foundation
 
 public protocol RestoreArchiveExtractor: Sendable {
-    func extract(_ file: URL, into staging: URL,
-                 emit: @Sendable (String) -> Void) async throws -> PreparedWordPressPayload
+    func extract(
+        _ file: URL,
+        into staging: URL,
+        emit: @Sendable (String) -> Void
+    ) async throws -> PreparedWordPressPayload
 }
 
 public enum RestoreArchiveError: LocalizedError, Equatable {
@@ -20,28 +23,28 @@ public enum RestoreArchiveError: LocalizedError, Equatable {
 
     public var errorDescription: String? {
         switch self {
-        case .unsupportedFormat(let ext):
-            return "Unsupported backup format “.\(ext)”. Use a Duplicator .zip or All-in-One WP Migration .wpress file."
+        case let .unsupportedFormat(ext):
+            "Unsupported backup format “.\(ext)”. Use a Duplicator .zip or All-in-One WP Migration .wpress file."
         case .notWordPressBackup:
-            return "This archive does not look like a supported WordPress backup."
+            "This archive does not look like a supported WordPress backup."
         case .missingDuplicatorInstaller:
-            return "A Duplicator backup needs its installer.php in the same folder as the .zip archive."
-        case .pathEscape(let entry):
-            return "Refused archive entry that escapes the extraction directory: \(entry)"
-        case .symlinkRejected(let entry):
-            return "Refused symbolic link inside the backup archive: \(entry)"
+            "A Duplicator backup needs its installer.php in the same folder as the .zip archive."
+        case let .pathEscape(entry):
+            "Refused archive entry that escapes the extraction directory: \(entry)"
+        case let .symlinkRejected(entry):
+            "Refused symbolic link inside the backup archive: \(entry)"
         case .dumpNotFound:
-            return "Could not locate the database dump (database.sql) inside the backup."
+            "Could not locate the database dump (database.sql) inside the backup."
         case .docrootNotFound:
-            return "Could not locate the WordPress web root inside the backup."
-        case .insufficientDiskSpace(let required, let available):
-            return "Not enough free disk space to restore. Need about \(ByteCountFormatter.string(fromByteCount: required, countStyle: .file)), have \(ByteCountFormatter.string(fromByteCount: available, countStyle: .file))."
-        case .archiveDesync(let detail):
-            return "The backup archive is corrupt or uses an unexpected layout: \(detail)"
-        case .unplacedInstallerToken(let token):
-            return "The database dump still contains a Duplicator installer placeholder (\(token)). Re-export the backup or run the installer first."
-        case .extractFailed(let detail):
-            return "Failed to extract the backup archive: \(detail)"
+            "Could not locate the WordPress web root inside the backup."
+        case let .insufficientDiskSpace(required, available):
+            "Not enough free disk space to restore. Need about \(ByteCountFormatter.string(fromByteCount: required, countStyle: .file)), have \(ByteCountFormatter.string(fromByteCount: available, countStyle: .file))."
+        case let .archiveDesync(detail):
+            "The backup archive is corrupt or uses an unexpected layout: \(detail)"
+        case let .unplacedInstallerToken(token):
+            "The database dump still contains a Duplicator installer placeholder (\(token)). Re-export the backup or run the installer first."
+        case let .extractFailed(detail):
+            "Failed to extract the backup archive: \(detail)"
         }
     }
 }
@@ -62,9 +65,11 @@ enum RestoreContainment {
     static func assertNoSymlinksOrEscapes(in root: URL) throws {
         let fm = FileManager.default
         let basePath = root.resolvingSymlinksInPath().standardizedFileURL.path
-        guard let walker = fm.enumerator(at: root,
-                                         includingPropertiesForKeys: [.isSymbolicLinkKey],
-                                         options: []) else { return }
+        guard let walker = fm.enumerator(
+            at: root,
+            includingPropertiesForKeys: [.isSymbolicLinkKey],
+            options: []
+        ) else { return }
         for case let url as URL in walker {
             let values = try url.resourceValues(forKeys: [.isSymbolicLinkKey])
             if values.isSymbolicLink == true {

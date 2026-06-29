@@ -9,8 +9,6 @@ public struct BackupLibrary: Sendable {
         self.fileManager = fileManager
     }
 
-    // MARK: - Reading
-
     public func list() -> [BackupSet] {
         reconcileManifest().sorted { $0.createdAt > $1.createdAt }
     }
@@ -23,33 +21,48 @@ public struct BackupLibrary: Sendable {
         Self.directorySize(paths.backupSetDir(set.id), fileManager: fileManager)
     }
 
-    // MARK: - Create
-
-    public func create(kind: DatabaseKind, profile: ConnectionProfile, databases: [String],
-                       using provider: BackupProvider, password: String?,
-                       engineVersion: String? = nil) async throws -> BackupSet {
+    public func create(
+        kind: DatabaseKind,
+        profile: ConnectionProfile,
+        databases: [String],
+        using provider: BackupProvider,
+        password: String?,
+        engineVersion: String? = nil
+    ) async throws -> BackupSet {
         guard !databases.isEmpty else {
             throw DatabaseError.connection("No databases selected to back up.")
         }
-        try fileManager.createDirectory(at: paths.backups, withIntermediateDirectories: true,
-                                        attributes: [.posixPermissions: 0o700])
+        try fileManager.createDirectory(
+            at: paths.backups,
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
 
         let id = UUID()
         let setDir = paths.backupSetDir(id)
-        try fileManager.createDirectory(at: setDir, withIntermediateDirectories: true,
-                                        attributes: [.posixPermissions: 0o700])
+        try fileManager.createDirectory(
+            at: setDir,
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
         do {
             for database in databases {
                 let artifact = try Self.safeArtifactURL(
-                    database: database, fileExtension: provider.fileExtension, in: setDir)
-                try await provider.backup(profile: profile, password: password,
-                                          database: database, to: artifact)
+                    database: database, fileExtension: provider.fileExtension, in: setDir
+                )
+                try await provider.backup(
+                    profile: profile,
+                    password: password,
+                    database: database,
+                    to: artifact
+                )
             }
             let set = BackupSet(
                 id: id, kind: kind, engineVersion: engineVersion,
                 profileName: profile.name, host: profile.host, databases: databases,
                 createdAt: Date(),
-                sizeBytes: Self.directorySize(setDir, fileManager: fileManager))
+                sizeBytes: Self.directorySize(setDir, fileManager: fileManager)
+            )
             try writeMeta(set, in: setDir)
             var manifest = reconcileManifest()
             manifest.removeAll { $0.id == id }
@@ -62,8 +75,6 @@ public struct BackupLibrary: Sendable {
         }
     }
 
-    // MARK: - Delete
-
     public func delete(_ set: BackupSet) throws {
         let dir = paths.backupSetDir(set.id)
         if fileManager.fileExists(atPath: dir.path) {
@@ -73,8 +84,6 @@ public struct BackupLibrary: Sendable {
         manifest.removeAll { $0.id == set.id }
         try commitManifest(manifest)
     }
-
-    // MARK: - Export / Import (machine migration)
 
     /// Filename extension used for the single-file portable archive (zip of the set directory).
     public static let portableExtension = "ktbackup"
@@ -91,7 +100,8 @@ public struct BackupLibrary: Sendable {
             try fileManager.removeItem(at: destination)
         }
         if destination.pathExtension.lowercased() == Self.portableExtension
-            || destination.pathExtension.lowercased() == "zip" {
+            || destination.pathExtension.lowercased() == "zip"
+        {
             try Self.zipDirectory(source, to: destination)
         } else {
             try fileManager.copyItem(at: source, to: destination)
@@ -114,10 +124,14 @@ public struct BackupLibrary: Sendable {
         let imported = BackupSet(
             id: id, kind: set.kind, engineVersion: set.engineVersion,
             profileName: set.profileName, host: set.host, databases: set.databases,
-            createdAt: set.createdAt, sizeBytes: set.sizeBytes)
+            createdAt: set.createdAt, sizeBytes: set.sizeBytes
+        )
         let destination = paths.backupSetDir(id)
-        try fileManager.createDirectory(at: paths.backups, withIntermediateDirectories: true,
-                                        attributes: [.posixPermissions: 0o700])
+        try fileManager.createDirectory(
+            at: paths.backups,
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
         if fileManager.fileExists(atPath: destination.path) {
             try fileManager.removeItem(at: destination)
         }
@@ -162,22 +176,27 @@ public struct BackupLibrary: Sendable {
         }
         return ImportDirectory(
             url: extractRoot.appendingPathComponent(entries[0], isDirectory: true),
-            cleanupRoot: extractRoot)
+            cleanupRoot: extractRoot
+        )
     }
 
     /// Use `ditto -c -k --keepParent` so the archive's single top-level entry is the set directory —
     /// matches the import flow's "single top-level dir" expectation. `ditto` ships with macOS so
     /// no third-party dependency is added.
     static func zipDirectory(_ source: URL, to destination: URL) throws {
-        try runProcess("/usr/bin/ditto",
-                       args: ["-c", "-k", "--keepParent", source.path, destination.path],
-                       label: "ditto")
+        try runProcess(
+            "/usr/bin/ditto",
+            args: ["-c", "-k", "--keepParent", source.path, destination.path],
+            label: "ditto"
+        )
     }
 
     static func unzipFile(_ source: URL, into destination: URL) throws {
-        try runProcess("/usr/bin/ditto",
-                       args: ["-x", "-k", source.path, destination.path],
-                       label: "ditto")
+        try runProcess(
+            "/usr/bin/ditto",
+            args: ["-x", "-k", source.path, destination.path],
+            label: "ditto"
+        )
     }
 
     private static func runProcess(_ executable: String, args: [String], label: String) throws {
@@ -197,17 +216,20 @@ public struct BackupLibrary: Sendable {
         }
     }
 
-    // MARK: - Manifest persistence
-
     private func reconcileManifest() -> [BackupSet] {
         let onDisk = scanSetDirectories()
         let manifest = loadManifest()
         var byID: [UUID: BackupSet] = [:]
-        for set in onDisk { byID[set.id] = set }
-        for set in manifest where byID[set.id] != nil { byID[set.id] = set }
+        for set in onDisk {
+            byID[set.id] = set
+        }
+        for set in manifest where byID[set.id] != nil {
+            byID[set.id] = set
+        }
         let reconciled = Array(byID.values)
         if reconciled.count != manifest.count
-            || Set(reconciled.map(\.id)) != Set(manifest.map(\.id)) {
+            || Set(reconciled.map(\.id)) != Set(manifest.map(\.id))
+        {
             try? commitManifest(reconciled)
         }
         return reconciled
@@ -215,7 +237,8 @@ public struct BackupLibrary: Sendable {
 
     private func scanSetDirectories() -> [BackupSet] {
         guard let entries = try? fileManager.contentsOfDirectory(
-            at: paths.backups, includingPropertiesForKeys: [.isDirectoryKey]) else { return [] }
+            at: paths.backups, includingPropertiesForKeys: [.isDirectoryKey]
+        ) else { return [] }
         return entries.compactMap { entry in
             try? loadMeta(entry.appendingPathComponent("meta.json"))
         }
@@ -249,8 +272,6 @@ public struct BackupLibrary: Sendable {
         return try Self.decoder.decode(BackupSet.self, from: data)
     }
 
-    // MARK: - Path safety
-
     /// Reject names that escape the set directory once joined (`.`/`..`, separators) — remote
     /// `listDatabases()` names are untrusted. SQL-identifier validation permits `.`, so this is a
     /// separate filesystem-path check applied before every write and delete.
@@ -268,11 +289,10 @@ public struct BackupLibrary: Sendable {
         return candidate
     }
 
-    // MARK: - Helpers
-
     private static func directorySize(_ url: URL, fileManager: FileManager) -> Int64 {
         guard let enumerator = fileManager.enumerator(
-            at: url, includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey]) else { return 0 }
+            at: url, includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey]
+        ) else { return 0 }
         var total: Int64 = 0
         for case let fileURL as URL in enumerator {
             let values = try? fileURL.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])

@@ -4,7 +4,7 @@ public struct SiteRuntimePins: Sendable {
     private let storeURL: URL
 
     public init(paths: AppSupportPaths) {
-        self.storeURL = paths.sitesRegistryFile
+        storeURL = paths.sitesRegistryFile
     }
 
     public init(storeURL: URL) {
@@ -29,7 +29,7 @@ public struct SiteRuntimePins: Sendable {
         return pins
     }
 
-    private struct Pin: Decodable, Sendable {
+    private struct Pin: Decodable {
         let path: String
         let phpVersion: String?
 

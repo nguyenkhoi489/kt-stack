@@ -2,7 +2,6 @@ import XCTest
 @testable import KTStackKit
 
 final class MongoJSONMapperTests: XCTestCase {
-
     private func roundTrip(_ json: String) throws -> Any {
         let document = try MongoJSONMapper.document(fromJSON: json)
         let encoded = try MongoJSONMapper.encodedJSON(from: document, pretty: false)

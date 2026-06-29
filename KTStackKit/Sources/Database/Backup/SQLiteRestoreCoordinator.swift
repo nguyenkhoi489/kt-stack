@@ -18,7 +18,8 @@ public actor SQLiteRestoreCoordinator {
     public init() {}
 
     public func withExclusiveAccess<T: Sendable>(
-        to path: String, _ body: @Sendable () async throws -> T) async throws -> T {
+        to path: String, _ body: @Sendable () async throws -> T
+    ) async throws -> T {
         try await acquire(path)
         do {
             let result = try await body()

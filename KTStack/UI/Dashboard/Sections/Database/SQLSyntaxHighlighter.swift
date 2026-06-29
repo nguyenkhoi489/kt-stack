@@ -1,7 +1,6 @@
 import AppKit
 
 final class SQLSyntaxHighlighter: NSObject, NSTextStorageDelegate {
-
     var keywords: Set<String> = []
 
     private let keywordColor = NSColor(editorHex: 0x0000FF)
@@ -12,12 +11,18 @@ final class SQLSyntaxHighlighter: NSObject, NSTextStorageDelegate {
     private static let wordPattern = try? NSRegularExpression(pattern: "[A-Za-z_][A-Za-z0-9_]*")
     private static let numberPattern = try? NSRegularExpression(pattern: "\\b\\d+(?:\\.\\d+)?\\b")
     private static let stringPattern = try? NSRegularExpression(
-        pattern: "'(?:[^'\\\\]|\\\\.)*'|\"(?:[^\"\\\\]|\\\\.)*\"|`(?:[^`]|``)*`")
+        pattern: "'(?:[^'\\\\]|\\\\.)*'|\"(?:[^\"\\\\]|\\\\.)*\"|`(?:[^`]|``)*`"
+    )
     private static let commentPattern = try? NSRegularExpression(
-        pattern: "--[^\\n]*|/\\*[\\s\\S]*?\\*/")
+        pattern: "--[^\\n]*|/\\*[\\s\\S]*?\\*/"
+    )
 
-    func textStorage(_ textStorage: NSTextStorage, didProcessEditing editedMask: NSTextStorageEditActions,
-                     range editedRange: NSRange, changeInLength delta: Int) {
+    func textStorage(
+        _ textStorage: NSTextStorage,
+        didProcessEditing editedMask: NSTextStorageEditActions,
+        range _: NSRange,
+        changeInLength _: Int
+    ) {
         guard editedMask.contains(.editedCharacters) else { return }
         highlight(textStorage)
     }
@@ -44,8 +49,13 @@ final class SQLSyntaxHighlighter: NSObject, NSTextStorageDelegate {
         }
     }
 
-    private func apply(_ pattern: NSRegularExpression?, color: NSColor,
-                       in text: NSString, storage: NSTextStorage, range: NSRange) {
+    private func apply(
+        _ pattern: NSRegularExpression?,
+        color: NSColor,
+        in text: NSString,
+        storage: NSTextStorage,
+        range: NSRange
+    ) {
         pattern?.enumerateMatches(in: text as String, range: range) { match, _, _ in
             guard let match else { return }
             storage.addAttribute(.foregroundColor, value: color, range: match.range)
@@ -55,9 +65,11 @@ final class SQLSyntaxHighlighter: NSObject, NSTextStorageDelegate {
 
 private extension NSColor {
     convenience init(editorHex hex: UInt32) {
-        self.init(srgbRed: CGFloat((hex >> 16) & 0xFF) / 255,
-                  green: CGFloat((hex >> 8) & 0xFF) / 255,
-                  blue: CGFloat(hex & 0xFF) / 255,
-                  alpha: 1)
+        self.init(
+            srgbRed: CGFloat((hex >> 16) & 0xFF) / 255,
+            green: CGFloat((hex >> 8) & 0xFF) / 255,
+            blue: CGFloat(hex & 0xFF) / 255,
+            alpha: 1
+        )
     }
 }

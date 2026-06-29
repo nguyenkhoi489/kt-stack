@@ -9,7 +9,6 @@ protocol SessionConnection: Sendable {
 }
 
 public actor ConnectionSession {
-
     private let factory: @Sendable () async throws -> SessionConnection
     private var connection: SessionConnection?
     private var gateHeld = false
@@ -51,7 +50,7 @@ public actor ConnectionSession {
             cancelRequested = false
             return result
         } catch {
-            if cancelRequested && myEpoch == epoch {
+            if cancelRequested, myEpoch == epoch {
                 cancelRequested = false
                 throw DatabaseError.cancelled
             }
@@ -73,7 +72,7 @@ public actor ConnectionSession {
 
     private func applyDatabaseIfNeeded(_ database: String?, on connection: SessionConnection) async throws {
         guard let database, !database.isEmpty else { return }
-        if databaseApplied && database == currentDatabase { return }
+        if databaseApplied, database == currentDatabase { return }
         try await connection.useDatabase(database)
         currentDatabase = database
         databaseApplied = true

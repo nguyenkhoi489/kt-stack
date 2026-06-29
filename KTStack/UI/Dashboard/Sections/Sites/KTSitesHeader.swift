@@ -1,10 +1,9 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct KTSitesHeader: View {
     let siteCount: Int
     let onScan: () -> Void
-    let onImport: () -> Void
     let onNewSite: () -> Void
 
     var body: some View {
@@ -16,7 +15,6 @@ struct KTSitesHeader: View {
             KTPill(text: "\(siteCount) sites")
             Spacer()
             KTButton(title: "Scan", systemImage: "arrow.triangle.2.circlepath", kind: .secondary, action: onScan)
-            KTButton(title: "Import", systemImage: "square.and.arrow.down", kind: .secondary, action: onImport)
             newSiteButton
         }
     }

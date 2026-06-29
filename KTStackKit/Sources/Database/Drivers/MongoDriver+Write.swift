@@ -2,7 +2,6 @@ import Foundation
 import MongoKitten
 
 public extension MongoDriver {
-
     func insert(database: String, collection: String, json: String) async throws {
         try ensureWritable()
         let document = try MongoJSONMapper.document(fromJSON: json)
@@ -11,13 +10,18 @@ public extension MongoDriver {
         }
     }
 
-    func update(database: String, collection: String,
-                record: DocumentRecord, json: String) async throws {
+    func update(
+        database: String,
+        collection: String,
+        record: DocumentRecord,
+        json: String
+    ) async throws {
         try ensureWritable()
         let document = try MongoJSONMapper.document(fromJSON: json)
         if let editedID = document["_id"],
            let editedIDJSON = MongoJSONMapper.identifierJSON(for: editedID),
-           editedIDJSON != record.identifierJSON {
+           editedIDJSON != record.identifierJSON
+        {
             throw DatabaseError.syntax("The _id field can't be changed; keep the original value or remove it.")
         }
         let filter = try matchFilter(for: record)
@@ -60,8 +64,8 @@ public extension MongoDriver {
         return filter
     }
 
-    // MongoKitten exposes no create-collection command, so an empty collection is materialized by
-    // inserting then removing a marker; MongoDB keeps the collection after it is emptied.
+    /// MongoKitten exposes no create-collection command, so an empty collection is materialized by
+    /// inserting then removing a marker; MongoDB keeps the collection after it is emptied.
     private static var collectionInitMarker: Document {
         var document = Document()
         document["__ktstack_init"] = true

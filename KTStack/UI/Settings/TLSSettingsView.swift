@@ -1,6 +1,5 @@
-import SwiftUI
 import KTStackKit
-
+import SwiftUI
 
 struct TLSSettingsView: View {
     @ObservedObject var caTrust: CATrustService
@@ -47,23 +46,25 @@ struct TLSSettingsView: View {
 
     private var statusText: String {
         switch caTrust.status {
-        case .trusted:      return "Trusted in System Keychain"
-        case .untrusted:    return "Generated, not trusted"
-        case .notInstalled: return "Not installed"
+        case .trusted: "Trusted in System Keychain"
+        case .untrusted: "Generated, not trusted"
+        case .notInstalled: "Not installed"
         }
     }
+
     private var statusIcon: String {
         switch caTrust.status {
-        case .trusted:      return "checkmark.seal.fill"
-        case .untrusted:    return "exclamationmark.seal"
-        case .notInstalled: return "seal"
+        case .trusted: "checkmark.seal.fill"
+        case .untrusted: "exclamationmark.seal"
+        case .notInstalled: "seal"
         }
     }
+
     private var statusTint: Color {
         switch caTrust.status {
-        case .trusted:      return Color.KDStatus.running
-        case .untrusted:    return Color.KDStatus.warning
-        case .notInstalled: return .secondary
+        case .trusted: Color.KDStatus.running
+        case .untrusted: Color.KDStatus.warning
+        case .notInstalled: .secondary
         }
     }
 }

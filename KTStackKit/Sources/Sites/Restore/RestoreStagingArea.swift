@@ -14,8 +14,11 @@ public struct RestoreStagingArea: Sendable {
         if fm.fileExists(atPath: url.path) {
             try fm.removeItem(at: url)
         }
-        try fm.createDirectory(at: url, withIntermediateDirectories: true,
-                               attributes: [.posixPermissions: 0o700])
+        try fm.createDirectory(
+            at: url,
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
         return url
     }
 

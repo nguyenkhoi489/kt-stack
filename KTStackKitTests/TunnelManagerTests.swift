@@ -10,8 +10,16 @@ final class TunnelManagerTests: XCTestCase {
     }
 
     private func site(_ domain: String, id: UUID = UUID()) -> Site {
-        Site(id: id, name: domain, path: "/tmp", docroot: "/tmp",
-             domain: domain, phpVersion: "8.4", type: .staticSite, secure: false)
+        Site(
+            id: id,
+            name: domain,
+            path: "/tmp",
+            docroot: "/tmp",
+            domain: domain,
+            phpVersion: "8.4",
+            type: .staticSite,
+            secure: false
+        )
     }
 
     func testInFlightGuardAllowsOneSessionPerSite() {
@@ -89,11 +97,13 @@ final class TunnelManagerTests: XCTestCase {
     }
 
     func testProbeRejectsAnyTestDomainRedirect() {
-        let decision = TunnelController.probeDecision(statusCode: 302,
-                                                      locationHost: "other.test",
-                                                      publicHost: "demo.trycloudflare.com",
-                                                      localDomain: "app.test")
-        guard case .failed(let message) = decision else {
+        let decision = TunnelController.probeDecision(
+            statusCode: 302,
+            locationHost: "other.test",
+            publicHost: "demo.trycloudflare.com",
+            localDomain: "app.test"
+        )
+        guard case let .failed(message) = decision else {
             XCTFail("Expected failed redirect decision, got \(decision)")
             return
         }

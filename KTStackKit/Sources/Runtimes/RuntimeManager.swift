@@ -1,15 +1,16 @@
-import Foundation
 import Combine
+import Foundation
 
 @MainActor
 public final class RuntimeManager: ObservableObject {
-  
     public struct DownloadState: Sendable, Equatable {
         public var version: String
         public var received: Int64
         public var total: Int64
         public var error: String?
-        public var fraction: Double { total > 0 ? min(1, Double(received) / Double(total)) : 0 }
+        public var fraction: Double {
+            total > 0 ? min(1, Double(received) / Double(total)) : 0
+        }
     }
 
     @Published public private(set) var installed: [RuntimeLanguage: [String]] = [:]
@@ -20,12 +21,14 @@ public final class RuntimeManager: ObservableObject {
     private let catalog: RuntimeCatalog
     private let downloader: RuntimeDownloader
     private var tasks: [RuntimeLanguage: Task<Void, Never>] = [:]
-    private var defaultsURL: URL { paths.config.appendingPathComponent("runtimes.json") }
+    private var defaultsURL: URL {
+        paths.config.appendingPathComponent("runtimes.json")
+    }
 
     public init(paths: AppSupportPaths = AppSupportPaths()) {
         self.paths = paths
-        self.catalog = RuntimeCatalog(paths: paths)
-        self.downloader = RuntimeDownloader(paths: paths)
+        catalog = RuntimeCatalog(paths: paths)
+        downloader = RuntimeDownloader(paths: paths)
         loadDefaults()
         refreshInstalled()
         reconcilePHPExtensionConfig()
@@ -39,11 +42,11 @@ public final class RuntimeManager: ObservableObject {
         }
     }
 
-    // MARK: - Queries
-
     public func refreshInstalled() {
         var map: [RuntimeLanguage: [String]] = [:]
-        for lang in RuntimeLanguage.allCases { map[lang] = catalog.installedVersions(lang) }
+        for lang in RuntimeLanguage.allCases {
+            map[lang] = catalog.installedVersions(lang)
+        }
         installed = map
         // Seed the PHP default once a version is installed (first launch stages 8.4).
         if globalDefaults[.php] == nil, let php = installed[.php]?.first {
@@ -57,19 +60,19 @@ public final class RuntimeManager: ObservableObject {
         catalog.availableReleases(lang)
     }
 
-    public func defaultVersion(_ lang: RuntimeLanguage) -> String? { globalDefaults[lang] }
+    public func defaultVersion(_ lang: RuntimeLanguage) -> String? {
+        globalDefaults[lang]
+    }
 
     public func isDownloading(_ lang: RuntimeLanguage) -> Bool {
         downloads[lang] != nil && downloads[lang]?.error == nil
     }
 
-    // MARK: - Actions
-
     public func install(_ release: RuntimeRelease) {
         guard !isDownloading(release.language) else { return }
         downloads[release.language] = DownloadState(version: release.version, received: 0, total: -1)
-        let downloader = self.downloader
-        let paths = self.paths
+        let downloader = downloader
+        let paths = paths
         let lang = release.language
         let version = release.version
         tasks[lang] = Task { [weak self] in
@@ -110,7 +113,6 @@ public final class RuntimeManager: ObservableObject {
     }
 
     public func uninstall(_ lang: RuntimeLanguage, _ version: String) {
-
         if downloads[lang]?.version == version, downloads[lang]?.error == nil { cancel(lang) }
 
         let fm = FileManager.default
@@ -136,12 +138,10 @@ public final class RuntimeManager: ObservableObject {
         refreshInstalled()
     }
 
-    // MARK: - Private
-
     private func finish(_ lang: RuntimeLanguage, error: String?) {
         tasks[lang] = nil
         if let error {
-            downloads[lang]?.error = error            // keep the row so the card shows failure + retry
+            downloads[lang]?.error = error // keep the row so the card shows failure + retry
         } else {
             downloads[lang] = nil
             refreshInstalled()
@@ -151,7 +151,9 @@ public final class RuntimeManager: ObservableObject {
     private func loadDefaults() {
         guard let data = try? Data(contentsOf: defaultsURL),
               let map = try? JSONDecoder().decode([String: String].self, from: data) else { return }
-        for (k, v) in map { if let lang = RuntimeLanguage(rawValue: k) { globalDefaults[lang] = v } }
+        for (k, v) in map {
+            if let lang = RuntimeLanguage(rawValue: k) { globalDefaults[lang] = v }
+        }
     }
 
     private func persistDefaults() {

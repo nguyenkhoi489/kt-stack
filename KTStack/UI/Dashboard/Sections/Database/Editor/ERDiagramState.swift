@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 @MainActor
 final class ERDiagramState: ObservableObject {
@@ -26,7 +26,9 @@ final class ERDiagramState: ObservableObject {
     private var dragNodeStart: CGPoint?
     private var panStart: CGPoint?
 
-    var isEmpty: Bool { graph.nodes.isEmpty }
+    var isEmpty: Bool {
+        graph.nodes.isEmpty
+    }
 
     func apply(catalog: SchemaCatalog, connectionKey: String, schemaKey: String) {
         if connectionKey != self.connectionKey || schemaKey != self.schemaKey {
@@ -51,7 +53,9 @@ final class ERDiagramState: ObservableObject {
         rebuildGraph(resetFit: true)
     }
 
-    func consumeInitialFit() { needsInitialFit = false }
+    func consumeInitialFit() {
+        needsInitialFit = false
+    }
 
     private func rebuildGraph(resetFit: Bool) {
         guard let catalog = lastCatalog, !catalog.detailedColumnsByTable.isEmpty else {
@@ -61,7 +65,8 @@ final class ERDiagramState: ObservableObject {
         let built = ERSchemaGraphBuilder.build(
             detailedColumns: catalog.detailedColumnsByTable,
             relations: catalog.relations,
-            compact: isCompact)
+            compact: isCompact
+        )
         graph = built
         loadOverrides()
         layoutTask?.cancel()
@@ -71,7 +76,7 @@ final class ERDiagramState: ObservableObject {
             self.computedPositions = positions
             self.rebuildRects()
             if resetFit { self.needsInitialFit = true }
-            if self.needsInitialFit && self.viewportSize.width > 0 {
+            if self.needsInitialFit, self.viewportSize.width > 0 {
                 self.fitToWindow()
                 self.needsInitialFit = false
             }
@@ -101,7 +106,8 @@ final class ERDiagramState: ObservableObject {
                 x: center.x - ERSugiyamaLayout.nodeWidth / 2,
                 y: center.y - height / 2,
                 width: ERSugiyamaLayout.nodeWidth,
-                height: height)
+                height: height
+            )
         }
         cachedRects = rects
         canvasSize = ERRectIndex.canvasSize(rects: rects)
@@ -110,7 +116,8 @@ final class ERDiagramState: ObservableObject {
     func tableAt(viewPoint: CGPoint) -> String? {
         let canvasPoint = CGPoint(
             x: (viewPoint.x - canvasOffset.x) / magnification,
-            y: (viewPoint.y - canvasOffset.y) / magnification)
+            y: (viewPoint.y - canvasOffset.y) / magnification
+        )
         for (table, rect) in cachedRects where rect.contains(canvasPoint) {
             return table
         }
@@ -132,15 +139,18 @@ final class ERDiagramState: ObservableObject {
         if let table = draggingTable, let start = dragNodeStart {
             let center = CGPoint(
                 x: start.x + translation.width / magnification,
-                y: start.y + translation.height / magnification)
+                y: start.y + translation.height / magnification
+            )
             positionOverrides[table] = center
             let height = ERSugiyamaLayout.estimateHeight(
-                columnCount: graph.nodes.first { $0.id == table }?.displayColumns.count ?? 1)
+                columnCount: graph.nodes.first { $0.id == table }?.displayColumns.count ?? 1
+            )
             cachedRects[table] = CGRect(
                 x: center.x - ERSugiyamaLayout.nodeWidth / 2,
                 y: center.y - height / 2,
                 width: ERSugiyamaLayout.nodeWidth,
-                height: height)
+                height: height
+            )
             canvasSize = ERRectIndex.canvasSize(rects: cachedRects)
         } else if let panStart {
             canvasOffset = CGPoint(x: panStart.x + translation.width, y: panStart.y + translation.height)
@@ -165,10 +175,12 @@ final class ERDiagramState: ObservableObject {
         let center = anchor ?? CGPoint(x: viewportSize.width / 2, y: viewportSize.height / 2)
         let canvasPoint = CGPoint(
             x: (center.x - canvasOffset.x) / magnification,
-            y: (center.y - canvasOffset.y) / magnification)
+            y: (center.y - canvasOffset.y) / magnification
+        )
         canvasOffset = CGPoint(
             x: center.x - canvasPoint.x * clamped,
-            y: center.y - canvasPoint.y * clamped)
+            y: center.y - canvasPoint.y * clamped
+        )
         magnification = clamped
     }
 
@@ -183,6 +195,7 @@ final class ERDiagramState: ObservableObject {
         magnification = fitScale
         canvasOffset = CGPoint(
             x: (viewportSize.width - size.width * fitScale) / 2,
-            y: (viewportSize.height - size.height * fitScale) / 2)
+            y: (viewportSize.height - size.height * fitScale) / 2
+        )
     }
 }

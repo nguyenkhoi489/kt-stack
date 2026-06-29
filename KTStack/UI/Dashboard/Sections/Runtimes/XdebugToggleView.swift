@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 @MainActor
 final class XdebugToggleModel: ObservableObject {
@@ -13,7 +13,7 @@ final class XdebugToggleModel: ObservableObject {
 
     init(version: String, reloadPool: @escaping (String) async throws -> Void) {
         self.version = version
-        self.controller = XdebugController(paths: AppSupportPaths(), reloadPool: reloadPool)
+        controller = XdebugController(paths: AppSupportPaths(), reloadPool: reloadPool)
         supported = controller.isSupported(version: version)
         enabled = controller.isEnabled(version: version)
     }

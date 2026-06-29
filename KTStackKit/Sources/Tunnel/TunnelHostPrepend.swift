@@ -17,11 +17,17 @@ public enum TunnelHostPrepend {
         """
     }
 
-    public static func write(to url: URL, chainingPrepend dumpPrepend: URL,
-                             fileManager: FileManager = .default) throws {
+    public static func write(
+        to url: URL,
+        chainingPrepend dumpPrepend: URL,
+        fileManager: FileManager = .default
+    ) throws {
         let dir = url.deletingLastPathComponent()
-        try fileManager.createDirectory(at: dir, withIntermediateDirectories: true,
-                                        attributes: [.posixPermissions: 0o700])
+        try fileManager.createDirectory(
+            at: dir,
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
         try content(chainingPrepend: dumpPrepend).write(to: url, atomically: true, encoding: .utf8)
     }
 

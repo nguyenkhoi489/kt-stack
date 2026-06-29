@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct QueryHistorySheet: View {
     @Environment(\.dismiss) private var dismiss
@@ -32,9 +32,11 @@ struct QueryHistorySheet: View {
     @ViewBuilder
     private var content: some View {
         if vm.queryHistoryEntries.isEmpty {
-            EmptyStateView(symbol: "clock.arrow.circlepath",
-                           title: "No query history",
-                           message: "Run SQL to build a local recall list.")
+            EmptyStateView(
+                symbol: "clock.arrow.circlepath",
+                title: "No query history",
+                message: "Run SQL to build a local recall list."
+            )
         } else {
             List(vm.queryHistoryEntries) { entry in
                 Button {

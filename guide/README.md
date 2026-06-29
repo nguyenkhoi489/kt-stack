@@ -41,10 +41,6 @@ If you are brand new, read pages `00` through `06` in order — that takes you f
 - [17 — Uninstall & reset](17-uninstall-and-reset.md) — remove KTStack cleanly
 - [18 — Troubleshooting & FAQ](18-troubleshooting-and-faq.md) — common problems and fixes
 
-## Screenshots
-
-Image placeholders point to `guide/images/`. Drop your screenshots there using the file names referenced in each page.
-
 ## A note on terms
 
 - **Site** — a local project served at `https://<name>.test`.

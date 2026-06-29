@@ -1,7 +1,6 @@
 import Foundation
 
 public enum SQLAutoLimit {
-
     public static let defaultMax = 1000
 
     public struct Outcome: Equatable {
@@ -28,7 +27,7 @@ public enum SQLAutoLimit {
     private static func isSingleStatement(_ skeleton: String) -> Bool {
         guard let firstSemicolon = skeleton.firstIndex(of: ";") else { return true }
         let after = skeleton[skeleton.index(after: firstSemicolon)...]
-        return after.allSatisfy { $0.isWhitespace }
+        return after.allSatisfy(\.isWhitespace)
     }
 
     private static func leadingKeyword(_ skeleton: String) -> String {
@@ -64,7 +63,6 @@ public enum SQLAutoLimit {
 }
 
 private extension SQLAutoLimit {
-
     struct Skeleton {
         let text: String
         let isWellFormed: Bool
@@ -89,9 +87,9 @@ private extension SQLAutoLimit {
                     if character == "'" { mode = .single; output.append(" ") }
                     else if character == "\"" { mode = .double; output.append(" ") }
                     else if character == "`" { mode = .backtick; output.append(" ") }
-                    else if character == "-" && peek(1) == "-" { mode = .lineComment; output.append("  "); index += 1 }
+                    else if character == "-", peek(1) == "-" { mode = .lineComment; output.append("  "); index += 1 }
                     else if character == "#" { mode = .lineComment; output.append(" ") }
-                    else if character == "/" && peek(1) == "*" { mode = .blockComment; output.append("  "); index += 1 }
+                    else if character == "/", peek(1) == "*" { mode = .blockComment; output.append("  "); index += 1 }
                     else { output.append(character) }
                 case .single:
                     output.append(" ")
@@ -112,7 +110,7 @@ private extension SQLAutoLimit {
                     if character == "\n" { mode = .normal; output.append(character) } else { output.append(" ") }
                 case .blockComment:
                     output.append(" ")
-                    if character == "*" && peek(1) == "/" { output.append(" "); index += 1; mode = .normal }
+                    if character == "*", peek(1) == "/" { output.append(" "); index += 1; mode = .normal }
                 }
                 index += 1
             }

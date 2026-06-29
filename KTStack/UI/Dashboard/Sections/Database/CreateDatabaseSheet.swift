@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct CreateDatabaseSheet: View {
     @EnvironmentObject private var vm: DatabaseViewModel
@@ -9,7 +9,9 @@ struct CreateDatabaseSheet: View {
     @State private var name = ""
     @State private var submitting = false
 
-    private var isDocumentTrack: Bool { documentVM.selectedProfile?.kind == .mongodb }
+    private var isDocumentTrack: Bool {
+        documentVM.selectedProfile?.kind == .mongodb
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -63,8 +65,8 @@ struct CreateDatabaseSheet: View {
         switch vm.dumpStatus {
         case .idle: EmptyView()
         case .running: progressRow("Creating…")
-        case .done(let message): successRow(message)
-        case .failed(let message): failureRow(message)
+        case let .done(message): successRow(message)
+        case let .failed(message): failureRow(message)
         }
     }
 
@@ -72,9 +74,9 @@ struct CreateDatabaseSheet: View {
     private var backupStatusRow: some View {
         switch documentVM.backupStatus {
         case .idle: EmptyView()
-        case .running(let message): progressRow(message)
-        case .done(let message): successRow(message)
-        case .failed(let message): failureRow(message)
+        case let .running(message): progressRow(message)
+        case let .done(message): successRow(message)
+        case let .failed(message): failureRow(message)
         }
     }
 
@@ -93,11 +95,10 @@ struct CreateDatabaseSheet: View {
         guard !submitting else { return }
         submitting = true
         Task {
-            let created: Bool
-            if isDocumentTrack {
-                created = await documentVM.createDatabase(named: name)
+            let created: Bool = if isDocumentTrack {
+                await documentVM.createDatabase(named: name)
             } else {
-                created = await vm.createDatabase(named: name)
+                await vm.createDatabase(named: name)
             }
             submitting = false
             if created { dismiss() }

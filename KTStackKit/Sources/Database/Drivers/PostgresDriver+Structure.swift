@@ -5,9 +5,8 @@ import PostgresNIO
 /// constraint so `isPrimaryKey` is accurate (the row-edit gate depends on it); indexes read `pg_catalog`
 /// and group per-column rows into one `IndexInfo`. `$1`/`$2` are the schema and table — PostgreSQL
 /// reuses a single bind for every reference, so the bind list stays `[schema, table]`.
-extension PostgresDriver {
-
-    public func columns(database: String, table: String) async throws -> [ColumnInfo] {
+public extension PostgresDriver {
+    func columns(database: String, table: String) async throws -> [ColumnInfo] {
         var binds = PostgresBindings()
         binds.append(database)
         binds.append(table)
@@ -30,11 +29,12 @@ extension PostgresDriver {
                 dataType: row[1].displayText ?? "",
                 isNullable: row[2].displayText == "YES",
                 isPrimaryKey: row[4].displayText == "YES",
-                defaultValue: row[3].displayText)
+                defaultValue: row[3].displayText
+            )
         }
     }
 
-    public func allColumns(database: String) async throws -> [String: [String]] {
+    func allColumns(database: String) async throws -> [String: [String]] {
         var binds = PostgresBindings()
         binds.append(database)
         let result = try await runQuery(PostgresQuery(unsafeSQL: """
@@ -50,7 +50,7 @@ extension PostgresDriver {
         return map
     }
 
-    public func allColumnsDetailed(database: String) async throws -> [String: [ColumnInfo]] {
+    func allColumnsDetailed(database: String) async throws -> [String: [ColumnInfo]] {
         var binds = PostgresBindings()
         binds.append(database)
         let result = try await runQuery(PostgresQuery(unsafeSQL: """
@@ -74,12 +74,13 @@ extension PostgresDriver {
                 dataType: row[2].displayText ?? "",
                 isNullable: row[3].displayText == "YES",
                 isPrimaryKey: row[5].displayText == "YES",
-                defaultValue: row[4].displayText))
+                defaultValue: row[4].displayText
+            ))
         }
         return map
     }
 
-    public func foreignKeys(database: String) async throws -> [ForeignKeyRelation] {
+    func foreignKeys(database: String) async throws -> [ForeignKeyRelation] {
         var binds = PostgresBindings()
         binds.append(database)
         let result = try await runQuery(PostgresQuery(unsafeSQL: """
@@ -96,7 +97,7 @@ extension PostgresDriver {
         return ForeignKeyRowParser.parseRelational(result.rows)
     }
 
-    public func indexes(database: String, table: String) async throws -> [IndexInfo] {
+    func indexes(database: String, table: String) async throws -> [IndexInfo] {
         var binds = PostgresBindings()
         binds.append(database)
         binds.append(table)

@@ -1,5 +1,5 @@
-import XCTest
 import NIOCore
+import XCTest
 @testable import KTStackKit
 
 /// Engine-free coverage of the query-result model. The NULL-vs-value mapping is the part the grid
@@ -9,7 +9,7 @@ final class QueryResultSetMappingTests: XCTestCase {
     func testTextCellsMapNullBufferToNil() {
         let values: [ByteBuffer?] = [ByteBuffer(string: "alpha"), nil, ByteBuffer(string: "")]
         let cells = QueryResultSet.textCells(values)
-        XCTAssertEqual(cells, ["alpha", nil, ""])   // NULL is nil; empty string stays distinct
+        XCTAssertEqual(cells, ["alpha", nil, ""]) // NULL is nil; empty string stays distinct
     }
 
     func testTextCellsPreserveOrderAndDuplicatePositions() {
@@ -39,8 +39,10 @@ final class QueryResultSetMappingTests: XCTestCase {
 /// (no engine) skips rather than fails. The engine must also be running on 3306.
 final class MySQLProbeIntegrationTests: XCTestCase {
     private func requireOptIn() throws {
-        try XCTSkipUnless(ProcessInfo.processInfo.environment["KTSTACK_DB_IT"] == "1",
-                          "Set KTSTACK_DB_IT=1 with the MySQL engine installed + running on :3306.")
+        try XCTSkipUnless(
+            ProcessInfo.processInfo.environment["KTSTACK_DB_IT"] == "1",
+            "Set KTSTACK_DB_IT=1 with the MySQL engine installed + running on :3306."
+        )
         let catalog = ServiceBinaryCatalog(paths: AppSupportPaths())
         try XCTSkipUnless(catalog.isInstalled(.mysql), "MySQL engine not installed.")
     }
@@ -59,14 +61,14 @@ final class MySQLProbeIntegrationTests: XCTestCase {
         XCTAssertEqual(result.columns, ["a", "b", "c"])
         XCTAssertEqual(result.rows.count, 1)
         XCTAssertEqual(result.rows[0][0], "1")
-        XCTAssertNil(result.rows[0][1])             // SQL NULL preserved as nil
+        XCTAssertNil(result.rows[0][1]) // SQL NULL preserved as nil
         XCTAssertEqual(result.rows[0][2], "x")
     }
 
     func testZeroRowSelectStillReturnsColumns() async throws {
         try requireOptIn()
         let result = try await MySQLProbe.run(sql: "SELECT 1 AS a, 2 AS b WHERE 1 = 0")
-        XCTAssertEqual(result.columns, ["a", "b"])   // headers survive an empty result set
+        XCTAssertEqual(result.columns, ["a", "b"]) // headers survive an empty result set
         XCTAssertEqual(result.rowCount, 0)
     }
 }

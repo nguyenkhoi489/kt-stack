@@ -34,13 +34,15 @@ enum RestoreFixtureBuilder {
         return Data(bytes)
     }
 
-    static func makeDuplicatorZip(to zipURL: URL, layout: [String: String]) throws -> Void {
+    static func makeDuplicatorZip(to zipURL: URL, layout: [String: String]) throws {
         let staging = try makeTempDir("dup-src")
         defer { try? FileManager.default.removeItem(at: staging) }
         for (relativePath, contents) in layout {
             let file = staging.appendingPathComponent(relativePath)
-            try FileManager.default.createDirectory(at: file.deletingLastPathComponent(),
-                                                    withIntermediateDirectories: true)
+            try FileManager.default.createDirectory(
+                at: file.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
             try contents.data(using: .utf8)!.write(to: file)
         }
         let proc = Process()

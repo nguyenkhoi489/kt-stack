@@ -4,13 +4,20 @@ public struct ShellRuntimeBinResolver: Sendable {
     public enum ResolveError: Error, Equatable { case notInstalled, missingBinary }
 
     private let paths: AppSupportPaths
-    public init(paths: AppSupportPaths) { self.paths = paths }
+    public init(paths: AppSupportPaths) {
+        self.paths = paths
+    }
 
-    public func chooseVersion(_ lang: RuntimeLanguage, cwd: URL, installed: [String],
-                              preferred: String? = nil) -> String? {
+    public func chooseVersion(
+        _ lang: RuntimeLanguage,
+        cwd: URL,
+        installed: [String],
+        preferred: String? = nil
+    ) -> String? {
         if lang == .php,
            let pinned = SiteRuntimePins(paths: paths).phpVersion(forProjectAt: cwd),
-           installed.filter(ProjectVersionResolver.isValidVersion).contains(pinned) {
+           installed.filter(ProjectVersionResolver.isValidVersion).contains(pinned)
+        {
             return pinned
         }
         return ProjectVersionResolver().selectVersion(lang, forProjectAt: cwd, installed: installed, preferred: preferred)

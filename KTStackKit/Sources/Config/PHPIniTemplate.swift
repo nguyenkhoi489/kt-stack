@@ -1,8 +1,6 @@
 import Foundation
 
-
 public enum PHPIniTemplate {
-
     public static let `default` = """
     ; KTStack managed php.ini — edit freely. "Reset to default" restores this template.
     ; A .bak of the previous content is kept next to this file on every save.

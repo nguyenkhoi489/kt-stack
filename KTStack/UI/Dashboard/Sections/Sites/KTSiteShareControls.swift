@@ -1,6 +1,6 @@
-import SwiftUI
 import AppKit
 import KTStackKit
+import SwiftUI
 
 struct KTSiteShareControls: View {
     var shareStarting: Bool
@@ -32,17 +32,27 @@ struct KTSiteShareControls: View {
                     NSPasteboard.general.setString(shareURL.absoluteString, forType: .string)
                 }
                 TunnelQRCodeButton(url: shareURL).foregroundStyle(KTColor.accent)
-                iconButton("antenna.radiowaves.left.and.right", help: "Stop sharing via tunnel",
-                           tint: KTColor.accent) { onToggleShare(false) }
+                iconButton(
+                    "antenna.radiowaves.left.and.right",
+                    help: "Stop sharing via tunnel",
+                    tint: KTColor.accent
+                ) { onToggleShare(false) }
             } else {
-                iconButton("antenna.radiowaves.left.and.right.slash", help: "Share via tunnel",
-                           tint: KTColor.ink3) { onToggleShare(true) }
+                iconButton(
+                    "antenna.radiowaves.left.and.right.slash",
+                    help: "Share via tunnel",
+                    tint: KTColor.ink3
+                ) { onToggleShare(true) }
             }
         }
     }
 
-    private func iconButton(_ symbol: String, help: String, tint: Color,
-                            action: @escaping () -> Void) -> some View {
+    private func iconButton(
+        _ symbol: String,
+        help: String,
+        tint: Color,
+        action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.system(size: 13, weight: .medium))

@@ -12,11 +12,11 @@ public final class QueryHistoryStore {
         limit: Int = 500,
         fileManager: FileManager = .default
     ) {
-        self.fileURL = paths.queryHistoryFile
+        fileURL = paths.queryHistoryFile
         self.limit = limit
         self.fileManager = fileManager
-        self.cache = []
-        self.cache = Self.load(from: fileURL, fileManager: fileManager)
+        cache = []
+        cache = Self.load(from: fileURL, fileManager: fileManager)
     }
 
     public func entries() -> [QueryHistoryEntry] {
@@ -29,14 +29,19 @@ public final class QueryHistoryStore {
         if let first = cache.first,
            first.sql == trimmed,
            first.connectionLabel == connectionLabel,
-           first.database == database {
+           first.database == database
+        {
             return
         }
-        cache.insert(QueryHistoryEntry(sql: trimmed,
-                                       ranAt: ranAt,
-                                       connectionLabel: connectionLabel,
-                                       database: database),
-                     at: 0)
+        cache.insert(
+            QueryHistoryEntry(
+                sql: trimmed,
+                ranAt: ranAt,
+                connectionLabel: connectionLabel,
+                database: database
+            ),
+            at: 0
+        )
         if cache.count > limit {
             cache.removeLast(cache.count - limit)
         }
@@ -60,7 +65,8 @@ public final class QueryHistoryStore {
     private static func load(from url: URL, fileManager: FileManager) -> [QueryHistoryEntry] {
         guard fileManager.fileExists(atPath: url.path),
               let data = try? Data(contentsOf: url),
-              let entries = try? JSONDecoder().decode([QueryHistoryEntry].self, from: data) else {
+              let entries = try? JSONDecoder().decode([QueryHistoryEntry].self, from: data)
+        else {
             return []
         }
         return entries

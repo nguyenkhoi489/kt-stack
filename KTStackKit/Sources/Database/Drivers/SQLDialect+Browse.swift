@@ -11,8 +11,8 @@ public enum FilterOperator: String, Sendable, CaseIterable {
 
     public var bindsValue: Bool {
         switch self {
-        case .isNull, .isNotNull: return false
-        default: return true
+        case .isNull, .isNotNull: false
+        default: true
         }
     }
 }
@@ -40,10 +40,14 @@ public struct SortSpec: Sendable, Equatable {
 }
 
 public extension SQLDialect {
-
-    func browseSelect(schema: String, table: String,
-                      filters: [FilterCondition], sort: SortSpec?,
-                      limit: Int, offset: Int) throws -> DMLStatement {
+    func browseSelect(
+        schema: String,
+        table: String,
+        filters: [FilterCondition],
+        sort: SortSpec?,
+        limit: Int,
+        offset: Int
+    ) throws -> DMLStatement {
         let qualified = try qualifiedTable(schema: schema, table: table)
         var sql = "SELECT * FROM \(qualified)"
         var binds: [Cell] = []
@@ -54,7 +58,7 @@ public extension SQLDialect {
         }
 
         if let sort {
-            sql += " ORDER BY \(try quoteIdent(sort.column)) \(sort.ascending ? "ASC" : "DESC")"
+            try sql += " ORDER BY \(quoteIdent(sort.column)) \(sort.ascending ? "ASC" : "DESC")"
         }
 
         sql += " LIMIT \(max(1, limit)) OFFSET \(max(0, offset))"
@@ -64,12 +68,12 @@ public extension SQLDialect {
     private func clause(for filter: FilterCondition, binds: inout [Cell]) throws -> String {
         let column = try quoteIdent(filter.column)
         switch filter.op {
-        case .isNull:    return "\(column) IS NULL"
+        case .isNull: return "\(column) IS NULL"
         case .isNotNull: return "\(column) IS NOT NULL"
-        case .equals:      return binary(column, "=", filter.value, &binds)
-        case .notEquals:   return binary(column, "<>", filter.value, &binds)
+        case .equals: return binary(column, "=", filter.value, &binds)
+        case .notEquals: return binary(column, "<>", filter.value, &binds)
         case .greaterThan: return binary(column, ">", filter.value, &binds)
-        case .lessThan:    return binary(column, "<", filter.value, &binds)
+        case .lessThan: return binary(column, "<", filter.value, &binds)
         case .contains:
             binds.append(.text("%\(filter.value.displayText ?? "")%"))
             return "\(column) LIKE \(placeholderStyle.placeholder(binds.count))"

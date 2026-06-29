@@ -1,7 +1,6 @@
 import Foundation
 
 public enum SQLCompletionEngine {
-
     private static let resultLimit = 50
 
     private static let aliasExclusions: Set<String> = [
@@ -10,8 +9,12 @@ public enum SQLCompletionEngine {
         "USING", "SET", "VALUES", "SELECT", "FROM",
     ]
 
-    public static func completions(text: String, caret: Int,
-                                   catalog: SchemaCatalog, keywords: [String]) -> [SQLCompletionItem] {
+    public static func completions(
+        text: String,
+        caret: Int,
+        catalog: SchemaCatalog,
+        keywords: [String]
+    ) -> [SQLCompletionItem] {
         let chars = Array(text)
         let position = max(0, min(caret, chars.count))
         let token = currentToken(chars, caret: position)
@@ -54,18 +57,23 @@ public enum SQLCompletionEngine {
 
     private static func currentToken(_ chars: [Character], caret: Int) -> (qualifier: String?, partial: String) {
         var start = caret
-        while start > 0, isIdentifier(chars[start - 1]) { start -= 1 }
+        while start > 0, isIdentifier(chars[start - 1]) {
+            start -= 1
+        }
         let partial = String(chars[start..<caret])
 
         guard start > 0, chars[start - 1] == "." else { return (nil, partial) }
         var qualifierStart = start - 1
-        while qualifierStart > 0, isIdentifier(chars[qualifierStart - 1]) { qualifierStart -= 1 }
+        while qualifierStart > 0, isIdentifier(chars[qualifierStart - 1]) {
+            qualifierStart -= 1
+        }
         let qualifier = String(chars[qualifierStart..<(start - 1)])
         return (qualifier.isEmpty ? nil : qualifier, partial)
     }
 
     private static let fromJoinRegex = try? NSRegularExpression(
-        pattern: "(?i)\\b(?:FROM|JOIN)\\s+([A-Za-z_][A-Za-z0-9_]*)(?:\\s+(?:AS\\s+)?([A-Za-z_][A-Za-z0-9_]*))?")
+        pattern: "(?i)\\b(?:FROM|JOIN)\\s+([A-Za-z_][A-Za-z0-9_]*)(?:\\s+(?:AS\\s+)?([A-Za-z_][A-Za-z0-9_]*))?"
+    )
 
     private static func parseTableAliases(_ text: String) -> [String: String] {
         guard let regex = fromJoinRegex else { return [:] }

@@ -1,5 +1,5 @@
-import Foundation
 import CoreGraphics
+import Foundation
 
 public struct ERTableNode: Sendable, Equatable, Identifiable {
     public let table: String
@@ -8,13 +8,17 @@ public struct ERTableNode: Sendable, Equatable, Identifiable {
     public let foreignKeyColumns: Set<String>
     public let rect: CGRect
 
-    public var id: String { table }
+    public var id: String {
+        table
+    }
 
-    public init(table: String,
-                columns: [String],
-                primaryKeyColumns: Set<String> = [],
-                foreignKeyColumns: Set<String> = [],
-                rect: CGRect) {
+    public init(
+        table: String,
+        columns: [String],
+        primaryKeyColumns: Set<String> = [],
+        foreignKeyColumns: Set<String> = [],
+        rect: CGRect
+    ) {
         self.table = table
         self.columns = columns
         self.primaryKeyColumns = primaryKeyColumns
@@ -29,7 +33,9 @@ public struct EREdge: Sendable, Equatable, Identifiable {
     public let fromPoint: CGPoint
     public let toPoint: CGPoint
 
-    public var id: String { "\(fromTable)->\(toTable)" }
+    public var id: String {
+        "\(fromTable)->\(toTable)"
+    }
 
     public init(fromTable: String, toTable: String, fromPoint: CGPoint, toPoint: CGPoint) {
         self.fromTable = fromTable

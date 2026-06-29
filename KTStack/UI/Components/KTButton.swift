@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 enum KTButtonKind {
     case primary, secondary, danger
@@ -42,21 +42,23 @@ struct KTButton: View {
         .onHover { hovering = $0 }
     }
 
-    private var weight: Font.Weight { kind == .secondary ? .medium : .regular }
+    private var weight: Font.Weight {
+        kind == .secondary ? .medium : .regular
+    }
 
     private var foreground: Color {
         switch kind {
-        case .primary: return .white
-        case .secondary: return KTColor.ink
-        case .danger: return KTColor.danger
+        case .primary: .white
+        case .secondary: KTColor.ink
+        case .danger: KTColor.danger
         }
     }
 
     @ViewBuilder private var background: some View {
         switch kind {
         case .primary: KTColor.accentGradient
-        case .secondary: (hovering ? KTColor.btnHover : Color.white)
-        case .danger: (hovering ? KTColor.dangerBg : Color.white)
+        case .secondary: hovering ? KTColor.btnHover : Color.white
+        case .danger: hovering ? KTColor.dangerBg : Color.white
         }
     }
 
@@ -71,5 +73,4 @@ struct KTButton: View {
                 .strokeBorder(KTColor.dangerBorder, lineWidth: 0.5)
         }
     }
-
 }

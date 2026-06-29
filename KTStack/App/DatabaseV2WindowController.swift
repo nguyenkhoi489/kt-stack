@@ -1,6 +1,6 @@
 import AppKit
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 @MainActor
 final class DatabaseV2WindowController: NSObject, NSWindowDelegate {
@@ -9,7 +9,9 @@ final class DatabaseV2WindowController: NSObject, NSWindowDelegate {
     private var window: NSWindow?
     private lazy var viewModel = DatabaseV2ViewModel()
 
-    private override init() { super.init() }
+    override private init() {
+        super.init()
+    }
 
     func present(profile: ConnectionProfile) {
         AppActivationPolicy.activateRegular()
@@ -26,7 +28,8 @@ final class DatabaseV2WindowController: NSObject, NSWindowDelegate {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1200, height: 760),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
-            backing: .buffered, defer: false)
+            backing: .buffered, defer: false
+        )
         window.contentViewController = hosting
         window.appearance = NSAppearance(named: .aqua)
         window.titlebarAppearsTransparent = true
@@ -46,11 +49,11 @@ final class DatabaseV2WindowController: NSObject, NSWindowDelegate {
         Task { await self.viewModel.connect(profile: profile) }
     }
 
-    private func close() {
+    func close() {
         window?.close()
     }
 
-    func windowWillClose(_ notification: Notification) {
+    func windowWillClose(_: Notification) {
         let vm = viewModel
         window = nil
         Task { await vm.disconnect() }

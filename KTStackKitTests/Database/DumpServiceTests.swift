@@ -2,9 +2,6 @@ import XCTest
 @testable import KTStackKit
 
 final class DumpServiceTests: XCTestCase {
-
-    // MARK: - Identifier validation (engine-free)
-
     func testValidateIdentifierAcceptsNormalNames() throws {
         try DumpService.validateIdentifier("app_db", label: "database")
         try DumpService.validateIdentifier("users", label: "table")
@@ -12,14 +9,16 @@ final class DumpServiceTests: XCTestCase {
 
     func testValidateIdentifierRejectsInjectionVectors() {
         XCTAssertThrowsError(try DumpService.validateIdentifier("", label: "database"))
-        XCTAssertThrowsError(try DumpService.validateIdentifier("-x", label: "database"))      // looks like a flag
-        XCTAssertThrowsError(try DumpService.validateIdentifier("a=b", label: "database"))     // option smuggling
-        XCTAssertThrowsError(try DumpService.validateIdentifier("a/b", label: "database"))     // path separator
-        XCTAssertThrowsError(try DumpService.validateIdentifier("a`b", label: "database"))     // backtick
-        XCTAssertThrowsError(try DumpService.validateIdentifier("a\nb", label: "database"))    // newline → ini break
+        XCTAssertThrowsError(try DumpService.validateIdentifier("-x", label: "database")) // looks like a flag
+        XCTAssertThrowsError(try DumpService.validateIdentifier("a=b", label: "database")) // option smuggling
+        XCTAssertThrowsError(try DumpService.validateIdentifier("a/b", label: "database")) // path separator
+        XCTAssertThrowsError(try DumpService.validateIdentifier("a`b", label: "database")) // backtick
+        XCTAssertThrowsError(try DumpService.validateIdentifier("a\nb", label: "database")) // newline → ini break
         XCTAssertThrowsError(try DumpService.validateIdentifier("a\u{0}b", label: "database")) // NUL
-        XCTAssertThrowsError(try DumpService.validateIdentifier(String(repeating: "x", count: 65),
-                                                                label: "database"))            // too long
+        XCTAssertThrowsError(try DumpService.validateIdentifier(
+            String(repeating: "x", count: 65),
+            label: "database"
+        )) // too long
     }
 
     func testValidateHostAllowsAddressesRejectsJunk() throws {
@@ -31,11 +30,13 @@ final class DumpServiceTests: XCTestCase {
         XCTAssertThrowsError(try DumpService.validateHost("a=b"))
     }
 
-    // MARK: - Defaults file (the credential carrier)
-
     func testDefaultsContentCarriesCredentials() throws {
-        let content = try DumpService.defaultsContent(user: "root", host: "127.0.0.1",
-                                                      port: 3306, password: "s3cr3t")
+        let content = try DumpService.defaultsContent(
+            user: "root",
+            host: "127.0.0.1",
+            port: 3306,
+            password: "s3cr3t"
+        )
         XCTAssertTrue(content.hasPrefix("[client]\n"))
         XCTAssertTrue(content.contains("user=root"))
         XCTAssertTrue(content.contains("host=127.0.0.1"))
@@ -44,14 +45,22 @@ final class DumpServiceTests: XCTestCase {
     }
 
     func testDefaultsContentOmitsPasswordWhenNil() throws {
-        let content = try DumpService.defaultsContent(user: "root", host: "127.0.0.1",
-                                                      port: 3306, password: nil)
+        let content = try DumpService.defaultsContent(
+            user: "root",
+            host: "127.0.0.1",
+            port: 3306,
+            password: nil
+        )
         XCTAssertFalse(content.contains("password="))
     }
 
     func testDefaultsContentRejectsNewlinePassword() {
-        XCTAssertThrowsError(try DumpService.defaultsContent(user: "root", host: "127.0.0.1",
-                                                             port: 3306, password: "bad\npass"))
+        XCTAssertThrowsError(try DumpService.defaultsContent(
+            user: "root",
+            host: "127.0.0.1",
+            port: 3306,
+            password: "bad\npass"
+        ))
     }
 
     func testDefaultsContentEmitsSSLModeFromTLSMode() throws {
@@ -60,10 +69,17 @@ final class DumpServiceTests: XCTestCase {
             (.require, "REQUIRED"), (.verifyFull, "VERIFY_IDENTITY"),
         ]
         for (mode, expected) in pairs {
-            let content = try DumpService.defaultsContent(user: "root", host: "db.example.com",
-                                                          port: 3306, password: nil, tlsMode: mode)
-            XCTAssertTrue(content.contains("ssl-mode=\(expected)"),
-                          "expected ssl-mode=\(expected) for \(mode)")
+            let content = try DumpService.defaultsContent(
+                user: "root",
+                host: "db.example.com",
+                port: 3306,
+                password: nil,
+                tlsMode: mode
+            )
+            XCTAssertTrue(
+                content.contains("ssl-mode=\(expected)"),
+                "expected ssl-mode=\(expected) for \(mode)"
+            )
         }
     }
 
@@ -91,8 +107,6 @@ final class DumpServiceTests: XCTestCase {
         XCTAssertEqual(perms, 0o600)
     }
 
-    // MARK: - Engine-not-installed (typed error, no crash)
-
     func testExportWithoutEngineThrowsEngineNotInstalled() async throws {
         // Point the catalog at an empty support dir → no installed engine → nil binary.
         let tmp = FileManager.default.temporaryDirectory
@@ -100,14 +114,20 @@ final class DumpServiceTests: XCTestCase {
         try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tmp) }
 
-        let service = DumpService(catalog: ServiceBinaryCatalog(paths: AppSupportPaths(root: tmp)),
-                                  systemToolSearchPaths: [])
+        let service = DumpService(
+            catalog: ServiceBinaryCatalog(paths: AppSupportPaths(root: tmp)),
+            systemToolSearchPaths: []
+        )
         XCTAssertFalse(service.isEngineInstalled)
 
         do {
-            try await service.export(profile: .managedMySQL, password: nil,
-                                     database: "app", table: nil,
-                                     to: tmp.appendingPathComponent("out.sql"))
+            try await service.export(
+                profile: .managedMySQL,
+                password: nil,
+                database: "app",
+                table: nil,
+                to: tmp.appendingPathComponent("out.sql")
+            )
             XCTFail("expected engineNotInstalled")
         } catch let error as DatabaseError {
             XCTAssertEqual(error, .engineNotInstalled(kind: "MySQL"))
@@ -120,8 +140,10 @@ final class DumpServiceTests: XCTestCase {
         try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tmp) }
 
-        let service = DumpService(catalog: ServiceBinaryCatalog(paths: AppSupportPaths(root: tmp)),
-                                  systemToolSearchPaths: [])
+        let service = DumpService(
+            catalog: ServiceBinaryCatalog(paths: AppSupportPaths(root: tmp)),
+            systemToolSearchPaths: []
+        )
         do {
             try await service.createDatabase(profile: .managedMySQL, password: nil, database: "app")
             XCTFail("expected engineNotInstalled")
@@ -130,11 +152,11 @@ final class DumpServiceTests: XCTestCase {
         }
     }
 
-    // MARK: - Opt-in round-trip (needs installed + running engine)
-
     func testExportThenImportRoundTrip() async throws {
-        try XCTSkipUnless(ProcessInfo.processInfo.environment["KTSTACK_DB_IT"] == "1",
-                          "Set KTSTACK_DB_IT=1 with the MySQL engine installed + running on :3306.")
+        try XCTSkipUnless(
+            ProcessInfo.processInfo.environment["KTSTACK_DB_IT"] == "1",
+            "Set KTSTACK_DB_IT=1 with the MySQL engine installed + running on :3306."
+        )
         let catalog = ServiceBinaryCatalog(paths: AppSupportPaths())
         try XCTSkipUnless(catalog.isInstalled(.mysql), "MySQL engine not installed.")
 
@@ -150,20 +172,33 @@ final class DumpServiceTests: XCTestCase {
 
         _ = try await driver.query("CREATE DATABASE \(bt(source))", database: nil)
         _ = try await driver.query("CREATE TABLE \(bt(source)).t (id INT PRIMARY KEY)", database: nil)
-        for i in 1...3 { _ = try await driver.query("INSERT INTO \(bt(source)).t VALUES (\(i))", database: nil) }
+        for i in 1...3 {
+            _ = try await driver.query("INSERT INTO \(bt(source)).t VALUES (\(i))", database: nil)
+        }
 
         let outFile = FileManager.default.temporaryDirectory
             .appendingPathComponent("ktstack-dump-\(suffix).sql")
         defer { try? FileManager.default.removeItem(at: outFile) }
 
-        try await service.export(profile: .managedMySQL, password: nil,
-                                 database: source, table: nil, to: outFile)
-        try await service.importDump(profile: .managedMySQL, password: nil,
-                                     database: target, from: outFile)
+        try await service.export(
+            profile: .managedMySQL,
+            password: nil,
+            database: source,
+            table: nil,
+            to: outFile
+        )
+        try await service.importDump(
+            profile: .managedMySQL,
+            password: nil,
+            database: target,
+            from: outFile
+        )
 
         let count = try await driver.query("SELECT COUNT(*) AS n FROM \(bt(target)).t", database: nil)
         XCTAssertEqual(count.rows.first?.first, .int(3))
     }
 
-    private func bt(_ id: String) -> String { (try? SQLDialect.forKind(.mysql).quoteIdent(id)) ?? id }
+    private func bt(_ id: String) -> String {
+        (try? SQLDialect.forKind(.mysql).quoteIdent(id)) ?? id
+    }
 }

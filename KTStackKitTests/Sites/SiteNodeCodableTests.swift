@@ -42,9 +42,17 @@ final class SiteNodeCodableTests: XCTestCase {
     }
 
     func testRoundTripPreservesNodeFields() throws {
-        let original = Site(name: "app", path: "/tmp/app", docroot: "/tmp/app",
-                            domain: "app.test", phpVersion: "8.4", type: .node,
-                            nodePort: 3001, nodeCommand: "npm run dev", nodeEnabled: true)
+        let original = Site(
+            name: "app",
+            path: "/tmp/app",
+            docroot: "/tmp/app",
+            domain: "app.test",
+            phpVersion: "8.4",
+            type: .node,
+            nodePort: 3001,
+            nodeCommand: "npm run dev",
+            nodeEnabled: true
+        )
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(Site.self, from: data)
         XCTAssertEqual(decoded.nodePort, 3001)

@@ -2,13 +2,13 @@ import Foundation
 import Security
 
 enum HelperSignatureValidator {
-
-    @objc private protocol AuditTokenProvider {
+    @objc
+    private protocol AuditTokenProvider {
         var auditToken: audit_token_t { get }
     }
 
     static func isTrustedClient(_ connection: NSXPCConnection) -> Bool {
-        guard HelperIdentity.hasSigningIdentity else { return false }   // dev build: trust nobody
+        guard HelperIdentity.hasSigningIdentity else { return false } // dev build: trust nobody
         guard let requirement = makeRequirement(HelperIdentity.clientRequirement) else { return false }
 
         var token = unsafeBitCast(connection, to: AuditTokenProvider.self).auditToken
@@ -16,7 +16,8 @@ enum HelperSignatureValidator {
 
         var code: SecCode?
         let copyStatus = SecCodeCopyGuestWithAttributes(
-            nil, [kSecGuestAttributeAudit: tokenData] as CFDictionary, [], &code)
+            nil, [kSecGuestAttributeAudit: tokenData] as CFDictionary, [], &code
+        )
         guard copyStatus == errSecSuccess, let code else { return false }
 
         return SecCodeCheckValidity(code, [], requirement) == errSecSuccess

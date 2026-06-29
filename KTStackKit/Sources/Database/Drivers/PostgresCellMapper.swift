@@ -1,6 +1,6 @@
 import Foundation
-import PostgresNIO
 import NIOCore
+import PostgresNIO
 
 /// Bridges PostgresNIO rows/cells to the engine-agnostic `QueryResult`/`Cell`, and `Cell` to a bind
 /// list. PostgreSQL sends every value text-or-binary tagged by its OID, so the cell's `dataType`
@@ -11,7 +11,6 @@ import NIOCore
 /// doesn't expose its column descriptions publicly), so a zero-row result has no header — acceptable
 /// for a browse/SQL surface.
 enum PostgresCellMapper {
-
     static func result(from rows: [PostgresRow]) -> QueryResult {
         guard let first = rows.first else { return QueryResult(columns: [], rows: []) }
         let columns = first.map { ColumnMeta(name: $0.columnName, typeName: String(describing: $0.dataType)) }
@@ -42,18 +41,16 @@ enum PostgresCellMapper {
         (try? c.decode(String.self)).map(Cell.text) ?? .null
     }
 
-    // MARK: - Cell → bind value (write path)
-
     static func bindings(_ cells: [Cell]) -> PostgresBindings {
         var binds = PostgresBindings(capacity: cells.count)
         for cell in cells {
             switch cell {
-            case .text(let s):    binds.append(s)
-            case .int(let n):     binds.append(n)
-            case .double(let d):  binds.append(d)
-            case .bool(let b):    binds.append(b)
-            case .null:           binds.appendNull()
-            case .blob(let data): binds.append(ByteBuffer(bytes: data))
+            case let .text(s): binds.append(s)
+            case let .int(n): binds.append(n)
+            case let .double(d): binds.append(d)
+            case let .bool(b): binds.append(b)
+            case .null: binds.appendNull()
+            case let .blob(data): binds.append(ByteBuffer(bytes: data))
             }
         }
         return binds

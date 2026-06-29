@@ -1,13 +1,12 @@
-import SwiftUI
 import KTStackKit
-
+import SwiftUI
 
 struct EmptyStateView: View {
     let symbol: String
     let title: String
     let message: String
-    var actionTitle: String? = nil
-    var action: (() -> Void)? = nil
+    var actionTitle: String?
+    var action: (() -> Void)?
 
     var body: some View {
         VStack(spacing: KDSpacing.space4) {

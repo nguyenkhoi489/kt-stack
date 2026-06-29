@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 enum KTSiteIconKind: String, CaseIterable {
     case code, cube, db
@@ -25,8 +25,12 @@ struct KTSiteShape: Shape {
             path.move(to: p(3, 7)); path.addLine(to: p(12, 12)); path.addLine(to: p(21, 7))
             path.move(to: p(12, 12)); path.addLine(to: p(12, 22))
         case .db:
-            path.addEllipse(in: CGRect(x: rect.minX + 4 * scale, y: rect.minY + 2 * scale,
-                                       width: 16 * scale, height: 6 * scale))
+            path.addEllipse(in: CGRect(
+                x: rect.minX + 4 * scale,
+                y: rect.minY + 2 * scale,
+                width: 16 * scale,
+                height: 6 * scale
+            ))
             path.move(to: p(4, 5)); path.addLine(to: p(4, 17))
             path.move(to: p(20, 5)); path.addLine(to: p(20, 17))
             path.move(to: p(4, 11)); path.addQuadCurve(to: p(20, 11), control: p(12, 14))

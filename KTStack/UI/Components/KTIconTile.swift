@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct KTIconTile<Content: View>: View {
     let tint: KTTint

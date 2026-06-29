@@ -3,9 +3,9 @@ import Foundation
 public struct PortPreflight {
     public enum Outcome: Equatable, Sendable {
         case available
-       
+
         case inUse(process: String?, message: String)
-  
+
         case blocked(message: String)
     }
 
@@ -38,8 +38,10 @@ public struct PortPreflight {
             return .inUse(process: owner, message: Self.conflictMessage(port: port, process: owner))
         }
         if err == EACCES {
-            return .blocked(message: "Permission denied binding 0.0.0.0:\(port). "
-                + "Expected the wildcard bind to succeed without root — check for a security policy change.")
+            return .blocked(
+                message: "Permission denied binding 0.0.0.0:\(port). "
+                    + "Expected the wildcard bind to succeed without root — check for a security policy change."
+            )
         }
         return .blocked(message: "Could not bind 0.0.0.0:\(port): \(String(cString: strerror(err))).")
     }
@@ -55,24 +57,24 @@ public struct PortPreflight {
     static func conflictMessage(port: Int, process: String?) -> String {
         switch process?.lowercased() {
         case "httpd":
-            return "Apache (macOS built-in) is using port \(port). Stop it with "
+            "Apache (macOS built-in) is using port \(port). Stop it with "
                 + "`sudo apachectl stop`, or change KTStack's port in Settings."
         case "mysqld", "mariadbd":
-            return "Another MySQL/MariaDB is using port \(port) (often a Homebrew install). "
+            "Another MySQL/MariaDB is using port \(port) (often a Homebrew install). "
                 + "Stop it (`brew services stop mysql`) or change KTStack's port in Settings."
         case "postgres":
-            return "Another PostgreSQL is using port \(port) (often a Homebrew install). "
+            "Another PostgreSQL is using port \(port) (often a Homebrew install). "
                 + "Stop it (`brew services stop postgresql`) or change KTStack's port in Settings."
         case "redis-server":
-            return "Another Redis is using port \(port) (often a Homebrew install). "
+            "Another Redis is using port \(port) (often a Homebrew install). "
                 + "Stop it (`brew services stop redis`) or change KTStack's port in Settings."
         case "mongod":
-            return "Another MongoDB is using port \(port) (often a Homebrew install). "
+            "Another MongoDB is using port \(port) (often a Homebrew install). "
                 + "Stop it (`brew services stop mongodb-community`)."
-        case .some(let name):
-            return "Port \(port) is already in use by “\(name)”. Stop that process or change KTStack's port."
+        case let .some(name):
+            "Port \(port) is already in use by “\(name)”. Stop that process or change KTStack's port."
         case .none:
-            return "Port \(port) is already in use by another process. Stop it or change KTStack's port."
+            "Port \(port) is already in use by another process. Stop it or change KTStack's port."
         }
     }
 
@@ -86,7 +88,7 @@ public struct PortPreflight {
         do { try proc.run() } catch { return nil }
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         proc.waitUntilExit()
-       
+
         guard let text = String(data: data, encoding: .utf8) else { return nil }
         for line in text.split(separator: "\n") where line.hasPrefix("c") {
             return String(line.dropFirst())

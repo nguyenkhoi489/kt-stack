@@ -1,11 +1,8 @@
 import Foundation
 
-
 public protocol RelationalDriver: DatabaseDriver {
-
     func listDatabases() async throws -> [DatabaseInfo]
 
-    
     func listTables(database: String) async throws -> [TableInfo]
 
     func columns(database: String, table: String) async throws -> [ColumnInfo]

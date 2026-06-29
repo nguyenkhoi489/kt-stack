@@ -10,9 +10,16 @@ public struct PreparedWordPressPayload: Sendable, Equatable {
     public let isContentOnly: Bool
     public let kind: WordPressBackupKind
 
-    public init(stagingRoot: URL, docroot: URL, sqlDump: URL, tablePrefix: String,
-                sourceURL: String?, wpVersion: String?, isContentOnly: Bool,
-                kind: WordPressBackupKind) {
+    public init(
+        stagingRoot: URL,
+        docroot: URL,
+        sqlDump: URL,
+        tablePrefix: String,
+        sourceURL: String?,
+        wpVersion: String?,
+        isContentOnly: Bool,
+        kind: WordPressBackupKind
+    ) {
         self.stagingRoot = stagingRoot
         self.docroot = docroot
         self.sqlDump = sqlDump

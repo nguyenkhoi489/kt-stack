@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct KTRuntimesScreen: View {
     @EnvironmentObject private var runtimes: RuntimeManager
@@ -11,13 +11,17 @@ struct KTRuntimesScreen: View {
     @State private var editingIni: VersionRef?
     @State private var managingExt: VersionRef?
 
-    private struct VersionRef: Identifiable { let version: String; var id: String { version } }
+    private struct VersionRef: Identifiable { let version: String; var id: String {
+        version
+    } }
 
     private struct Entry: Identifiable {
         let version: String
         let state: KTRuntimeState
         let release: RuntimeRelease?
-        var id: String { version }
+        var id: String {
+            version
+        }
     }
 
     var body: some View {
@@ -67,7 +71,8 @@ struct KTRuntimesScreen: View {
                     onCancel: { runtimes.cancel(tab) },
                     onUninstall: { requestUninstall(tab, entry.version) },
                     onEditIni: tab == .php ? { editingIni = VersionRef(version: entry.version) } : nil,
-                    onManageExtensions: tab == .php ? { managingExt = VersionRef(version: entry.version) } : nil)
+                    onManageExtensions: tab == .php ? { managingExt = VersionRef(version: entry.version) } : nil
+                )
                 if index < items.count - 1 {
                     Rectangle().fill(KTColor.sepFaint).frame(height: 0.5).padding(.leading, 18)
                 }
@@ -101,8 +106,12 @@ struct KTRuntimesScreen: View {
             let n = inUse.count
             message = "In use by \(n) site\(n == 1 ? "" : "s"): \(inUse.joined(separator: ", "))."
         }
-        overlay.confirm(title: "Remove \(name)?", message: message,
-                        okLabel: inUse.isEmpty ? "Remove" : "Remove anyway", danger: true) {
+        overlay.confirm(
+            title: "Remove \(name)?",
+            message: message,
+            okLabel: inUse.isEmpty ? "Remove" : "Remove anyway",
+            danger: true
+        ) {
             performUninstall(lang, version)
         }
     }

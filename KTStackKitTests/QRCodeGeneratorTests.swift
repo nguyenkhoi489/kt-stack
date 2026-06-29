@@ -34,7 +34,7 @@ final class QRCodeGeneratorTests: XCTestCase {
         let imageData = try XCTUnwrap(image.tiffRepresentation)
         let ciImage = try XCTUnwrap(CIImage(data: imageData))
         let detector = try XCTUnwrap(CIDetector(ofType: CIDetectorTypeQRCode, context: nil, options: [
-            CIDetectorAccuracy: CIDetectorAccuracyHigh
+            CIDetectorAccuracy: CIDetectorAccuracyHigh,
         ]))
         let features = detector.features(in: ciImage).compactMap { $0 as? CIQRCodeFeature }
 

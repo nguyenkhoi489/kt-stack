@@ -137,12 +137,13 @@ spikes/**/bin/
 spikes/**/caroot/
 spikes/**/staging/
 spikes/**/staging-MOVED/
-spikes/**/*.pem
-spikes/**/*.tar.gz
-spikes/**/staging*/
+spikes/
 log/
 
 # Built distributable disk images (use scripts/release/build-dmg.sh)
 *.dmg
 
 feature.md
+
+
+release-*

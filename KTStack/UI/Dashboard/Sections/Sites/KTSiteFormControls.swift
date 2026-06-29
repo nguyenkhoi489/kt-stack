@@ -1,10 +1,14 @@
-import SwiftUI
 import AppKit
 import KTStackKit
+import SwiftUI
 
 enum KTSiteFormControls {
-    static func row<V: View>(_ label: String, labelWidth: CGFloat = 138, topAligned: Bool = false,
-                             @ViewBuilder content: () -> V) -> some View {
+    static func row(
+        _ label: String,
+        labelWidth: CGFloat = 138,
+        topAligned: Bool = false,
+        @ViewBuilder content: () -> some View
+    ) -> some View {
         HStack(alignment: topAligned ? .top : .center, spacing: 16) {
             Text(label).font(.jbMono(14.5, .regular)).foregroundStyle(KTColor.ink)
                 .frame(width: labelWidth, alignment: .leading)
@@ -14,7 +18,7 @@ enum KTSiteFormControls {
         }
     }
 
-    static func fieldBox<V: View>(@ViewBuilder content: () -> V) -> some View {
+    static func fieldBox(@ViewBuilder content: () -> some View) -> some View {
         HStack(spacing: 10) { content() }
             .padding(.vertical, 8).padding(.horizontal, 12)
             .frame(maxWidth: .infinity)
@@ -22,8 +26,12 @@ enum KTSiteFormControls {
             .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous).strokeBorder(KTColor.fieldBorderStrong, lineWidth: 1.5))
     }
 
-    static func formDropdown<L: View>(width: CGFloat, options: [KTDropdownOption],
-                                      @ViewBuilder leading: () -> L, value: String) -> some View {
+    static func formDropdown(
+        width: CGFloat,
+        options: [KTDropdownOption],
+        @ViewBuilder leading: () -> some View,
+        value: String
+    ) -> some View {
         let lead = leading()
         return KTDropdown(width: width, options: options) {
             HStack(spacing: 11) {
@@ -39,7 +47,7 @@ enum KTSiteFormControls {
         }
     }
 
-    static func smallTile<V: View>(_ tint: KTTint, @ViewBuilder content: () -> V) -> some View {
+    static func smallTile(_ tint: KTTint, @ViewBuilder content: () -> some View) -> some View {
         content().foregroundStyle(tint.fg).frame(width: 27, height: 27)
             .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(tint.bg))
     }

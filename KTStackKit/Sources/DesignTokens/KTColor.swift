@@ -2,11 +2,13 @@ import SwiftUI
 
 public extension Color {
     init(hex: UInt32, opacity: Double = 1) {
-        self.init(.sRGB,
-                  red: Double((hex >> 16) & 0xFF) / 255,
-                  green: Double((hex >> 8) & 0xFF) / 255,
-                  blue: Double(hex & 0xFF) / 255,
-                  opacity: opacity)
+        self.init(
+            .sRGB,
+            red: Double((hex >> 16) & 0xFF) / 255,
+            green: Double((hex >> 8) & 0xFF) / 255,
+            blue: Double(hex & 0xFF) / 255,
+            opacity: opacity
+        )
     }
 }
 
@@ -16,7 +18,8 @@ public enum KTColor {
     public static let accentSoft = Color(hex: 0x2F6BFF, opacity: 0.10)
     public static let accentGradient = LinearGradient(
         colors: [Color(hex: 0x4385FF), Color(hex: 0x2F6BFF)],
-        startPoint: .top, endPoint: .bottom)
+        startPoint: .top, endPoint: .bottom
+    )
 
     public static let ink = Color(hex: 0x1D1D1F)
     public static let ink2 = Color(hex: 0x42424C)
@@ -32,7 +35,6 @@ public enum KTColor {
     public static let sepFaint = Color(hex: 0xF2F2F5)
     public static let hairline = Color(hex: 0xF9F9FC)
     public static let sidebarBackground = Color(hex: 0xF9F9FC)
-    
 
     public static let fieldBg = Color(hex: 0xF4F4F7)
     public static let fieldBorder = Color(hex: 0xEAEAEF)
@@ -62,7 +64,9 @@ public enum KTColor {
 public struct KTTint: Sendable, Hashable {
     public let fg: Color
     public let bg: Color
-    public init(fg: Color, bg: Color) { self.fg = fg; self.bg = bg }
+    public init(fg: Color, bg: Color) {
+        self.fg = fg; self.bg = bg
+    }
 }
 
 public enum KTIconTint {
@@ -81,13 +85,13 @@ public enum KTEngineTint {
     public static func of(_ engine: String) -> KTTint {
         switch engine.lowercased() {
         case "postgresql", "postgres", "pg":
-            return KTTint(fg: Color(hex: 0x2F6BFF), bg: Color(hex: 0xEAF1FF))
+            KTTint(fg: Color(hex: 0x2F6BFF), bg: Color(hex: 0xEAF1FF))
         case "mongodb", "mongo":
-            return KTTint(fg: Color(hex: 0x13AA52), bg: Color(hex: 0xE5F7EC))
+            KTTint(fg: Color(hex: 0x13AA52), bg: Color(hex: 0xE5F7EC))
         case "sqlite":
-            return KTTint(fg: Color(hex: 0x5C6B7A), bg: Color(hex: 0xEEF0F4))
+            KTTint(fg: Color(hex: 0x5C6B7A), bg: Color(hex: 0xEEF0F4))
         default:
-            return KTTint(fg: Color(hex: 0x1FA463), bg: Color(hex: 0xE7F8EE))
+            KTTint(fg: Color(hex: 0x1FA463), bg: Color(hex: 0xE7F8EE))
         }
     }
 }

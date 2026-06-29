@@ -11,7 +11,7 @@ final class DNSConstantsTests: XCTestCase {
         let conf = DNSConstants.dnsmasqConf(for: "test")
         XCTAssertTrue(conf.contains("address=/.test/127.0.0.1"))
         XCTAssertTrue(conf.contains("listen-address=127.0.0.1"))
-        XCTAssertTrue(conf.contains("no-resolv"))   // no upstream — only answers the configured TLD
+        XCTAssertTrue(conf.contains("no-resolv")) // no upstream — only answers the configured TLD
         // A custom TLD wildcards that TLD instead.
         XCTAssertTrue(DNSConstants.dnsmasqConf(for: "home.arpa").contains("address=/.home.arpa/127.0.0.1"))
     }

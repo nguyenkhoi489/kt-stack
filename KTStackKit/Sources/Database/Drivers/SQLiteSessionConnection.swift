@@ -8,9 +8,11 @@ final class SQLiteSessionConnection: SessionConnection, @unchecked Sendable {
         self.queue = queue
     }
 
-    var isLive: Bool { true }
+    var isLive: Bool {
+        true
+    }
 
-    func useDatabase(_ database: String) async throws {}
+    func useDatabase(_: String) async throws {}
 
     func runText(_ sql: String) async throws -> QueryResult {
         do {

@@ -1,6 +1,6 @@
-import SwiftUI
 import AppKit
 import KTStackKit
+import SwiftUI
 
 @MainActor
 final class RestoreBackupModel: ObservableObject {
@@ -24,8 +24,8 @@ final class RestoreBackupModel: ObservableObject {
 
     init(site: Site) {
         self.site = site
-        self.phpVersion = site.phpVersion
-        self.secure = site.secure
+        phpVersion = site.phpVersion
+        secure = site.secure
     }
 
     var canRestore: Bool {
@@ -55,19 +55,25 @@ final class RestoreBackupModel: ObservableObject {
         phase = .detecting
         message = ""
 
-        let site = self.site
-        let request = RestoreRequest(backupFile: backupFile,
-                                     siteFolder: URL(fileURLWithPath: site.path, isDirectory: true),
-                                     siteDomain: site.domain,
-                                     phpVersion: phpVersion, secure: secure,
-                                     repairEncoding: repairEncoding)
+        let site = site
+        let request = RestoreRequest(
+            backupFile: backupFile,
+            siteFolder: URL(fileURLWithPath: site.path, isDirectory: true),
+            siteDomain: site.domain,
+            phpVersion: phpVersion,
+            secure: secure,
+            repairEncoding: repairEncoding
+        )
         let paths = AppSupportPaths()
         let mysql = MySQLController(paths: paths, agents: LaunchAgentManager(paths: paths))
         let mkcert = MkcertRunner(mkcert: paths.mkcertBinary, caroot: paths.caDir)
-        let httpsProvisioner = SiteHTTPSProvisioner(paths: paths, tld: registry.tld,
-                                                    mkcert: mkcert,
-                                                    certMinter: CertMinter(paths: paths, runner: mkcert))
-        let phpVersion = self.phpVersion
+        let httpsProvisioner = SiteHTTPSProvisioner(
+            paths: paths,
+            tld: registry.tld,
+            mkcert: mkcert,
+            certMinter: CertMinter(paths: paths, runner: mkcert)
+        )
+        let phpVersion = phpVersion
         let service = WordPressRestoreService(
             paths: paths,
             ensureEngine: { try await mysql.start() },
@@ -82,7 +88,8 @@ final class RestoreBackupModel: ObservableObject {
                     registry.setPHPVersion(site, to: phpVersion)
                     registry.reinspect(site)
                 }
-            })
+            }
+        )
 
         task = Task {
             do {
@@ -104,5 +111,7 @@ final class RestoreBackupModel: ObservableObject {
         }
     }
 
-    func cancel() { task?.cancel() }
+    func cancel() {
+        task?.cancel()
+    }
 }

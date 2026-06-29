@@ -1,7 +1,7 @@
-import SwiftUI
 import AppKit
 import Combine
 import KTStackKit
+import SwiftUI
 
 struct KTWindowModals: View {
     @EnvironmentObject private var server: LocalServerController
@@ -11,32 +11,44 @@ struct KTWindowModals: View {
     var body: some View {
         ZStack {
             if overlay.newSitePresented {
-                KTModalCard(icon: "plus.app", tint: KTIconTint.cube,
-                            title: "New Site", subtitle: "Create a new site or import an existing folder",
-                            width: 680, onClose: { overlay.newSitePresented = false }) {
-                    KTNewSiteForm(registry: server.registry,
-                                  availableVersions: server.availableVersions,
-                                  sitesRoot: preferences.sitesRootURL, tld: server.registry.tld,
-                                  defaultHTTPS: preferences.serveHTTPSByDefault,
-                                  onClose: { overlay.newSitePresented = false })
+                KTModalCard(
+                    icon: "plus.app",
+                    tint: KTIconTint.cube,
+                    title: "New Site",
+                    subtitle: "Create a new site or import an existing folder",
+                    width: 680,
+                    onClose: { overlay.newSitePresented = false }
+                ) {
+                    KTNewSiteForm(
+                        registry: server.registry,
+                        availableVersions: server.availableVersions,
+                        sitesRoot: preferences.sitesRootURL,
+                        tld: server.registry.tld,
+                        defaultHTTPS: preferences.serveHTTPSByDefault,
+                        onClose: { overlay.newSitePresented = false }
+                    )
                 }
                 .transition(.opacity)
             }
             if overlay.connectPresented {
-                KTConnectModal(onClose: { overlay.connectPresented = false },
-                               onConnected: { name in
-                                   overlay.connectPresented = false
-                                   overlay.toast("Connected to \(name)")
-                               })
-                    .transition(.opacity)
+                KTConnectModal(
+                    onClose: { overlay.connectPresented = false },
+                    onConnected: { name in
+                        overlay.connectPresented = false
+                        overlay.toast("Connected to \(name)")
+                    }
+                )
+                .transition(.opacity)
             }
             if overlay.newDatabasePresented {
-                KTNewDatabaseModal(onClose: { overlay.newDatabasePresented = false },
-                                   onCreated: { name in
-                                       overlay.newDatabasePresented = false
-                                       overlay.toast("Database “\(name)” created")
-                                   })
-                    .transition(.opacity)
+                KTNewDatabaseModal(
+                    onClose: { overlay.newDatabasePresented = false },
+                    onCreated: { name in
+                        overlay.newDatabasePresented = false
+                        overlay.toast("Database “\(name)” created")
+                    }
+                )
+                .transition(.opacity)
             }
             if let site = overlay.apiTesterSite {
                 KTAPITesterModal(site: site, onClose: { overlay.apiTesterSite = nil })
@@ -53,8 +65,13 @@ struct KTWindowModals: View {
 }
 
 final class KTKeyableModalWindow: NSWindow {
-    override var canBecomeKey: Bool { true }
-    override var canBecomeMain: Bool { false }
+    override var canBecomeKey: Bool {
+        true
+    }
+
+    override var canBecomeMain: Bool {
+        false
+    }
 }
 
 @MainActor
@@ -69,8 +86,12 @@ final class KTModalHostController {
         overlay = env.overlay
         parentWindow = parent
 
-        window = KTKeyableModalWindow(contentRect: parent.frame, styleMask: [.borderless],
-                                      backing: .buffered, defer: false)
+        window = KTKeyableModalWindow(
+            contentRect: parent.frame,
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
         window.isOpaque = false
         window.backgroundColor = .clear
         window.hasShadow = false
@@ -89,8 +110,8 @@ final class KTModalHostController {
         NotificationCenter.default.publisher(for: NSWindow.didResizeNotification, object: parentWindow)
             .merge(with: NotificationCenter.default.publisher(for: NSWindow.didMoveNotification, object: parentWindow))
             .sink { [weak self] _ in
-                guard let self, self.isShown else { return }
-                self.syncFrame()
+                guard let self, isShown else { return }
+                syncFrame()
             }
             .store(in: &cancellables)
     }
@@ -118,9 +139,9 @@ final class KTModalHostController {
         isShown = false
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) { [weak self] in
             guard let self, !self.isShown, !self.overlay.anyModalPresented else { return }
-            self.parentWindow?.removeChildWindow(self.window)
-            self.window.orderOut(nil)
-            self.parentWindow?.makeKeyAndOrderFront(nil)
+            parentWindow?.removeChildWindow(window)
+            window.orderOut(nil)
+            parentWindow?.makeKeyAndOrderFront(nil)
         }
     }
 }

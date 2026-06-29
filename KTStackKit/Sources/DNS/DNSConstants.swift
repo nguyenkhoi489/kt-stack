@@ -1,16 +1,19 @@
 import Foundation
 
-
 public enum DNSConstants {
+    public static func resolverPath(for tld: String) -> String {
+        "/etc/resolver/\(tld)"
+    }
 
-    public static func resolverPath(for tld: String) -> String { "/etc/resolver/\(tld)" }
-
-    // MARK: - Privileged-boundary validation
-    
     public struct InvalidTLD: Error, CustomStringConvertible {
         public let value: String
-        public init(_ value: String) { self.value = value }
-        public var description: String { "Invalid TLD" }
+        public init(_ value: String) {
+            self.value = value
+        }
+
+        public var description: String {
+            "Invalid TLD"
+        }
     }
 
     public static func isValidTLD(_ s: String) -> Bool {
@@ -24,28 +27,35 @@ public enum DNSConstants {
         return labels.allSatisfy { $0.range(of: label, options: .regularExpression) != nil }
     }
 
-  
     public static func validatedTLD(_ tld: String) throws -> String {
         guard isValidTLD(tld) else { throw InvalidTLD(tld) }
         return tld
     }
 
     public static func resolverPathChecked(for tld: String) throws -> String {
-        let path = resolverPath(for: try validatedTLD(tld))
+        let path = try resolverPath(for: validatedTLD(tld))
         let parent = URL(fileURLWithPath: path).standardizedFileURL.deletingLastPathComponent().path
         guard parent == "/etc/resolver" else { throw InvalidTLD(tld) }
         return path
     }
 
- 
     public static let supportDir = "/Library/Application Support/KTStack"
-    public static var dnsmasqBinaryPath: String { "\(supportDir)/bin/dnsmasq" }
-    public static var dnsmasqConfPath: String { "\(supportDir)/dnsmasq.conf" }
-    public static var dnsmasqLogPath: String { "\(supportDir)/dnsmasq.log" }
+    public static var dnsmasqBinaryPath: String {
+        "\(supportDir)/bin/dnsmasq"
+    }
 
+    public static var dnsmasqConfPath: String {
+        "\(supportDir)/dnsmasq.conf"
+    }
+
+    public static var dnsmasqLogPath: String {
+        "\(supportDir)/dnsmasq.log"
+    }
 
     public static let daemonLabel = "com.ktstack.dnsmasq"
-    public static var daemonPlistPath: String { "/Library/LaunchDaemons/\(daemonLabel).plist" }
+    public static var daemonPlistPath: String {
+        "/Library/LaunchDaemons/\(daemonLabel).plist"
+    }
 
     public static let dnsPort = 53
 

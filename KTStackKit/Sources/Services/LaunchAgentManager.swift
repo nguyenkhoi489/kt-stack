@@ -12,15 +12,17 @@ public struct LaunchAgentSpec: Sendable, Equatable {
     public let keepAliveOnCrash: Bool
     public let runAtLoad: Bool
 
-    public init(label: String,
-                programArguments: [String],
-                workingDirectory: String? = nil,
-                environment: [String: String] = [:],
-                stdoutPath: String? = nil,
-                stderrPath: String? = nil,
-                fileDescriptorLimit: Int? = nil,
-                keepAliveOnCrash: Bool = true,
-                runAtLoad: Bool = true) {
+    public init(
+        label: String,
+        programArguments: [String],
+        workingDirectory: String? = nil,
+        environment: [String: String] = [:],
+        stdoutPath: String? = nil,
+        stderrPath: String? = nil,
+        fileDescriptorLimit: Int? = nil,
+        keepAliveOnCrash: Bool = true,
+        runAtLoad: Bool = true
+    ) {
         self.label = label
         self.programArguments = programArguments
         self.workingDirectory = workingDirectory
@@ -38,20 +40,22 @@ public struct LaunchAgentManager: Sendable {
         case commandFailed(String, Int32, String)
         public var errorDescription: String? {
             switch self {
-            case .commandFailed(let op, let code, let out):
-                return "launchctl \(op) failed (\(code)): \(out)"
+            case let .commandFailed(op, code, out):
+                "launchctl \(op) failed (\(code)): \(out)"
             }
         }
     }
 
     private let paths: AppSupportPaths
-    public init(paths: AppSupportPaths) { self.paths = paths }
+    public init(paths: AppSupportPaths) {
+        self.paths = paths
+    }
 
     private static let loadedCache = LoadedLabelsCache()
 
-    public static var guiDomain: String { "gui/\(getuid())" }
-
-    // MARK: - Plist rendering (pure — unit-tested without touching launchd)
+    public static var guiDomain: String {
+        "gui/\(getuid())"
+    }
 
     public func plistData(for spec: LaunchAgentSpec) throws -> Data {
         var dict: [String: Any] = [
@@ -70,12 +74,11 @@ public struct LaunchAgentManager: Sendable {
             dict["SoftResourceLimits"] = limits
             dict["HardResourceLimits"] = limits
         }
-   
+
         if spec.keepAliveOnCrash { dict["KeepAlive"] = ["SuccessfulExit": false] }
         return try PropertyListSerialization.data(fromPropertyList: dict, format: .xml, options: 0)
     }
 
-   
     @discardableResult
     public func writePlist(for spec: LaunchAgentSpec) throws -> URL {
         try paths.ensureDirectoryTree()
@@ -83,8 +86,6 @@ public struct LaunchAgentManager: Sendable {
         try plistData(for: spec).write(to: url, options: .atomic)
         return url
     }
-
-    // MARK: - launchctl lifecycle
 
     public func bootstrap(_ spec: LaunchAgentSpec) throws {
         let plist = try writePlist(for: spec)
@@ -96,7 +97,6 @@ public struct LaunchAgentManager: Sendable {
     public func kickstart(_ label: String) throws {
         try run("kickstart", ["-k", "\(Self.guiDomain)/\(label)"])
     }
-
 
     public func bootout(_ label: String) throws {
         guard Self.loadedCache.containsNow(label) else { return }
@@ -112,7 +112,6 @@ public struct LaunchAgentManager: Sendable {
         Self.loadedCache.containsNow(label)
     }
 
-   
     public func bootoutAll() {
         for label in Self.loadedLabels() {
             try? run("bootout", ["\(Self.guiDomain)/\(label)"])
@@ -133,7 +132,7 @@ public struct LaunchAgentManager: Sendable {
 
     private func run(_ op: String, _ args: [String]) throws {
         let res = Self.launchctl([op] + args)
-     
+
         guard res.code == 0 || res.code == 5 else {
             throw LaunchError.commandFailed(op, res.code, res.out)
         }
@@ -142,7 +141,6 @@ public struct LaunchAgentManager: Sendable {
     static func loadedLabels() -> Set<String> {
         parseLoadedLabels(from: launchctl(["print", guiDomain]).out)
     }
-
 
     static func parseLoadedLabels(from output: String) -> Set<String> {
         var labels = Set<String>()
@@ -159,7 +157,8 @@ public struct LaunchAgentManager: Sendable {
             if depth <= 0 { break }
             if let token = line.split(whereSeparator: { $0 == " " || $0 == "\t" }).last,
                token.hasPrefix("com.ktstack."),
-               !token.contains("-sparkle-") {
+               !token.contains("-sparkle-")
+            {
                 labels.insert(String(token))
             }
         }
@@ -187,7 +186,9 @@ final class LoadedLabelsCache: @unchecked Sendable {
     private var fetchedAt = Date.distantPast
     private var refreshing = false
 
-    init(ttl: TimeInterval = 0.5) { self.ttl = ttl }
+    init(ttl: TimeInterval = 0.5) {
+        self.ttl = ttl
+    }
 
     func contains(_ label: String) -> Bool {
         lock.lock()

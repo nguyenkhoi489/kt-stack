@@ -1,6 +1,5 @@
 import Foundation
 
-
 public enum TLSMode: String, Codable, Sendable, CaseIterable {
     case disable
     case prefer
@@ -19,7 +18,6 @@ public enum DatabaseKind: String, Codable, Sendable, CaseIterable {
     case mongodb
 }
 
-
 public struct ConnectionProfile: Codable, Sendable, Identifiable, Equatable {
     public let id: UUID
     public var name: String
@@ -31,7 +29,7 @@ public struct ConnectionProfile: Codable, Sendable, Identifiable, Equatable {
 
     public var filePath: String?
     public var tlsMode: TLSMode
-  
+
     public var readOnly: Bool
 
     public init(
@@ -62,31 +60,31 @@ public struct ConnectionProfile: Codable, Sendable, Identifiable, Equatable {
         host == "127.0.0.1" || host == "::1" || host == "localhost"
     }
 
-    public static func defaultReadOnly(forHost host: String) -> Bool { !isLoopback(host) }
+    public static func defaultReadOnly(forHost host: String) -> Bool {
+        !isLoopback(host)
+    }
 
     private enum CodingKeys: String, CodingKey {
         case id, name, kind, host, port, user, database, filePath, tlsMode, readOnly
     }
 
-  
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        self.init(
-            id: try c.decode(UUID.self, forKey: .id),
-            name: try c.decode(String.self, forKey: .name),
-            kind: try c.decode(DatabaseKind.self, forKey: .kind),
-            host: try c.decode(String.self, forKey: .host),
-            port: try c.decode(Int.self, forKey: .port),
-            user: try c.decode(String.self, forKey: .user),
-            database: try c.decode(String.self, forKey: .database),
-            filePath: try c.decodeIfPresent(String.self, forKey: .filePath),
-            tlsMode: try c.decodeIfPresent(TLSMode.self, forKey: .tlsMode),
-            readOnly: try c.decodeIfPresent(Bool.self, forKey: .readOnly))
+        try self.init(
+            id: c.decode(UUID.self, forKey: .id),
+            name: c.decode(String.self, forKey: .name),
+            kind: c.decode(DatabaseKind.self, forKey: .kind),
+            host: c.decode(String.self, forKey: .host),
+            port: c.decode(Int.self, forKey: .port),
+            user: c.decode(String.self, forKey: .user),
+            database: c.decode(String.self, forKey: .database),
+            filePath: c.decodeIfPresent(String.self, forKey: .filePath),
+            tlsMode: c.decodeIfPresent(TLSMode.self, forKey: .tlsMode),
+            readOnly: c.decodeIfPresent(Bool.self, forKey: .readOnly)
+        )
     }
 
-
     public static let managedMySQL = ConnectionProfile(
-       
         id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
         name: "MySQL (managed)",
         kind: .mysql,
@@ -95,7 +93,8 @@ public struct ConnectionProfile: Codable, Sendable, Identifiable, Equatable {
         user: "root",
         database: "mysql",
         tlsMode: .prefer,
-        readOnly: false)
+        readOnly: false
+    )
 
     /// The managed PostgreSQL instance: loopback, trust auth (`initdb -U postgres --auth=trust`), so no
     /// password and no TLS. Like the managed MySQL row it always appears in the sidebar; connecting
@@ -109,7 +108,8 @@ public struct ConnectionProfile: Codable, Sendable, Identifiable, Equatable {
         user: "postgres",
         database: "postgres",
         tlsMode: .disable,
-        readOnly: false)
+        readOnly: false
+    )
 
     public static let managedMongo = ConnectionProfile(
         id: UUID(uuidString: "00000000-0000-0000-0000-000000000003")!,
@@ -120,7 +120,8 @@ public struct ConnectionProfile: Codable, Sendable, Identifiable, Equatable {
         user: "",
         database: "admin",
         tlsMode: .disable,
-        readOnly: false)
+        readOnly: false
+    )
 
     public var isManaged: Bool {
         id == Self.managedMySQL.id || id == Self.managedPostgres.id || id == Self.managedMongo.id

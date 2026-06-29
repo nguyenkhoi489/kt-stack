@@ -1,13 +1,34 @@
-import SwiftUI
 import AppKit
 import KTStackKit
+import SwiftUI
 
+private final class MenuBarPopoverDismisser: ObservableObject {
+    weak var window: NSWindow?
+
+    func dismiss() {
+        DispatchQueue.main.async { [weak self] in
+            self?.window?.resignKey()
+            self?.window?.orderOut(nil)
+        }
+    }
+}
+
+private struct MenuBarWindowReader: NSViewRepresentable {
+    let dismisser: MenuBarPopoverDismisser
+
+    func makeNSView(context _: Context) -> NSView { NSView() }
+
+    func updateNSView(_ nsView: NSView, context _: Context) {
+        DispatchQueue.main.async { dismisser.window = nsView.window }
+    }
+}
 
 struct MenuBarContentView: View {
     @Environment(\.openWindow) private var openWindow
     @EnvironmentObject private var server: LocalServerController
     @EnvironmentObject private var services: ServiceManager
     @EnvironmentObject private var updater: UpdaterController
+    @StateObject private var dismisser = MenuBarPopoverDismisser()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -21,9 +42,12 @@ struct MenuBarContentView: View {
         }
         .padding(KDSpacing.space2)
         .frame(width: 324)
+        .background(MenuBarWindowReader(dismisser: dismisser))
     }
 
-    private var anyRunning: Bool { services.snapshots.contains { $0.status == .running } }
+    private var anyRunning: Bool {
+        services.snapshots.contains { $0.status == .running }
+    }
 
     private var header: some View {
         HStack(spacing: KDSpacing.space2) {
@@ -65,12 +89,12 @@ struct MenuBarContentView: View {
         }
     }
 
-
     private func serviceRow(_ snapshot: ServiceSnapshot) -> some View {
         let canToggle = snapshot.isInstalled
         let binding = Binding<Bool>(
             get: { snapshot.status == .running },
-            set: { _ in services.toggle(snapshot.kind) })
+            set: { _ in services.toggle(snapshot.kind) }
+        )
         return HStack(spacing: KDSpacing.space2) {
             Image(systemName: snapshot.symbolName)
                 .frame(width: 18)
@@ -96,7 +120,7 @@ struct MenuBarContentView: View {
 
     private func pillText(_ snapshot: ServiceSnapshot) -> String {
         snapshot.isInstalled ? (snapshot.detail.isEmpty ? snapshot.status.label : snapshot.detail)
-                             : "Not installed"
+            : "Not installed"
     }
 
     private var footer: some View {
@@ -106,23 +130,25 @@ struct MenuBarContentView: View {
                 if !AppActivationPolicy.focusExistingWindow(titled: "KTStack Dashboard") {
                     openWindow(id: DashboardWindow.windowID)
                 }
+                dismisser.dismiss()
             }
             settingsFooterItem
             #if DEBUG
-            footerButton("SQL Editor Drafts", systemImage: "paintbrush.pointed", shortcut: "") {
-                SQLEditorDraftsWindowController.shared.present()
-            }
+                footerButton("SQL Editor Drafts", systemImage: "paintbrush.pointed", shortcut: "") {
+                    SQLEditorDraftsWindowController.shared.present()
+                    dismisser.dismiss()
+                }
             #endif
             footerButton("Check for Updates…", systemImage: "arrow.down.circle", shortcut: "") {
                 AppActivationPolicy.activateRegular()
                 updater.checkForUpdates()
+                dismisser.dismiss()
             }
             footerButton("Quit KTStack", systemImage: "power", shortcut: "⌘Q") {
                 NSApp.terminate(nil)
             }
         }
     }
-
 
     @ViewBuilder
     private var settingsFooterItem: some View {
@@ -133,28 +159,34 @@ struct MenuBarContentView: View {
             .buttonStyle(.plain)
             .simultaneousGesture(TapGesture().onEnded {
                 AppActivationPolicy.activateRegular()
+                dismisser.dismiss()
             })
         } else {
             footerButton("Settings…", systemImage: "gearshape", shortcut: "⌘,") {
                 AppActivationPolicy.activateRegular()
                 NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                dismisser.dismiss()
             }
         }
     }
 
-    private func footerButton(_ title: String,
-                              systemImage: String,
-                              shortcut: String,
-                              action: @escaping () -> Void) -> some View {
+    private func footerButton(
+        _ title: String,
+        systemImage: String,
+        shortcut: String,
+        action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
             footerRowLabel(title, systemImage: systemImage, shortcut: shortcut)
         }
         .buttonStyle(.plain)
     }
 
-    private func footerRowLabel(_ title: String,
-                                systemImage: String,
-                                shortcut: String) -> some View {
+    private func footerRowLabel(
+        _ title: String,
+        systemImage: String,
+        shortcut: String
+    ) -> some View {
         HStack(spacing: KDSpacing.space2) {
             Image(systemName: systemImage).frame(width: 18).foregroundStyle(.secondary)
             Text(title).font(KDFont.body)

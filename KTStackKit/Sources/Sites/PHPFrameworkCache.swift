@@ -10,8 +10,10 @@ public actor PHPFrameworkCache {
 
     public func framework(path: String, docroot: String) -> PHPFramework {
         if let cached = cache[path] { return cached }
-        let result = detector.detect(siteAt: URL(fileURLWithPath: path),
-                                     docroot: URL(fileURLWithPath: docroot))
+        let result = detector.detect(
+            siteAt: URL(fileURLWithPath: path),
+            docroot: URL(fileURLWithPath: docroot)
+        )
         cache[path] = result
         return result
     }

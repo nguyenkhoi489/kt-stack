@@ -4,9 +4,12 @@ public struct IDEDebugConfigWriter: Sendable {
     public init() {}
 
     public static func launchJSON(docroot: String, port: Int = XdebugController.clientPort) -> String {
-        guard let data = try? JSONSerialization.data(withJSONObject: launchDocument(docroot: docroot, port: port),
-                                                     options: [.prettyPrinted, .sortedKeys]),
-              let json = String(data: data, encoding: .utf8) else {
+        guard let data = try? JSONSerialization.data(
+            withJSONObject: launchDocument(docroot: docroot, port: port),
+            options: [.prettyPrinted, .sortedKeys]
+        ),
+            let json = String(data: data, encoding: .utf8)
+        else {
             return "{\n  \"configurations\" : [\n\n  ],\n  \"version\" : \"0.2.0\"\n}\n"
         }
         return json + "\n"
@@ -27,8 +30,10 @@ public struct IDEDebugConfigWriter: Sendable {
         var document = try existingLaunchDocument(file: file)
         var configurations = document["configurations"] as? [[String: Any]] ?? []
         configurations.removeAll { $0["name"] as? String == configurationName }
-        configurations.append(launchConfiguration(docroot: docroot.path,
-                                                  localRoot: workspacePath(projectRoot: projectRoot, docroot: docroot)))
+        configurations.append(launchConfiguration(
+            docroot: docroot.path,
+            localRoot: workspacePath(projectRoot: projectRoot, docroot: docroot)
+        ))
         document["version"] = document["version"] as? String ?? "0.2.0"
         document["configurations"] = configurations
         return document
@@ -49,15 +54,17 @@ public struct IDEDebugConfigWriter: Sendable {
         ["version": "0.2.0", "configurations": [launchConfiguration(docroot: docroot, port: port)]]
     }
 
-    private static func launchConfiguration(docroot: String,
-                                            localRoot: String = "${workspaceFolder}",
-                                            port: Int = XdebugController.clientPort) -> [String: Any] {
+    private static func launchConfiguration(
+        docroot: String,
+        localRoot: String = "${workspaceFolder}",
+        port: Int = XdebugController.clientPort
+    ) -> [String: Any] {
         [
             "name": configurationName,
             "type": "php",
             "request": "launch",
             "port": port,
-            "pathMappings": [docroot: localRoot]
+            "pathMappings": [docroot: localRoot],
         ]
     }
 

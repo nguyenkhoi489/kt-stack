@@ -1,6 +1,6 @@
-import SwiftUI
 import AppKit
 import KTStackKit
+import SwiftUI
 
 struct SettingsView: View {
     @ObservedObject var preferences: AppPreferences
@@ -21,9 +21,15 @@ struct SettingsView: View {
     @State private var showTLS = false
     @State private var showShell = false
 
-    init(preferences: AppPreferences, dns: DNSAutomationService, server: LocalServerController,
-         runtimes: RuntimeManager, caTrust: CATrustService, updater: UpdaterController,
-         uninstaller: UninstallService) {
+    init(
+        preferences: AppPreferences,
+        dns: DNSAutomationService,
+        server: LocalServerController,
+        runtimes: RuntimeManager,
+        caTrust: CATrustService,
+        updater: UpdaterController,
+        uninstaller: UninstallService
+    ) {
         self.preferences = preferences
         self.dns = dns
         self.server = server
@@ -100,12 +106,14 @@ struct SettingsView: View {
     private var defaultPHPMenu: some View {
         let installed = runtimes.installed[.php] ?? []
         let current = runtimes.defaultVersion(.php)
-        return KTDropdown(width: 150,
-                          options: installed.map { version in
-                              KTDropdownOption(label: "PHP \(version)", active: version == current) {
-                                  runtimes.setGlobalDefault(.php, version)
-                              }
-                          }) {
+        return KTDropdown(
+            width: 150,
+            options: installed.map { version in
+                KTDropdownOption(label: "PHP \(version)", active: version == current) {
+                    runtimes.setGlobalDefault(.php, version)
+                }
+            }
+        ) {
             KTDropdownChevronLabel(text: current.map { "PHP \($0)" } ?? "—")
         }
         .fixedSize()
@@ -159,12 +167,14 @@ struct SettingsView: View {
     }
 
     private var releaseChannelMenu: some View {
-        KTDropdown(width: 140,
-                   options: AppPreferences.ReleaseChannel.allCases.map { channel in
-                       KTDropdownOption(label: channel.label, active: channel == preferences.releaseChannel) {
-                           selectChannel(channel)
-                       }
-                   }) {
+        KTDropdown(
+            width: 140,
+            options: AppPreferences.ReleaseChannel.allCases.map { channel in
+                KTDropdownOption(label: channel.label, active: channel == preferences.releaseChannel) {
+                    selectChannel(channel)
+                }
+            }
+        ) {
             KTDropdownChevronLabel(text: preferences.releaseChannel.label)
         }
         .fixedSize()
@@ -178,9 +188,11 @@ struct SettingsView: View {
             KTSettingsRow(title: "Terminal shell integration", subtitle: "Use per-project PHP/Node versions from the terminal.") {
                 KTSettingsTextButton(title: "Manage…") { showShell = true }
             }
-            KTSettingsRow(title: "Reset & Uninstall",
-                          subtitle: "Remove all services, DNS resolver, CA trust, app data, runtimes and databases.",
-                          showDivider: false) {
+            KTSettingsRow(
+                title: "Reset & Uninstall",
+                subtitle: "Remove all services, DNS resolver, CA trust, app data, runtimes and databases.",
+                showDivider: false
+            ) {
                 KTSettingsTextButton(title: "Uninstall…", danger: true) { confirmUninstall = true }
                     .disabled(uninstaller.state == .running)
             }
@@ -243,7 +255,7 @@ struct SettingsView: View {
                 _ = preferences.setTLD(target)
                 awaitingRelaunch = true
                 relaunchApp()
-            case .failure(let error):
+            case let .failure(error):
                 tldError = error.localizedDescription
                 selectedTLD = preferences.tld
             }
@@ -265,8 +277,11 @@ struct SettingsView: View {
         }
     }
 
-    private func sheetWrapper<Content: View>(_ title: String, _ onDone: @escaping () -> Void,
-                                             @ViewBuilder _ content: () -> Content) -> some View {
+    private func sheetWrapper(
+        _ title: String,
+        _ onDone: @escaping () -> Void,
+        @ViewBuilder _ content: () -> some View
+    ) -> some View {
         VStack(spacing: 0) {
             HStack {
                 Text(title).font(.jbMono(15, .regular)).foregroundStyle(KTColor.ink)

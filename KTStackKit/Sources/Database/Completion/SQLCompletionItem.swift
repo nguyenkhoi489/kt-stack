@@ -1,7 +1,6 @@
 import Foundation
 
 public struct SQLCompletionItem: Sendable, Equatable {
-
     public enum Kind: Sendable, Equatable {
         case keyword
         case table

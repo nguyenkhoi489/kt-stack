@@ -1,14 +1,14 @@
-import SwiftUI
 import AppKit
 import KTStackKit
+import SwiftUI
 
 enum ImportError: LocalizedError {
     case databaseExists(String)
 
     var errorDescription: String? {
         switch self {
-        case .databaseExists(let name):
-            return "A database named “\(name)” already exists. Disable “Create database” or rename the folder."
+        case let .databaseExists(name):
+            "A database named “\(name)” already exists. Disable “Create database” or rename the folder."
         }
     }
 }
@@ -36,12 +36,18 @@ final class NewSiteModel: ObservableObject {
         let paths = AppSupportPaths()
         let php = paths.phpBinary(version: request.phpVersion)
         let phpIni = paths.phpIni(version: request.phpVersion)
-        let httpsProvisioner = SiteHTTPSProvisioner(paths: paths,
-                                                    tld: registry.tld,
-                                                    mkcert: MkcertRunner(mkcert: paths.mkcertBinary, caroot: paths.caDir),
-                                                    certMinter: CertMinter(paths: paths,
-                                                                           runner: MkcertRunner(mkcert: paths.mkcertBinary,
-                                                                                                caroot: paths.caDir)))
+        let httpsProvisioner = SiteHTTPSProvisioner(
+            paths: paths,
+            tld: registry.tld,
+            mkcert: MkcertRunner(mkcert: paths.mkcertBinary, caroot: paths.caDir),
+            certMinter: CertMinter(
+                paths: paths,
+                runner: MkcertRunner(
+                    mkcert: paths.mkcertBinary,
+                    caroot: paths.caDir
+                )
+            )
+        )
         let mysql = MySQLController(paths: paths, agents: LaunchAgentManager(paths: paths))
         let service = SiteInstallService(database: DatabaseProvisioner(ensureEngine: { try await mysql.start() }))
 
@@ -77,8 +83,15 @@ final class NewSiteModel: ObservableObject {
         }
     }
 
-    func importExisting(folder: URL, domain: String, phpVersion: String, createDatabase: Bool,
-                        enableHTTPS: Bool, registry: SiteRegistry, openOnFinish: Bool = true) {
+    func importExisting(
+        folder: URL,
+        domain: String,
+        phpVersion: String,
+        createDatabase: Bool,
+        enableHTTPS: Bool,
+        registry: SiteRegistry,
+        openOnFinish: Bool = true
+    ) {
         guard !installing else { return }
         let safe: URL
         do {
@@ -90,7 +103,7 @@ final class NewSiteModel: ObservableObject {
         if registry.sites.contains(where: {
             URL(fileURLWithPath: $0.path).resolvingSymlinksInPath().standardizedFileURL.path == safe.path
         }) {
-            self.error = "“\(safe.lastPathComponent)” is already registered."
+            error = "“\(safe.lastPathComponent)” is already registered."
             return
         }
         do {
@@ -103,12 +116,18 @@ final class NewSiteModel: ObservableObject {
         error = nil
         events = []
         let paths = AppSupportPaths()
-        let httpsProvisioner = SiteHTTPSProvisioner(paths: paths,
-                                                    tld: registry.tld,
-                                                    mkcert: MkcertRunner(mkcert: paths.mkcertBinary, caroot: paths.caDir),
-                                                    certMinter: CertMinter(paths: paths,
-                                                                           runner: MkcertRunner(mkcert: paths.mkcertBinary,
-                                                                                                caroot: paths.caDir)))
+        let httpsProvisioner = SiteHTTPSProvisioner(
+            paths: paths,
+            tld: registry.tld,
+            mkcert: MkcertRunner(mkcert: paths.mkcertBinary, caroot: paths.caDir),
+            certMinter: CertMinter(
+                paths: paths,
+                runner: MkcertRunner(
+                    mkcert: paths.mkcertBinary,
+                    caroot: paths.caDir
+                )
+            )
+        )
         let mysql = MySQLController(paths: paths, agents: LaunchAgentManager(paths: paths))
         let database = DatabaseProvisioner(ensureEngine: { try await mysql.start() })
         let databaseName = createDatabase ? SiteInspector.slug(safe.lastPathComponent) : nil
@@ -125,8 +144,12 @@ final class NewSiteModel: ObservableObject {
                 }
                 emit(.preparing, "Registering \(safe.lastPathComponent)…")
                 let registered = try await MainActor.run {
-                    try registry.add(folder: safe, phpVersion: phpVersion,
-                                     respectProjectMarkers: false, databaseName: databaseName)
+                    try registry.add(
+                        folder: safe,
+                        phpVersion: phpVersion,
+                        respectProjectMarkers: false,
+                        databaseName: databaseName
+                    )
                 }
                 if registered.domain != domain {
                     try await MainActor.run { try registry.editDomain(registered, to: domain) }
@@ -157,7 +180,9 @@ final class NewSiteModel: ObservableObject {
         Task { @MainActor in self.events.append(InstallEvent(phase: phase, message: message)) }
     }
 
-    func cancel() { task?.cancel() }
+    func cancel() {
+        task?.cancel()
+    }
 
     func reset() {
         error = nil
@@ -177,4 +202,3 @@ final class NewSiteModel: ObservableObject {
         }
     }
 }
-

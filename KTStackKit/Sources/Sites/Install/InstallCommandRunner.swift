@@ -1,11 +1,13 @@
 import Foundation
 
-struct InstallCommandRunner: Sendable {
+struct InstallCommandRunner {
     struct CommandError: LocalizedError {
         let command: String
         let status: Int32
         let output: String
-        var errorDescription: String? { "\(command) failed (exit \(status)). \(output.suffix(600))" }
+        var errorDescription: String? {
+            "\(command) failed (exit \(status)). \(output.suffix(600))"
+        }
     }
 
     let php: URL
@@ -15,7 +17,7 @@ struct InstallCommandRunner: Sendable {
     init(php: URL, phpIni: URL? = nil) {
         self.php = php
         self.phpIni = phpIni
-        self.phpScanDir = php.deletingLastPathComponent().deletingLastPathComponent()
+        phpScanDir = php.deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("conf.d", isDirectory: true)
     }
 
@@ -30,7 +32,7 @@ struct InstallCommandRunner: Sendable {
     }
 
     func loadedModules(cwd: URL) throws -> Set<String> {
-        Set(PHPModules.parse(try runPHP(["-m"], cwd: cwd)))
+        try Set(PHPModules.parse(runPHP(["-m"], cwd: cwd)))
     }
 
     @discardableResult
@@ -43,7 +45,9 @@ struct InstallCommandRunner: Sendable {
         if let phpScanDir, FileManager.default.fileExists(atPath: phpScanDir.path) {
             environment["PHP_INI_SCAN_DIR"] = phpScanDir.path
             let modulesDir = phpScanDir.deletingLastPathComponent().appendingPathComponent("modules", isDirectory: true)
-            for (key, value) in ImageMagickEnvironment.variables(modulesDir: modulesDir) { environment[key] = value }
+            for (key, value) in ImageMagickEnvironment.variables(modulesDir: modulesDir) {
+                environment[key] = value
+            }
         }
         proc.environment = environment
         let output = Pipe()
@@ -58,8 +62,11 @@ struct InstallCommandRunner: Sendable {
         proc.waitUntilExit()
         let text = String(data: data, encoding: .utf8) ?? ""
         guard proc.terminationStatus == 0 else {
-            throw CommandError(command: "\(exe.lastPathComponent) \(args.first ?? "")",
-                               status: proc.terminationStatus, output: text)
+            throw CommandError(
+                command: "\(exe.lastPathComponent) \(args.first ?? "")",
+                status: proc.terminationStatus,
+                output: text
+            )
         }
         return text
     }

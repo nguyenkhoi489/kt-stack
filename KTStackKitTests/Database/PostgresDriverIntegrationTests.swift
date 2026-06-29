@@ -6,10 +6,11 @@ import XCTest
 /// :5432 with trust auth (the managed layout). Proves the driver returns real schema + typed query
 /// results, enforces the one-row write guard, and is safe under rapid concurrent re-query.
 final class PostgresDriverIntegrationTests: XCTestCase {
-
     private func makeDriver() throws -> PostgresDriver {
-        try XCTSkipUnless(ProcessInfo.processInfo.environment["KTSTACK_DB_IT"] == "1",
-                          "Set KTSTACK_DB_IT=1 with PostgreSQL installed + running on :5432.")
+        try XCTSkipUnless(
+            ProcessInfo.processInfo.environment["KTSTACK_DB_IT"] == "1",
+            "Set KTSTACK_DB_IT=1 with PostgreSQL installed + running on :5432."
+        )
         let catalog = ServiceBinaryCatalog(paths: AppSupportPaths())
         try XCTSkipUnless(catalog.isInstalled(.postgres), "PostgreSQL engine not installed.")
         return PostgresDriver(profile: .managedPostgres, password: nil)
@@ -41,7 +42,8 @@ final class PostgresDriverIntegrationTests: XCTestCase {
         let driver = try makeDriver()
         let result = try await driver.query(
             "SELECT 1::int8 AS i, 1.5::float8 AS d, NULL::text AS n, 'x'::text AS s, true AS b",
-            database: nil)
+            database: nil
+        )
         XCTAssertEqual(result.columnNames, ["i", "d", "n", "s", "b"])
         XCTAssertEqual(result.rows[0][0], .int(1))
         XCTAssertEqual(result.rows[0][1], .double(1.5))
@@ -52,8 +54,12 @@ final class PostgresDriverIntegrationTests: XCTestCase {
 
     func testPaginationLimitsRows() async throws {
         let driver = try makeDriver()
-        let page = try await driver.paginatedRows(database: "pg_catalog", table: "pg_type",
-                                                  limit: 5, offset: 0)
+        let page = try await driver.paginatedRows(
+            database: "pg_catalog",
+            table: "pg_type",
+            limit: 5,
+            offset: 0
+        )
         XCTAssertLessThanOrEqual(page.rowCount, 5)
         XCTAssertFalse(page.columns.isEmpty)
     }
@@ -62,24 +68,39 @@ final class PostgresDriverIntegrationTests: XCTestCase {
         let driver = try makeDriver()
         _ = try await driver.query("DROP TABLE IF EXISTS ktstack_it", database: nil)
         _ = try await driver.query(
-            "CREATE TABLE ktstack_it (id bigint PRIMARY KEY, name text)", database: nil)
+            "CREATE TABLE ktstack_it (id bigint PRIMARY KEY, name text)", database: nil
+        )
         defer { Task { _ = try? await driver.query("DROP TABLE IF EXISTS ktstack_it", database: nil) } }
 
         try await driver.insert(database: "public", table: "ktstack_it", values: [
             ColumnValue(column: "id", value: .int(1)),
             ColumnValue(column: "name", value: .text("orig")),
         ])
-        try await driver.update(database: "public", table: "ktstack_it",
-                                values: [ColumnValue(column: "name", value: .text("edited"))],
-                                key: [ColumnValue(column: "id", value: .int(1))])
-        let rows = try await driver.paginatedRows(database: "public", table: "ktstack_it",
-                                                  limit: 10, offset: 0).rows
+        try await driver.update(
+            database: "public",
+            table: "ktstack_it",
+            values: [ColumnValue(column: "name", value: .text("edited"))],
+            key: [ColumnValue(column: "id", value: .int(1))]
+        )
+        let rows = try await driver.paginatedRows(
+            database: "public",
+            table: "ktstack_it",
+            limit: 10,
+            offset: 0
+        ).rows
         XCTAssertEqual(rows.first?[1], .text("edited"))
 
-        try await driver.delete(database: "public", table: "ktstack_it",
-                                key: [ColumnValue(column: "id", value: .int(1))])
-        let after = try await driver.paginatedRows(database: "public", table: "ktstack_it",
-                                                   limit: 10, offset: 0)
+        try await driver.delete(
+            database: "public",
+            table: "ktstack_it",
+            key: [ColumnValue(column: "id", value: .int(1))]
+        )
+        let after = try await driver.paginatedRows(
+            database: "public",
+            table: "ktstack_it",
+            limit: 10,
+            offset: 0
+        )
         XCTAssertEqual(after.rowCount, 0)
     }
 
@@ -87,11 +108,15 @@ final class PostgresDriverIntegrationTests: XCTestCase {
         let driver = try makeDriver()
         _ = try await driver.query("DROP TABLE IF EXISTS ktstack_it", database: nil)
         _ = try await driver.query(
-            "CREATE TABLE ktstack_it (id bigint PRIMARY KEY, name text)", database: nil)
+            "CREATE TABLE ktstack_it (id bigint PRIMARY KEY, name text)", database: nil
+        )
         defer { Task { _ = try? await driver.query("DROP TABLE IF EXISTS ktstack_it", database: nil) } }
         do {
-            try await driver.delete(database: "public", table: "ktstack_it",
-                                    key: [ColumnValue(column: "id", value: .int(999))])
+            try await driver.delete(
+                database: "public",
+                table: "ktstack_it",
+                key: [ColumnValue(column: "id", value: .int(999))]
+            )
             XCTFail("expected the zero-row guard to reject")
         } catch {
             XCTAssertTrue(error is DatabaseError)
@@ -99,14 +124,23 @@ final class PostgresDriverIntegrationTests: XCTestCase {
     }
 
     func testReadOnlyConnectionRejectsWrites() async throws {
-        try XCTSkipUnless(ProcessInfo.processInfo.environment["KTSTACK_DB_IT"] == "1",
-                          "Set KTSTACK_DB_IT=1 with PostgreSQL installed + running on :5432.")
+        try XCTSkipUnless(
+            ProcessInfo.processInfo.environment["KTSTACK_DB_IT"] == "1",
+            "Set KTSTACK_DB_IT=1 with PostgreSQL installed + running on :5432."
+        )
         let catalog = ServiceBinaryCatalog(paths: AppSupportPaths())
         try XCTSkipUnless(catalog.isInstalled(.postgres), "PostgreSQL engine not installed.")
         // A read-only managed connection: `SET default_transaction_read_only = on` must make even DDL fail.
-        let profile = ConnectionProfile(name: "ro", kind: .postgres, host: "127.0.0.1", port: 5432,
-                                        user: "postgres", database: "postgres",
-                                        tlsMode: .disable, readOnly: true)
+        let profile = ConnectionProfile(
+            name: "ro",
+            kind: .postgres,
+            host: "127.0.0.1",
+            port: 5432,
+            user: "postgres",
+            database: "postgres",
+            tlsMode: .disable,
+            readOnly: true
+        )
         let driver = PostgresDriver(profile: profile, password: nil)
         do {
             _ = try await driver.query("CREATE TABLE ktstack_ro_guard (i int)", database: nil)
@@ -126,7 +160,9 @@ final class PostgresDriverIntegrationTests: XCTestCase {
                 }
             }
             var total = 0
-            for try await count in group { total += count }
+            for try await count in group {
+                total += count
+            }
             XCTAssertEqual(total, 20)
         }
     }

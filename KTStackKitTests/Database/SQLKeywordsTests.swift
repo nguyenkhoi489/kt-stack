@@ -2,7 +2,6 @@ import XCTest
 @testable import KTStackKit
 
 final class SQLKeywordsTests: XCTestCase {
-
     func testCommonKeywordsPresentForEveryDialect() {
         for kind in [DatabaseKind.mysql, .postgres, .sqlite] {
             let words = SQLKeywords.forKind(kind)

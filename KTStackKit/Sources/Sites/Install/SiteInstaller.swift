@@ -2,12 +2,15 @@ import Foundation
 
 public enum NewSiteKind: String, Sendable, CaseIterable, Identifiable {
     case wordpress, laravel, empty
-    public var id: String { rawValue }
+    public var id: String {
+        rawValue
+    }
+
     public var label: String {
         switch self {
-        case .wordpress: return "WordPress"
-        case .laravel: return "Laravel"
-        case .empty: return "Empty Site"
+        case .wordpress: "WordPress"
+        case .laravel: "Laravel"
+        case .empty: "Empty Site"
         }
     }
 }
@@ -24,10 +27,18 @@ public struct NewSiteRequest: Sendable {
     public let adminEmail: String
     public let adminPassword: String
 
-    public init(name: String, kind: NewSiteKind, phpVersion: String, folder: URL, domain: String,
-                databaseName: String?, siteTitle: String = "",
-                adminUser: String = "admin", adminEmail: String = "admin@example.com",
-                adminPassword: String = "") {
+    public init(
+        name: String,
+        kind: NewSiteKind,
+        phpVersion: String,
+        folder: URL,
+        domain: String,
+        databaseName: String?,
+        siteTitle: String = "",
+        adminUser: String = "admin",
+        adminEmail: String = "admin@example.com",
+        adminPassword: String = ""
+    ) {
         self.name = name
         self.kind = kind
         self.phpVersion = phpVersion
@@ -58,23 +69,31 @@ public enum InstallError: LocalizedError, Equatable {
     case folderExists(String)
     public var errorDescription: String? {
         switch self {
-        case .folderExists(let name): return "A folder named “\(name)” already exists in your sites root."
+        case let .folderExists(name): "A folder named “\(name)” already exists in your sites root."
         }
     }
 }
 
 public protocol SiteInstaller: Sendable {
-    func scaffold(into folder: URL, request: NewSiteRequest,
-                  emit: @Sendable (String) -> Void) async throws
+    func scaffold(
+        into folder: URL,
+        request: NewSiteRequest,
+        emit: @Sendable (String) -> Void
+    ) async throws
 }
 
 public final class SiteInstallService: Sendable {
     private let database: DatabaseProvisioner
-    public init(database: DatabaseProvisioner) { self.database = database }
+    public init(database: DatabaseProvisioner) {
+        self.database = database
+    }
 
-    public func install(_ request: NewSiteRequest, installer: SiteInstaller,
-                        register: @Sendable (URL) async throws -> Site,
-                        emit: @Sendable @escaping (InstallEvent) -> Void) async throws -> Site {
+    public func install(
+        _ request: NewSiteRequest,
+        installer: SiteInstaller,
+        register: @Sendable (URL) async throws -> Site,
+        emit: @Sendable @escaping (InstallEvent) -> Void
+    ) async throws -> Site {
         let fm = FileManager.default
         var createdDatabase: String?
         var createdFolder = false

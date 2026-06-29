@@ -3,12 +3,11 @@ import Foundation
 /// Schema introspection beyond columns: index listing for the table-structure view. Reuses the
 /// public `query` path (literals quoted by `MySQLErrorMapper.quoteLiteral`), grouping the per-column
 /// rows from `information_schema.STATISTICS` into one `IndexInfo` per index name.
-extension MySQLDriver {
-
-    public func allColumns(database: String) async throws -> [String: [String]] {
-        let sql = """
+public extension MySQLDriver {
+    func allColumns(database: String) async throws -> [String: [String]] {
+        let sql = try """
         SELECT TABLE_NAME, COLUMN_NAME FROM information_schema.COLUMNS \
-        WHERE TABLE_SCHEMA = \(try MySQLErrorMapper.quoteLiteral(database)) \
+        WHERE TABLE_SCHEMA = \(MySQLErrorMapper.quoteLiteral(database)) \
         ORDER BY TABLE_NAME, ORDINAL_POSITION
         """
         let result = try await query(sql, database: nil)
@@ -21,11 +20,11 @@ extension MySQLDriver {
         return map
     }
 
-    public func allColumnsDetailed(database: String) async throws -> [String: [ColumnInfo]] {
-        let sql = """
+    func allColumnsDetailed(database: String) async throws -> [String: [ColumnInfo]] {
+        let sql = try """
         SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_KEY, COLUMN_DEFAULT \
         FROM information_schema.COLUMNS \
-        WHERE TABLE_SCHEMA = \(try MySQLErrorMapper.quoteLiteral(database)) \
+        WHERE TABLE_SCHEMA = \(MySQLErrorMapper.quoteLiteral(database)) \
         ORDER BY TABLE_NAME, ORDINAL_POSITION
         """
         let result = try await query(sql, database: nil)
@@ -38,16 +37,17 @@ extension MySQLDriver {
                 dataType: row[2].displayText ?? "",
                 isNullable: row[3].displayText == "YES",
                 isPrimaryKey: row[4].displayText == "PRI",
-                defaultValue: row[5].displayText))
+                defaultValue: row[5].displayText
+            ))
         }
         return map
     }
 
-    public func foreignKeys(database: String) async throws -> [ForeignKeyRelation] {
-        let sql = """
+    func foreignKeys(database: String) async throws -> [ForeignKeyRelation] {
+        let sql = try """
         SELECT TABLE_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME, CONSTRAINT_NAME \
         FROM information_schema.KEY_COLUMN_USAGE \
-        WHERE TABLE_SCHEMA = \(try MySQLErrorMapper.quoteLiteral(database)) \
+        WHERE TABLE_SCHEMA = \(MySQLErrorMapper.quoteLiteral(database)) \
         AND REFERENCED_TABLE_NAME IS NOT NULL \
         ORDER BY TABLE_NAME, CONSTRAINT_NAME, ORDINAL_POSITION
         """
@@ -55,11 +55,11 @@ extension MySQLDriver {
         return ForeignKeyRowParser.parseRelational(result.rows)
     }
 
-    public func indexes(database: String, table: String) async throws -> [IndexInfo] {
-        let sql = """
+    func indexes(database: String, table: String) async throws -> [IndexInfo] {
+        let sql = try """
         SELECT INDEX_NAME, COLUMN_NAME, NON_UNIQUE FROM information_schema.STATISTICS \
-        WHERE TABLE_SCHEMA = \(try MySQLErrorMapper.quoteLiteral(database)) \
-        AND TABLE_NAME = \(try MySQLErrorMapper.quoteLiteral(table)) \
+        WHERE TABLE_SCHEMA = \(MySQLErrorMapper.quoteLiteral(database)) \
+        AND TABLE_NAME = \(MySQLErrorMapper.quoteLiteral(table)) \
         ORDER BY INDEX_NAME, SEQ_IN_INDEX
         """
         let result = try await query(sql, database: nil)

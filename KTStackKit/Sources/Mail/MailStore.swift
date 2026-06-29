@@ -1,5 +1,5 @@
-import Foundation
 import Combine
+import Foundation
 
 @MainActor
 public final class MailStore: ObservableObject {
@@ -28,7 +28,9 @@ public final class MailStore: ObservableObject {
         }
     }
 
-    public func stopPolling() { pollTask?.cancel(); pollTask = nil }
+    public func stopPolling() {
+        pollTask?.cancel(); pollTask = nil
+    }
 
     public func refresh() async {
         do {
@@ -79,5 +81,7 @@ public final class MailStore: ObservableObject {
         }
     }
 
-    public func rawURL(_ id: String) -> URL { client.rawURL(id: id) }
+    public func rawURL(_ id: String) -> URL {
+        client.rawURL(id: id)
+    }
 }

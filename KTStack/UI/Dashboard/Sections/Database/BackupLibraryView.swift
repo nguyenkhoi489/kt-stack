@@ -1,6 +1,6 @@
-import SwiftUI
-import KTStackKit
 import AppKit
+import KTStackKit
+import SwiftUI
 
 /// Backup history + actions. The "create backup" form, the history list, and the per-set actions
 /// (restore, delete, export) live behind the same sheet so the user can move between them without
@@ -44,10 +44,14 @@ struct BackupLibraryView<VM: AnyObject>: View {
             if case .done = status { reload() }
         }
         .sheet(item: $restoringSet) { set in restoreSheet(set) }
-        .alert("Restore All Databases?",
-               isPresented: .init(get: { confirmingRestoreAllSet != nil },
-                                  set: { _ in confirmingRestoreAllSet = nil }),
-               presenting: confirmingRestoreAllSet) { set in
+        .alert(
+            "Restore All Databases?",
+            isPresented: .init(
+                get: { confirmingRestoreAllSet != nil },
+                set: { _ in confirmingRestoreAllSet = nil }
+            ),
+            presenting: confirmingRestoreAllSet
+        ) { set in
             Button("Restore All \(set.databases.count) Databases", role: .destructive) {
                 onRestoreAll(set)
             }
@@ -69,21 +73,20 @@ struct BackupLibraryView<VM: AnyObject>: View {
     private var statusRow: some View {
         switch backupStatus {
         case .idle: EmptyView()
-        case .running(let message):
+        case let .running(message):
             HStack(spacing: KDSpacing.space2) {
                 ProgressView().controlSize(.small)
                 Text(message).font(KDFont.footnote)
             }
-        case .done(let message):
+        case let .done(message):
             Label(message, systemImage: "checkmark.circle.fill")
                 .font(KDFont.footnote).foregroundStyle(.green)
-        case .failed(let message):
+        case let .failed(message):
             Label(message, systemImage: "exclamationmark.triangle.fill")
                 .font(KDFont.footnote).foregroundStyle(.orange)
         }
     }
 
-    @ViewBuilder
     private var content: some View {
         VStack(alignment: .leading, spacing: KDSpacing.space3) {
             backupActions
@@ -93,7 +96,6 @@ struct BackupLibraryView<VM: AnyObject>: View {
         .padding(KDSpacing.space3)
     }
 
-    @ViewBuilder
     private var backupActions: some View {
         VStack(alignment: .leading, spacing: KDSpacing.space2) {
             Text("Create backup").font(KDFont.headline)
@@ -118,9 +120,9 @@ struct BackupLibraryView<VM: AnyObject>: View {
 
     private var installToolsTitle: String? {
         switch activeProfileKind {
-        case .mysql:    return "Install MySQL…"
-        case .postgres: return "Install PostgreSQL…"
-        default:        return nil
+        case .mysql: "Install MySQL…"
+        case .postgres: "Install PostgreSQL…"
+        default: nil
         }
     }
 
@@ -128,10 +130,12 @@ struct BackupLibraryView<VM: AnyObject>: View {
     private var listSection: some View {
         Text("History").font(KDFont.headline)
         if sets.isEmpty {
-            EmptyStateView(symbol: "tray",
-                           title: "No backups yet",
-                           message: "Create a backup above to start the library.")
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            EmptyStateView(
+                symbol: "tray",
+                title: "No backups yet",
+                message: "Create a backup above to start the library."
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: KDSpacing.space2) {
@@ -141,7 +145,6 @@ struct BackupLibraryView<VM: AnyObject>: View {
         }
     }
 
-    @ViewBuilder
     private func row(for set: BackupSet) -> some View {
         HStack(alignment: .top, spacing: KDSpacing.space3) {
             Image(systemName: symbol(for: set.kind)).foregroundStyle(.secondary).frame(width: 24)
@@ -175,14 +178,14 @@ struct BackupLibraryView<VM: AnyObject>: View {
         .padding(KDSpacing.space3)
     }
 
-    // MARK: - Actions
-
-    private func reload() { sets = session.library.list() }
+    private func reload() {
+        sets = session.library.list()
+    }
 
     private func exportSet(_ set: BackupSet) {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [
-            .init(filenameExtension: BackupLibrary.portableExtension) ?? .data
+            .init(filenameExtension: BackupLibrary.portableExtension) ?? .data,
         ]
         panel.nameFieldStringValue =
             "\(set.profileName)-\(set.id.uuidString.prefix(8)).\(BackupLibrary.portableExtension)"
@@ -197,7 +200,7 @@ struct BackupLibraryView<VM: AnyObject>: View {
         panel.allowsMultipleSelection = false
         panel.allowedContentTypes = [
             .init(filenameExtension: BackupLibrary.portableExtension) ?? .data,
-            .zip, .folder
+            .zip, .folder,
         ]
         panel.message = "Choose a .\(BackupLibrary.portableExtension) archive or a backup set folder."
         guard panel.runModal() == .OK, let url = panel.url else { return }
@@ -208,8 +211,6 @@ struct BackupLibraryView<VM: AnyObject>: View {
     private func revealInFinder(_ set: BackupSet) {
         NSWorkspace.shared.activateFileViewerSelecting([session.library.directory(for: set)])
     }
-
-    // MARK: - Row formatting
 
     private func rowTitle(_ set: BackupSet) -> String {
         if set.databases.count == 1 { return set.databases[0] }
@@ -224,13 +225,12 @@ struct BackupLibraryView<VM: AnyObject>: View {
 
     private func symbol(for kind: DatabaseKind) -> String {
         switch kind {
-        case .mysql:    return "cylinder.split.1x2"
-        case .postgres: return "cylinder.split.1x2.fill"
-        case .sqlite:   return "doc.text"
-        case .mongodb:  return "leaf.fill"
+        case .mysql: "cylinder.split.1x2"
+        case .postgres: "cylinder.split.1x2.fill"
+        case .sqlite: "doc.text"
+        case .mongodb: "leaf.fill"
         }
     }
-
 }
 
 private let backupRowDateFormatter: DateFormatter = {
@@ -240,5 +240,7 @@ private let backupRowDateFormatter: DateFormatter = {
 }()
 
 private extension DatabaseViewModel.BackupStatus {
-    var isRunning: Bool { if case .running = self { return true } else { return false } }
+    var isRunning: Bool {
+        if case .running = self { true } else { false }
+    }
 }

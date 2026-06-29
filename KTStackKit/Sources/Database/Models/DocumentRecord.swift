@@ -13,7 +13,10 @@ public struct DocumentRecord: Sendable, Equatable, Identifiable {
 }
 
 public struct CollectionInfo: Sendable, Equatable, Identifiable {
-    public var id: String { name }
+    public var id: String {
+        name
+    }
+
     public let name: String
 
     public init(name: String) {

@@ -2,7 +2,6 @@ import Foundation
 
 final class HelperDNSManager {
     func enableDNS(tld: String) -> (Bool, String?) {
-        
         guard let resolverPath = try? DNSConstants.resolverPathChecked(for: tld) else {
             return (false, "Invalid TLD.")
         }
@@ -30,17 +29,15 @@ final class HelperDNSManager {
         return (true, nil)
     }
 
-    
     func resetDNS(tld: String) -> (Bool, String?) {
         _ = disableDNS(tld: tld)
         return enableDNS(tld: tld)
     }
 
-
     func setTLD(old: String, new: String) -> (Bool, String?) {
-
         guard let oldResolver = try? DNSConstants.resolverPathChecked(for: old),
-              (try? DNSConstants.validatedTLD(new)) != nil else {
+              (try? DNSConstants.validatedTLD(new)) != nil
+        else {
             return (false, "Invalid TLD.")
         }
         if old != new {
@@ -61,15 +58,16 @@ final class HelperDNSManager {
         return (resolver, running, conflict)
     }
 
-    // MARK: - Private
-
     private func bootstrapDaemon() throws {
         // Replace any prior instance so the config is always fresh.
         bootoutDaemon()
         let r = launchctl(["bootstrap", "system", DNSConstants.daemonPlistPath])
         guard r.status == 0 else {
-            throw NSError(domain: "KTStackHelper", code: Int(r.status),
-                          userInfo: [NSLocalizedDescriptionKey: "launchctl bootstrap failed: \(r.output)"])
+            throw NSError(
+                domain: "KTStackHelper",
+                code: Int(r.status),
+                userInfo: [NSLocalizedDescriptionKey: "launchctl bootstrap failed: \(r.output)"]
+            )
         }
     }
 
@@ -79,8 +77,10 @@ final class HelperDNSManager {
 
     private func writeRootFile(_ contents: String, to path: String, mode: Int) throws {
         let url = URL(fileURLWithPath: path)
-        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
-                                                withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(
+            at: url.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
         try contents.write(to: url, atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes([.posixPermissions: mode], ofItemAtPath: path)
     }
@@ -89,7 +89,6 @@ final class HelperDNSManager {
     private func launchctl(_ args: [String]) -> (status: Int32, output: String) {
         run("/bin/launchctl", args)
     }
-
 
     private func port53Owner() -> String? {
         let r = run("/usr/sbin/lsof", ["-nP", "-iUDP:\(DNSConstants.dnsPort)", "-F", "c"])

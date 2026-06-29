@@ -1,5 +1,5 @@
-import Foundation
 import CryptoKit
+import Foundation
 
 public enum ChecksumVerifier {
     public struct Mismatch: LocalizedError {
@@ -10,7 +10,6 @@ public enum ChecksumVerifier {
         }
     }
 
-   
     public static func isResolved(_ checksum: String?) -> Bool {
         guard let checksum else { return false }
         return checksum.count == 64 && checksum.allSatisfy(\.isHexDigit)
@@ -26,7 +25,6 @@ public enum ChecksumVerifier {
         return hasher.finalize().map { String(format: "%02x", $0) }.joined()
     }
 
-   
     public static func verify(_ file: URL, expected: String) throws {
         let actual = try sha256(of: file)
         guard actual.caseInsensitiveCompare(expected) == .orderedSame else {

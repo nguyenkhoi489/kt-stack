@@ -1,8 +1,6 @@
 import Foundation
 
-
 public final class LogTailReader: @unchecked Sendable {
-   
     public var onLines: (@Sendable ([String]) -> Void)?
 
     private let url: URL
@@ -19,17 +17,17 @@ public final class LogTailReader: @unchecked Sendable {
         self.backfillBytes = backfillBytes
     }
 
-    public func start() { queue.async { [weak self] in self?.open() } }
+    public func start() {
+        queue.async { [weak self] in self?.open() }
+    }
 
     public func stop() {
         queue.async { [weak self] in self?.teardown() }
     }
 
-    // MARK: - Private (all on `queue`)
-
     private func open() {
         teardown()
-       
+
         let fd = Darwin.open(url.path, O_RDONLY)
         guard fd >= 0 else {
             scheduleReopen()
@@ -38,7 +36,7 @@ public final class LogTailReader: @unchecked Sendable {
         let fh = FileHandle(fileDescriptor: fd, closeOnDealloc: false)
         handle = fh
         let size = (try? fh.seekToEnd()) ?? 0
-        
+
         let start = size > UInt64(backfillBytes) ? size - UInt64(backfillBytes) : 0
         try? fh.seek(toOffset: start)
         let data = (try? fh.readToEnd()) ?? Data()
@@ -51,7 +49,8 @@ public final class LogTailReader: @unchecked Sendable {
 
     private func beginMonitoring(fd: Int32) {
         let src = DispatchSource.makeFileSystemObjectSource(
-            fileDescriptor: fd, eventMask: [.write, .extend, .delete, .rename, .link], queue: queue)
+            fileDescriptor: fd, eventMask: [.write, .extend, .delete, .rename, .link], queue: queue
+        )
         src.setEventHandler { [weak self] in self?.handleEvent(src.data) }
         src.setCancelHandler { close(fd) }
         source = src
@@ -72,7 +71,7 @@ public final class LogTailReader: @unchecked Sendable {
         emit(String(decoding: data, as: UTF8.self), isBackfill: false)
     }
 
-    private func emit(_ chunk: String, isBackfill: Bool) {
+    private func emit(_ chunk: String, isBackfill _: Bool) {
         guard !chunk.isEmpty else { return }
         let combined = partial + chunk
         var lines = combined.components(separatedBy: "\n")
@@ -92,7 +91,7 @@ public final class LogTailReader: @unchecked Sendable {
 
     private func teardown() {
         reopenTimer?.cancel(); reopenTimer = nil
-        source?.cancel(); source = nil    
+        source?.cancel(); source = nil
         handle = nil
         offset = 0; partial = ""
     }

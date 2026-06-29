@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct KTPhpMenu: View {
     let current: String
@@ -7,10 +7,12 @@ struct KTPhpMenu: View {
     let onSelect: (String) -> Void
 
     var body: some View {
-        KTDropdown(width: 150,
-                   options: versions.map { version in
-                       KTDropdownOption(label: "PHP \(version)", active: version == current) { onSelect(version) }
-                   }) {
+        KTDropdown(
+            width: 150,
+            options: versions.map { version in
+                KTDropdownOption(label: "PHP \(version)", active: version == current) { onSelect(version) }
+            }
+        ) {
             KTDropdownChevronLabel(text: "PHP \(current)")
         }
         .fixedSize()

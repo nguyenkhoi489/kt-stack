@@ -25,7 +25,7 @@ final class SiteScannerTests: XCTestCase {
         let pub = shop.appendingPathComponent("public", isDirectory: true)
         try fm.createDirectory(at: pub, withIntermediateDirectories: true)
         try "<?php".write(to: pub.appendingPathComponent("index.php"), atomically: true, encoding: .utf8)
-        mkdir(root, "blog")   // no markers → static
+        mkdir(root, "blog") // no markers → static
 
         let result = scanner.scan(root: root, tld: "test")
         XCTAssertEqual(result.count, 2)
@@ -51,13 +51,13 @@ final class SiteScannerTests: XCTestCase {
         try fm.createSymbolicLink(at: root.appendingPathComponent("link"), withDestinationURL: target)
 
         let names = scanner.scan(root: root).map(\.folder.lastPathComponent).sorted()
-        XCTAssertEqual(names, ["real", "target"])   // .hidden, loosefile.txt, and the symlink are excluded
+        XCTAssertEqual(names, ["real", "target"]) // .hidden, loosefile.txt, and the symlink are excluded
     }
 
     func testSkipsFileSystemPackages() {
         let root = tempRoot(); defer { try? fm.removeItem(at: root) }
         mkdir(root, "plain")
-        mkdir(root, "Bundle.app")   // a directory with a package extension is treated as a package
+        mkdir(root, "Bundle.app") // a directory with a package extension is treated as a package
         let names = scanner.scan(root: root).map(\.folder.lastPathComponent)
         XCTAssertTrue(names.contains("plain"))
         XCTAssertFalse(names.contains("Bundle.app"))

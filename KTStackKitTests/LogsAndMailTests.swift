@@ -4,9 +4,6 @@ import XCTest
 /// Unit tests for the Logs + Mail layers: severity parsing + ring buffer, log rotation, source
 /// catalog, incremental tail, and Mailpit JSON decoding. Live HTTP/WKWebView is exercised manually.
 final class LogsAndMailTests: XCTestCase {
-
-    // MARK: - LogLineStore
-
     func testSeverityClassification() {
         XCTAssertEqual(LogLineStore.severity(of: "2026/06/11 [error] connect() failed"), .error)
         XCTAssertEqual(LogLineStore.severity(of: "[warn] low on workers"), .warning)
@@ -19,7 +16,7 @@ final class LogsAndMailTests: XCTestCase {
         store.append(["a", "b", "c", "d", "e"])
         let lines = store.snapshot()
         XCTAssertEqual(lines.map(\.text), ["c", "d", "e"])
-        XCTAssertEqual(lines.map(\.id), [2, 3, 4])        // ids monotonic; the 2 oldest evicted
+        XCTAssertEqual(lines.map(\.id), [2, 3, 4]) // ids monotonic; the 2 oldest evicted
     }
 
     func testFilterIsCaseInsensitiveSubstring() {
@@ -30,16 +27,14 @@ final class LogsAndMailTests: XCTestCase {
         XCTAssertEqual(store.filtered("").count, 3)
     }
 
-    // MARK: - LogRotator
-
     func testRotationShiftsFilesAndTruncatesLive() throws {
         let dir = try tempDir(); defer { try? FileManager.default.removeItem(at: dir) }
         let log = dir.appendingPathComponent("nginx-error.log")
-        try Data(repeating: 0x41, count: 2_048).write(to: log)   // 2KB
-        let rotator = LogRotator(maxBytes: 1_024, keep: 2)
+        try Data(repeating: 0x41, count: 2048).write(to: log) // 2KB
+        let rotator = LogRotator(maxBytes: 1024, keep: 2)
         rotator.rotateIfNeeded(log)
         XCTAssertTrue(FileManager.default.fileExists(atPath: log.appendingPathExtension("1").path))
-        let liveSize = (try FileManager.default.attributesOfItem(atPath: log.path)[.size] as? Int) ?? -1
+        let liveSize = try (FileManager.default.attributesOfItem(atPath: log.path)[.size] as? Int) ?? -1
         XCTAssertEqual(liveSize, 0, "live log truncated after rotation")
     }
 
@@ -47,28 +42,24 @@ final class LogsAndMailTests: XCTestCase {
         let dir = try tempDir(); defer { try? FileManager.default.removeItem(at: dir) }
         let log = dir.appendingPathComponent("small.log")
         try Data(repeating: 0x41, count: 100).write(to: log)
-        LogRotator(maxBytes: 1_024).rotateIfNeeded(log)
+        LogRotator(maxBytes: 1024).rotateIfNeeded(log)
         XCTAssertFalse(FileManager.default.fileExists(atPath: log.appendingPathExtension("1").path))
     }
-
-    // MARK: - LogCatalog
 
     func testCatalogListsCoreAndExistingSources() throws {
         let root = try tempDir(); defer { try? FileManager.default.removeItem(at: root) }
         let paths = AppSupportPaths(root: root)
         try paths.ensureDirectoryTree()
-        try Data().write(to: paths.serviceLog("redis"))                  // redis ran
-        try Data().write(to: paths.siteAccessLog("demo.test"))           // a site served
+        try Data().write(to: paths.serviceLog("redis")) // redis ran
+        try Data().write(to: paths.siteAccessLog("demo.test")) // a site served
         let sources = LogCatalog(paths: paths).sources(siteDomains: ["demo.test"], phpVersions: ["8.4"])
         let ids = Set(sources.map(\.id))
-        XCTAssertTrue(ids.contains("nginx-error"))                       // core, always listed
-        XCTAssertTrue(ids.contains("php-8.4"))                           // active pool
-        XCTAssertTrue(ids.contains("redis"))                            // exists
-        XCTAssertTrue(ids.contains("site-demo.test-access"))            // exists
-        XCTAssertFalse(ids.contains("mysql"))                           // never ran → absent
+        XCTAssertTrue(ids.contains("nginx-error")) // core, always listed
+        XCTAssertTrue(ids.contains("php-8.4")) // active pool
+        XCTAssertTrue(ids.contains("redis")) // exists
+        XCTAssertTrue(ids.contains("site-demo.test-access")) // exists
+        XCTAssertFalse(ids.contains("mysql")) // never ran → absent
     }
-
-    // MARK: - LogTailReader (async)
 
     /// Deterministic backfill coverage: on open, the reader emits the file's existing lines. The
     /// live-append path is driven by OS file-system events (flaky to unit-test) and is covered by
@@ -95,8 +86,6 @@ final class LogsAndMailTests: XCTestCase {
         wait(for: [gotBackfill], timeout: 3)
         reader.stop()
     }
-
-    // MARK: - Mailpit decoding
 
     func testDecodeMessageList() throws {
         let json = """
@@ -127,8 +116,6 @@ final class LogsAndMailTests: XCTestCase {
         XCTAssertEqual(d.HTML, "<h1>hi</h1>")
         XCTAssertEqual(d.Text, "plain")
     }
-
-    // MARK: - Helpers
 
     private func tempDir() throws -> URL {
         let dir = URL(fileURLWithPath: NSTemporaryDirectory())

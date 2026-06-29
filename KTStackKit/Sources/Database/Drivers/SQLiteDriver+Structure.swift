@@ -4,18 +4,19 @@ import GRDB
 /// Schema introspection via GRDB's built-in catalog readers (`PRAGMA table_info` / `index_list`
 /// under the hood), mapped into the engine-agnostic shapes the structure view consumes. GRDB's
 /// `primaryKeyIndex` is 1-based for primary-key members and 0 otherwise.
-extension SQLiteDriver {
-
-    public func columns(database: String, table: String) async throws -> [ColumnInfo] {
+public extension SQLiteDriver {
+    func columns(database _: String, table: String) async throws -> [ColumnInfo] {
         let queue = try makeQueue()
         do {
             return try await queue.read { db in
                 try db.columns(in: table).map { info in
-                    ColumnInfo(name: info.name,
-                               dataType: info.type,
-                               isNullable: !info.isNotNull,
-                               isPrimaryKey: info.primaryKeyIndex > 0,
-                               defaultValue: info.defaultValueSQL)
+                    ColumnInfo(
+                        name: info.name,
+                        dataType: info.type,
+                        isNullable: !info.isNotNull,
+                        isPrimaryKey: info.primaryKeyIndex > 0,
+                        defaultValue: info.defaultValueSQL
+                    )
                 }
             }
         } catch {
@@ -23,7 +24,7 @@ extension SQLiteDriver {
         }
     }
 
-    public func foreignKeys(database: String) async throws -> [ForeignKeyRelation] {
+    func foreignKeys(database _: String) async throws -> [ForeignKeyRelation] {
         let queue = try makeQueue()
         do {
             return try await queue.read { db in
@@ -47,7 +48,8 @@ extension SQLiteDriver {
                             fromColumn: fromColumn,
                             toTable: toTable,
                             toColumn: toColumn,
-                            constraintName: id))
+                            constraintName: id
+                        ))
                     }
                 }
                 return relations
@@ -61,7 +63,7 @@ extension SQLiteDriver {
         "\"" + name.replacingOccurrences(of: "\"", with: "\"\"") + "\""
     }
 
-    public func indexes(database: String, table: String) async throws -> [IndexInfo] {
+    func indexes(database _: String, table: String) async throws -> [IndexInfo] {
         let queue = try makeQueue()
         do {
             return try await queue.read { db in

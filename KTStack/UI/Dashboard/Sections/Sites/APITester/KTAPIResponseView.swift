@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct KTAPIResponseView: View {
     let response: APIResponseResult
@@ -23,9 +23,13 @@ struct KTAPIResponseView: View {
             metric("time", "\(response.elapsedMs) ms")
             metric("size", byteString)
             Spacer()
-            KTSegmentedTabs(items: [.init(value: ResponseTab.body, label: "Body"),
-                                    .init(value: .headers, label: "Headers")],
-                            selection: $tab)
+            KTSegmentedTabs(
+                items: [
+                    .init(value: ResponseTab.body, label: "Body"),
+                    .init(value: .headers, label: "Headers"),
+                ],
+                selection: $tab
+            )
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
         .overlay(alignment: .bottom) { Rectangle().fill(KTColor.sep).frame(height: 0.5) }
@@ -42,10 +46,10 @@ struct KTAPIResponseView: View {
 
     private var statusTint: KTTint {
         switch response.statusCode {
-        case 200...299: return KTTint(fg: Color(hex: 0x1FA463), bg: Color(hex: 0xE7F8EE))
-        case 300...399: return KTTint(fg: Color(hex: 0x2F6BFF), bg: Color(hex: 0xEAF1FF))
-        case 400...499: return KTTint(fg: Color(hex: 0xC07A00), bg: Color(hex: 0xFFF3DC))
-        default:        return KTTint(fg: Color(hex: 0xD93A2E), bg: Color(hex: 0xFFF0EE))
+        case 200...299: KTTint(fg: Color(hex: 0x1FA463), bg: Color(hex: 0xE7F8EE))
+        case 300...399: KTTint(fg: Color(hex: 0x2F6BFF), bg: Color(hex: 0xEAF1FF))
+        case 400...499: KTTint(fg: Color(hex: 0xC07A00), bg: Color(hex: 0xFFF3DC))
+        default: KTTint(fg: Color(hex: 0xD93A2E), bg: Color(hex: 0xFFF0EE))
         }
     }
 
@@ -136,9 +140,13 @@ struct KTAPIResponseView: View {
         return String(data: response.body, encoding: .utf8) ?? "<\(response.body.count) bytes binary>"
     }
 
-    private var limitChars: Int { max(1, bodyLimitKB) * 1024 }
+    private var limitChars: Int {
+        max(1, bodyLimitKB) * 1024
+    }
 
-    private var truncated: Bool { fullBody.count > limitChars }
+    private var truncated: Bool {
+        fullBody.count > limitChars
+    }
 
     private var displayedBody: String {
         let body = fullBody
@@ -151,8 +159,10 @@ struct KTAPIResponseView: View {
             content
                 .background(Color(hex: 0xFBFBFC))
                 .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .stroke(KTColor.fieldBorder, lineWidth: 0.5))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .stroke(KTColor.fieldBorder, lineWidth: 0.5)
+                )
                 .padding([.horizontal, .bottom], 14)
         }
     }
@@ -161,8 +171,10 @@ struct KTAPIResponseView: View {
         guard let object = try? JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed]) else {
             return nil
         }
-        guard let pretty = try? JSONSerialization.data(withJSONObject: object,
-                                                       options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]) else {
+        guard let pretty = try? JSONSerialization.data(
+            withJSONObject: object,
+            options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+        ) else {
             return nil
         }
         return String(data: pretty, encoding: .utf8)

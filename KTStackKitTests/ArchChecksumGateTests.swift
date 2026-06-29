@@ -33,15 +33,23 @@ final class ArchChecksumGateTests: XCTestCase {
         let currentArch = RuntimeCatalog.arch
         let otherArch = currentArch == "arm64" ? "x86_64" : "arm64"
 
-        let supported = PHPExtensionRelease(extID: "redis", phpVersion: "8.3",
-                                            sha256ByArch: [currentArch: realSHA])
+        let supported = PHPExtensionRelease(
+            extID: "redis",
+            phpVersion: "8.3",
+            sha256ByArch: [currentArch: realSHA]
+        )
         XCTAssertTrue(supported.supportsCurrentArch)
         XCTAssertEqual(supported.url.lastPathComponent, "php-ext-redis-8.3-\(currentArch).tar.gz")
 
-        let foreignArchOnly = PHPExtensionRelease(extID: "redis", phpVersion: "8.3",
-                                                  sha256ByArch: [otherArch: realSHA])
-        XCTAssertFalse(foreignArchOnly.supportsCurrentArch,
-                       "an extension without a current-arch checksum must not gate as available")
+        let foreignArchOnly = PHPExtensionRelease(
+            extID: "redis",
+            phpVersion: "8.3",
+            sha256ByArch: [otherArch: realSHA]
+        )
+        XCTAssertFalse(
+            foreignArchOnly.supportsCurrentArch,
+            "an extension without a current-arch checksum must not gate as available"
+        )
     }
 
     func testShippedDatabaseEnginesHaveRealChecksumsForBothArches() {

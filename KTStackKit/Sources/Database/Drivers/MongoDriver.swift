@@ -1,6 +1,6 @@
 import Foundation
-import MongoKitten
 import MongoCore
+import MongoKitten
 
 public struct MongoDriver: DocumentDriver {
     public let kind: DatabaseKind = .mongodb
@@ -9,9 +9,11 @@ public struct MongoDriver: DocumentDriver {
     let password: String?
     let catalog: ServiceBinaryCatalog
 
-    public init(profile: ConnectionProfile,
-                password: String?,
-                catalog: ServiceBinaryCatalog = ServiceBinaryCatalog(paths: AppSupportPaths())) {
+    public init(
+        profile: ConnectionProfile,
+        password: String?,
+        catalog: ServiceBinaryCatalog = ServiceBinaryCatalog(paths: AppSupportPaths())
+    ) {
         self.profile = profile
         self.password = password
         self.catalog = catalog
@@ -33,8 +35,13 @@ public struct MongoDriver: DocumentDriver {
         }
     }
 
-    public func find(database: String, collection: String,
-                     filterJSON: String?, limit: Int, skip: Int) async throws -> [DocumentRecord] {
+    public func find(
+        database: String,
+        collection: String,
+        filterJSON: String?,
+        limit: Int,
+        skip: Int
+    ) async throws -> [DocumentRecord] {
         let filter = try filterDocument(filterJSON)
         return try await withPool { pool in
             let documents = try await pool[database][collection]
@@ -43,8 +50,12 @@ public struct MongoDriver: DocumentDriver {
         }
     }
 
-    public func aggregate(database: String, collection: String,
-                          pipelineJSON: String, limit: Int) async throws -> [DocumentRecord] {
+    public func aggregate(
+        database: String,
+        collection: String,
+        pipelineJSON: String,
+        limit: Int
+    ) async throws -> [DocumentRecord] {
         var stages = try aggregateStages(pipelineJSON)
         var limitStage = Document()
         limitStage["$limit"] = limit
@@ -55,8 +66,6 @@ public struct MongoDriver: DocumentDriver {
             return try documents.map(Self.record(from:))
         }
     }
-
-    // MARK: - Shared connection lifecycle
 
     func withPool<T: Sendable>(_ body: @Sendable (MongoConnectionPool) async throws -> T) async throws -> T {
         try preflightInstalled()
@@ -90,7 +99,8 @@ public struct MongoDriver: DocumentDriver {
             useSSL: !loopback && profile.tlsMode != .disable,
             verifySSLCertificates: profile.tlsMode == .verifyFull,
             connectTimeout: 10,
-            socketTimeout: 30)
+            socketTimeout: 30
+        )
     }
 
     func preflightInstalled() throws {
@@ -101,22 +111,24 @@ public struct MongoDriver: DocumentDriver {
     }
 
     func mapError(_ error: any Error) -> DatabaseError {
-        MongoErrorMapper.map(error, isManaged: profile.isManaged,
-                             engineInstalled: catalog.isInstalled(.mongodb))
+        MongoErrorMapper.map(
+            error,
+            isManaged: profile.isManaged,
+            engineInstalled: catalog.isInstalled(.mongodb)
+        )
     }
 
     func ensureWritable() throws {
         if profile.readOnly { throw DatabaseError.connection("This connection is read-only.") }
     }
 
-    // MARK: - Mapping helpers
-
     static func record(from document: Document) throws -> DocumentRecord {
         let identifier = document["_id"]
-        return DocumentRecord(
+        return try DocumentRecord(
             id: MongoJSONMapper.displayString(for: identifier),
-            json: try MongoJSONMapper.encodedJSON(from: document, pretty: true),
-            identifierJSON: MongoJSONMapper.identifierJSON(for: identifier))
+            json: MongoJSONMapper.encodedJSON(from: document, pretty: true),
+            identifierJSON: MongoJSONMapper.identifierJSON(for: identifier)
+        )
     }
 
     func filterDocument(_ json: String?) throws -> Document {

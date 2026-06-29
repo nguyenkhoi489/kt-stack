@@ -1,29 +1,29 @@
-import SwiftUI
 import AppKit
 import KTStackKit
+import SwiftUI
 
 enum KTSiteVisuals {
     static func kind(for type: SiteType) -> KTSiteIconKind {
         switch type {
-        case .php: return .code
-        case .node: return .cube
-        case .staticSite: return .db
+        case .php: .code
+        case .node: .cube
+        case .staticSite: .db
         }
     }
 
     static func tint(for type: SiteType) -> KTTint {
         switch type {
-        case .php: return KTIconTint.code
-        case .node: return KTIconTint.cube
-        case .staticSite: return KTIconTint.db
+        case .php: KTIconTint.code
+        case .node: KTIconTint.cube
+        case .staticSite: KTIconTint.db
         }
     }
 
     static func tint(for framework: PHPFramework) -> KTTint {
         switch framework {
-        case .wordpress: return KTIconTint.wordpress
-        case .laravel:   return KTIconTint.laravel
-        case .plain:     return KTIconTint.php
+        case .wordpress: KTIconTint.wordpress
+        case .laravel: KTIconTint.laravel
+        case .plain: KTIconTint.php
         }
     }
 }
@@ -36,8 +36,11 @@ enum KTSiteActions {
     static func openTerminal(_ site: Site) {
         let folder = URL(fileURLWithPath: site.path)
         let terminal = URL(fileURLWithPath: "/System/Applications/Utilities/Terminal.app")
-        NSWorkspace.shared.open([folder], withApplicationAt: terminal,
-                                configuration: NSWorkspace.OpenConfiguration())
+        NSWorkspace.shared.open(
+            [folder],
+            withApplicationAt: terminal,
+            configuration: NSWorkspace.OpenConfiguration()
+        )
     }
 
     static func openInBrowser(_ site: Site) {
@@ -46,21 +49,42 @@ enum KTSiteActions {
         NSWorkspace.shared.open(url)
     }
 
-    static func openNodeLog(_ site: Site) {
-        let log = AppSupportPaths().nodeOutLog(site.domain)
-        if !FileManager.default.fileExists(atPath: log.path) {
-            try? FileManager.default.createDirectory(at: log.deletingLastPathComponent(),
-                                                     withIntermediateDirectories: true)
-            FileManager.default.createFile(atPath: log.path, contents: Data())
+    static func startNodeInTerminal(_ site: Site) {
+        guard let port = site.nodePort else { return }
+        let quotedDir = "'" + site.path.replacingOccurrences(of: "'", with: "'\\''") + "'"
+        let base = "cd \(quotedDir) && export PORT=\(port)"
+        let shell: String
+        if let command = resolvedStartCommand(site) {
+            shell = base + " && " + command
+        } else {
+            let hint = "KTStack: PORT=\(port) set for \(site.domain). Run your dev server, e.g. npm run dev"
+            shell = base + " && clear && echo \"\(hint)\""
         }
-        NSWorkspace.shared.open(log)
+        let escaped = shell
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        proc.arguments = [
+            "-e", "tell application \"Terminal\" to do script \"\(escaped)\"",
+            "-e", "tell application \"Terminal\" to activate",
+        ]
+        try? proc.run()
+    }
+
+    private static func resolvedStartCommand(_ site: Site) -> String? {
+        if let stored = site.nodeCommand?.trimmingCharacters(in: .whitespacesAndNewlines), !stored.isEmpty {
+            return stored
+        }
+        return SiteInspector().suggestedNodeCommand(at: URL(fileURLWithPath: site.path))
     }
 
     @discardableResult
     static func configureVSCode(_ site: Site) throws -> URL {
         let written = try IDEDebugConfigWriter().writeVSCode(
             projectRoot: URL(fileURLWithPath: site.path),
-            docroot: URL(fileURLWithPath: site.docroot))
+            docroot: URL(fileURLWithPath: site.docroot)
+        )
         NSWorkspace.shared.activateFileViewerSelecting([written])
         return written
     }

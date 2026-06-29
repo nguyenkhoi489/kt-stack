@@ -1,12 +1,12 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct ServiceErrorBanner: View {
     let status: ServiceStatus
     let title: String
     let message: String
-    var ctaTitle: String? = nil
-    var action: (() -> Void)? = nil
+    var ctaTitle: String?
+    var action: (() -> Void)?
 
     var body: some View {
         HStack(alignment: .top, spacing: KDSpacing.space2) {

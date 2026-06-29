@@ -50,7 +50,7 @@ final class ShellPathManagerTests: XCTestCase {
         let home = tmp.appendingPathComponent("home")
         try fm.createDirectory(at: home, withIntermediateDirectories: true)
         let paths = AppSupportPaths(root: tmp.appendingPathComponent("support"))
-        let manager = ShellPathManager(paths: paths, helperSource: try makeHelper(), home: home)
+        let manager = try ShellPathManager(paths: paths, helperSource: makeHelper(), home: home)
 
         try await manager.enable(provisionComposer: false)
 
@@ -62,8 +62,10 @@ final class ShellPathManagerTests: XCTestCase {
         }
         let zshrc = try String(contentsOf: home.appendingPathComponent(".zshrc"), encoding: .utf8)
         XCTAssertTrue(zshrc.contains(ShellRCPatcher.startPrefix))
-        XCTAssertTrue(zshrc.contains("export PATH=\"\(paths.shimBinDir.path):$PATH\""),
-                      "shim dir must be prepended so KTStack runtimes win over system PATH")
+        XCTAssertTrue(
+            zshrc.contains("export PATH=\"\(paths.shimBinDir.path):$PATH\""),
+            "shim dir must be prepended so KTStack runtimes win over system PATH"
+        )
 
         let status = manager.status()
         XCTAssertTrue(status.enabled)
@@ -74,7 +76,7 @@ final class ShellPathManagerTests: XCTestCase {
         let home = tmp.appendingPathComponent("home")
         try fm.createDirectory(at: home, withIntermediateDirectories: true)
         let paths = AppSupportPaths(root: tmp.appendingPathComponent("support"))
-        let manager = ShellPathManager(paths: paths, helperSource: try makeHelper(), home: home)
+        let manager = try ShellPathManager(paths: paths, helperSource: makeHelper(), home: home)
 
         try await manager.enable(provisionComposer: false)
         try await manager.enable(provisionComposer: false)
@@ -88,7 +90,7 @@ final class ShellPathManagerTests: XCTestCase {
         let home = tmp.appendingPathComponent("home")
         try fm.createDirectory(at: home, withIntermediateDirectories: true)
         let paths = AppSupportPaths(root: tmp.appendingPathComponent("support"))
-        let manager = ShellPathManager(paths: paths, helperSource: try makeHelper(), home: home)
+        let manager = try ShellPathManager(paths: paths, helperSource: makeHelper(), home: home)
 
         try await manager.enable(provisionComposer: false)
         try manager.disable()
@@ -101,11 +103,16 @@ final class ShellPathManagerTests: XCTestCase {
 
     func testRefreshDoesNothingWhenIntegrationNotEnabled() throws {
         let paths = AppSupportPaths(root: tmp.appendingPathComponent("support"))
-        let manager = ShellPathManager(paths: paths, helperSource: try makeHelper(),
-                                       home: tmp.appendingPathComponent("home"))
+        let manager = try ShellPathManager(
+            paths: paths,
+            helperSource: makeHelper(),
+            home: tmp.appendingPathComponent("home")
+        )
         try manager.refreshStagedShimIfEnabled()
-        XCTAssertFalse(fm.fileExists(atPath: paths.shimBinDir.path),
-                       "refresh must not opt the user into shell integration")
+        XCTAssertFalse(
+            fm.fileExists(atPath: paths.shimBinDir.path),
+            "refresh must not opt the user into shell integration"
+        )
     }
 
     func testRefreshRestagesUpdatedResolverBinary() async throws {
@@ -121,7 +128,8 @@ final class ShellPathManagerTests: XCTestCase {
             .refreshStagedShimIfEnabled()
 
         let staged = try String(
-            contentsOf: paths.shimBinDir.appendingPathComponent("ktstack-resolve"), encoding: .utf8)
+            contentsOf: paths.shimBinDir.appendingPathComponent("ktstack-resolve"), encoding: .utf8
+        )
         XCTAssertTrue(staged.contains("echo v2"), "launch refresh must restage the updated resolver")
     }
 
@@ -142,10 +150,14 @@ final class ShellPathManagerTests: XCTestCase {
         let shims = ShellShimWriter(paths: paths).shims
         for name in ["node", "php"] {
             let body = try XCTUnwrap(shims[name])
-            XCTAssertTrue(body.contains("command -v \(name)"),
-                          "\(name) shim must fall back to the system binary when no KTStack runtime resolves")
-            XCTAssertTrue(body.contains("grep -vxF \"\(paths.shimBinDir.path)\""),
-                          "\(name) shim must drop its own shim dir before the system lookup")
+            XCTAssertTrue(
+                body.contains("command -v \(name)"),
+                "\(name) shim must fall back to the system binary when no KTStack runtime resolves"
+            )
+            XCTAssertTrue(
+                body.contains("grep -vxF \"\(paths.shimBinDir.path)\""),
+                "\(name) shim must drop its own shim dir before the system lookup"
+            )
         }
     }
 
@@ -154,23 +166,33 @@ final class ShellPathManagerTests: XCTestCase {
         let shims = ShellShimWriter(paths: paths).shims
         for name in ["node", "php", "composer", "wp"] {
             let body = try XCTUnwrap(shims[name])
-            XCTAssertFalse(body.contains("export PATH=/usr/bin:/bin"),
-                           "\(name) shim must not wipe system PATH or tools like gh/git/brew disappear for child processes")
-            XCTAssertTrue(body.contains("export PATH=\"${target%/*}:$system_path\""),
-                          "\(name) shim must prepend the runtime bin dir to the shim-stripped system PATH")
+            XCTAssertFalse(
+                body.contains("export PATH=/usr/bin:/bin"),
+                "\(name) shim must not wipe system PATH or tools like gh/git/brew disappear for child processes"
+            )
+            XCTAssertTrue(
+                body.contains("export PATH=\"${target%/*}:$system_path\""),
+                "\(name) shim must prepend the runtime bin dir to the shim-stripped system PATH"
+            )
         }
     }
 
     func testComposerProvisionerRejectsUnverifiedCachedPhar() throws {
         let paths = AppSupportPaths(root: tmp.appendingPathComponent("support"))
-        try fm.createDirectory(at: paths.composerPhar.deletingLastPathComponent(),
-                               withIntermediateDirectories: true)
+        try fm.createDirectory(
+            at: paths.composerPhar.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
         try "not a real phar".write(to: paths.composerPhar, atomically: true, encoding: .utf8)
         XCTAssertFalse(ComposerProvisioner(paths: paths).isProvisioned)
     }
 }
 
-private func XCTAssertFalseContains(_ haystack: String, _ needle: String,
-                                    file: StaticString = #filePath, line: UInt = #line) {
+private func XCTAssertFalseContains(
+    _ haystack: String,
+    _ needle: String,
+    file: StaticString = #filePath,
+    line: UInt = #line
+) {
     XCTAssertFalse(haystack.contains(needle), "unexpected \(needle)", file: file, line: line)
 }

@@ -3,14 +3,19 @@ import Foundation
 public struct RouteIntrospector: Sendable {
     public struct IntrospectionError: LocalizedError {
         public let detail: String
-        public init(detail: String) { self.detail = detail }
-        public var errorDescription: String? { detail }
+        public init(detail: String) {
+            self.detail = detail
+        }
+
+        public var errorDescription: String? {
+            detail
+        }
     }
 
     private let runner: InstallCommandRunner
 
     public init(php: URL, phpIni: URL?) {
-        self.runner = InstallCommandRunner(php: php, phpIni: phpIni)
+        runner = InstallCommandRunner(php: php, phpIni: phpIni)
     }
 
     public func routes(siteAt folder: URL) async throws -> RouteIntrospectionOutcome {
@@ -62,7 +67,8 @@ public struct RouteIntrospector: Sendable {
             return RouteIntrospectionOutcome(
                 routes: Self.sorted(routes),
                 metadataOnly: true,
-                warning: "Rules unavailable — showing metadata only.")
+                warning: "Rules unavailable — showing metadata only."
+            )
         } catch {
             throw IntrospectionError(detail: reason)
         }
@@ -92,26 +98,27 @@ public struct RouteIntrospector: Sendable {
             let action = (entry["action"] as? String) ?? "Closure"
             let middleware = parseMiddleware(entry["middleware"])
             for method in parseMethods(entry["method"]) {
-                routes.append(APIRoute(method: method,
-                                       uri: uri,
-                                       name: (name?.isEmpty ?? true) ? nil : name,
-                                       middleware: middleware,
-                                       action: action,
-                                       fields: [],
-                                       rulesResolved: false))
+                routes.append(APIRoute(
+                    method: method,
+                    uri: uri,
+                    name: (name?.isEmpty ?? true) ? nil : name,
+                    middleware: middleware,
+                    action: action,
+                    fields: [],
+                    rulesResolved: false
+                ))
             }
         }
         return routes
     }
 
     private static func parseMethods(_ value: Any?) -> [String] {
-        let tokens: [String]
-        if let array = value as? [String] {
-            tokens = array
+        let tokens: [String] = if let array = value as? [String] {
+            array
         } else if let joined = value as? String {
-            tokens = joined.split(whereSeparator: { $0 == "|" || $0 == "," }).map(String.init)
+            joined.split(whereSeparator: { $0 == "|" || $0 == "," }).map(String.init)
         } else {
-            tokens = []
+            []
         }
         let cleaned = tokens
             .map { $0.trimmingCharacters(in: .whitespaces).uppercased() }
@@ -137,7 +144,8 @@ public struct RouteIntrospector: Sendable {
 
     static func jsonSlice(from output: String) -> Data? {
         if let begin = output.range(of: beginMarker),
-           let end = output.range(of: endMarker, range: begin.upperBound..<output.endIndex) {
+           let end = output.range(of: endMarker, range: begin.upperBound..<output.endIndex)
+        {
             return String(output[begin.upperBound..<end.lowerBound]).data(using: .utf8)
         }
         guard let start = output.firstIndex(where: { $0 == "{" || $0 == "[" }) else { return nil }

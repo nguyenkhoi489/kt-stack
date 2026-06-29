@@ -2,7 +2,6 @@ import XCTest
 @testable import KTStackKit
 
 final class PostgresBackupRunnerTests: XCTestCase {
-
     private var runner: PostgresBackupRunner!
 
     override func setUp() {

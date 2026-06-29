@@ -3,8 +3,11 @@ import Foundation
 public struct EmptySiteInstaller: SiteInstaller {
     public init() {}
 
-    public func scaffold(into folder: URL, request: NewSiteRequest,
-                         emit: @Sendable (String) -> Void) async throws {
+    public func scaffold(
+        into folder: URL,
+        request: NewSiteRequest,
+        emit: @Sendable (String) -> Void
+    ) async throws {
         emit("Creating empty site…")
         let index = folder.appendingPathComponent("index.php")
         try Self.welcomePage(domain: request.domain)

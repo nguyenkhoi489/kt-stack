@@ -32,8 +32,14 @@ public struct RestoreRequest: Sendable {
     public let secure: Bool
     public let repairEncoding: Bool
 
-    public init(backupFile: URL, siteFolder: URL, siteDomain: String, phpVersion: String,
-                secure: Bool, repairEncoding: Bool) {
+    public init(
+        backupFile: URL,
+        siteFolder: URL,
+        siteDomain: String,
+        phpVersion: String,
+        secure: Bool,
+        repairEncoding: Bool
+    ) {
         self.backupFile = backupFile
         self.siteFolder = siteFolder
         self.siteDomain = siteDomain
@@ -59,10 +65,10 @@ public enum RestoreServiceError: LocalizedError, Equatable {
 
     public var errorDescription: String? {
         switch self {
-        case .phpVersionNotInstalled(let version):
-            return "PHP \(version) is not installed. Install it first, then retry the restore."
+        case let .phpVersionNotInstalled(version):
+            "PHP \(version) is not installed. Install it first, then retry the restore."
         case .sourceURLUnresolved:
-            return "Could not determine the backup's original site address for search-replace."
+            "Could not determine the backup's original site address for search-replace."
         }
     }
 }

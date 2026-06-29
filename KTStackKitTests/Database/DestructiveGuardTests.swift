@@ -5,7 +5,6 @@ import XCTest
 /// mutations (keyless DELETE/UPDATE, DROP/TRUNCATE) and lets scoped statements through, including
 /// across a multi-statement batch.
 final class DestructiveGuardTests: XCTestCase {
-
     func testKeylessDeleteAndUpdateAreFlagged() {
         XCTAssertTrue(DestructiveGuard.evaluate("DELETE FROM users").isDestructive)
         XCTAssertTrue(DestructiveGuard.evaluate("UPDATE users SET active = 0").isDestructive)

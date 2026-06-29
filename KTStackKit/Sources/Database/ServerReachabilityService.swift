@@ -22,8 +22,10 @@ public final class ServerReachabilityService: ObservableObject {
         self.probeTimeout = probeTimeout
     }
 
-    public func configure(profiles: @escaping () -> [ConnectionProfile],
-                          managedRunning: @escaping (DatabaseKind) -> Bool) {
+    public func configure(
+        profiles: @escaping () -> [ConnectionProfile],
+        managedRunning: @escaping (DatabaseKind) -> Bool
+    ) {
         profilesProvider = profiles
         managedRunningProvider = managedRunning
     }
@@ -82,20 +84,22 @@ public final class ServerReachabilityService: ObservableObject {
 
     public nonisolated static func map(_ outcome: ProbeOutcome) -> ServerStatus {
         switch outcome {
-        case .managed(let running): return running ? .online : .offline
-        case .file(let exists): return exists ? .online : .offline
-        case .tcp(let reachable): return reachable ? .online : .offline
+        case let .managed(running): running ? .online : .offline
+        case let .file(exists): exists ? .online : .offline
+        case let .tcp(reachable): reachable ? .online : .offline
         }
     }
 
-    public nonisolated static func outcome(for profile: ConnectionProfile,
-                                           managedRunning: Bool,
-                                           tcpReachable: Bool,
-                                           fileExists: Bool) -> ProbeOutcome {
+    public nonisolated static func outcome(
+        for profile: ConnectionProfile,
+        managedRunning: Bool,
+        tcpReachable: Bool,
+        fileExists: Bool
+    ) -> ProbeOutcome {
         if profile.isManaged { return .managed(running: managedRunning) }
         switch profile.kind {
         case .sqlite: return .file(exists: fileExists)
-        default:      return .tcp(reachable: tcpReachable)
+        default: return .tcp(reachable: tcpReachable)
         }
     }
 

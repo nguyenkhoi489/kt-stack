@@ -11,7 +11,9 @@ public struct HerdSiteSource: ExternalSiteSource {
         linkedDir = base.appendingPathComponent("Sites")
     }
 
-    public var isAvailable: Bool { FileManager.default.fileExists(atPath: configFile.path) }
+    public var isAvailable: Bool {
+        FileManager.default.fileExists(atPath: configFile.path)
+    }
 
     public func discover() -> [DiscoveredSite] {
         ValetSiteSource.discover(tool: tool, configFile: configFile, linkedDir: linkedDir, experimental: true)

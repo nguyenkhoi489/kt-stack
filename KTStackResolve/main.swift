@@ -16,7 +16,9 @@ let installed = RuntimeCatalog(paths: paths).installedVersions(lang)
 guard let chosen = resolver.chooseVersion(lang, cwd: cwd, installed: installed) else {
     fail("no \(lang.rawValue) runtime installed", code: 127)
 }
+
 guard let bin = try? resolver.confinedBinary(lang, version: chosen) else {
     fail("\(lang.rawValue) \(chosen) not found in runtime root", code: 127)
 }
+
 print(bin.path)

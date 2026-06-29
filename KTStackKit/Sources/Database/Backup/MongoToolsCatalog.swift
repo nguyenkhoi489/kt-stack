@@ -14,10 +14,21 @@ public struct MongoToolsRelease: Sendable, Hashable, Identifiable {
         self.urlByArch = urlByArch
     }
 
-    public var id: String { "mongodb-database-tools-\(version)" }
-    public var supportsCurrentArch: Bool { ChecksumVerifier.isResolved(sha256ByArch[ServiceBinaryCatalog.arch]) }
-    public var sha256: String { sha256ByArch[ServiceBinaryCatalog.arch] ?? "" }
-    public var url: URL? { urlByArch[ServiceBinaryCatalog.arch] }
+    public var id: String {
+        "mongodb-database-tools-\(version)"
+    }
+
+    public var supportsCurrentArch: Bool {
+        ChecksumVerifier.isResolved(sha256ByArch[ServiceBinaryCatalog.arch])
+    }
+
+    public var sha256: String {
+        sha256ByArch[ServiceBinaryCatalog.arch] ?? ""
+    }
+
+    public var url: URL? {
+        urlByArch[ServiceBinaryCatalog.arch]
+    }
 }
 
 public struct MongoToolsCatalog: Sendable {
@@ -26,16 +37,19 @@ public struct MongoToolsCatalog: Sendable {
     public static let pinned = MongoToolsRelease(
         version: "100.10.0",
         sha256ByArch: [
-            "arm64":  "946177e469ef8744bd36aa38809926beb3c97a56e4c1d637dc052a1f18f57515",
+            "arm64": "946177e469ef8744bd36aa38809926beb3c97a56e4c1d637dc052a1f18f57515",
             "x86_64": "089dabbda45cd0dcc169395c8e4d2fdcc8b2ccf55d0bc450037455876c4b632b",
         ],
         urlByArch: [
-            "arm64":  URL(string: "https://fastdl.mongodb.org/tools/db/mongodb-database-tools-macos-arm64-100.10.0.zip")!,
+            "arm64": URL(string: "https://fastdl.mongodb.org/tools/db/mongodb-database-tools-macos-arm64-100.10.0.zip")!,
             "x86_64": URL(string: "https://fastdl.mongodb.org/tools/db/mongodb-database-tools-macos-x86_64-100.10.0.zip")!,
-        ])
+        ]
+    )
 
     private let paths: AppSupportPaths
-    public init(paths: AppSupportPaths) { self.paths = paths }
+    public init(paths: AppSupportPaths) {
+        self.paths = paths
+    }
 
     public var pinnedVersionDir: URL {
         paths.toolVersionDir(Self.toolsName, Self.pinned.version)

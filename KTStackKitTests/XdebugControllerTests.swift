@@ -11,15 +11,19 @@ final class XdebugControllerTests: XCTestCase {
         try fm.createDirectory(at: tmp, withIntermediateDirectories: true)
     }
 
-    override func tearDownWithError() throws { try? fm.removeItem(at: tmp) }
+    override func tearDownWithError() throws {
+        try? fm.removeItem(at: tmp)
+    }
 
     private func controller(reload: @escaping (String) async throws -> Void = { _ in }) -> (XdebugController, AppSupportPaths) {
         let paths = AppSupportPaths(root: tmp)
         return (XdebugController(paths: paths, reloadPool: reload), paths)
     }
 
-    private func controller(reload: @escaping (String) async throws -> Void,
-                            loadVerifier: @escaping XdebugController.LoadVerifier) -> (XdebugController, AppSupportPaths) {
+    private func controller(
+        reload: @escaping (String) async throws -> Void,
+        loadVerifier: @escaping XdebugController.LoadVerifier
+    ) -> (XdebugController, AppSupportPaths) {
         let paths = AppSupportPaths(root: tmp)
         return (XdebugController(paths: paths, reloadPool: reload, loadVerifier: loadVerifier), paths)
     }
@@ -63,7 +67,7 @@ final class XdebugControllerTests: XCTestCase {
             try await controller.enable(version: "8.4")
             XCTFail("expected checksum failure")
         } catch let error as XdebugController.XdebugError {
-            guard case .sharedObjectVerificationFailed = error else {
+            guard case .verificationFailed = error else {
                 XCTFail("unexpected error \(error)")
                 return
             }
@@ -98,7 +102,8 @@ final class XdebugControllerTests: XCTestCase {
         struct ReloadFail: Error {}
         let (controller, paths) = controller(
             reload: { _ in throw ReloadFail() },
-            loadVerifier: { _ in (true, nil) })
+            loadVerifier: { _ in (true, nil) }
+        )
         let module = paths.phpModulesDir(version: "8.4").appendingPathComponent("xdebug.so")
         try fm.createDirectory(at: module.deletingLastPathComponent(), withIntermediateDirectories: true)
         try Data("verified-xdebug".utf8).write(to: module)
@@ -139,7 +144,8 @@ final class XdebugControllerTests: XCTestCase {
 
         try IDEDebugConfigWriter().writeVSCode(
             projectRoot: root,
-            docroot: root.appendingPathComponent("public"))
+            docroot: root.appendingPathComponent("public")
+        )
 
         let data = try Data(contentsOf: file)
         let parsed = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
@@ -167,6 +173,11 @@ final class XdebugControllerTests: XCTestCase {
 private final class LockedFlag: @unchecked Sendable {
     private let lock = NSLock()
     private var flag = false
-    func set() { lock.lock(); flag = true; lock.unlock() }
-    var value: Bool { lock.lock(); defer { lock.unlock() }; return flag }
+    func set() {
+        lock.lock(); flag = true; lock.unlock()
+    }
+
+    var value: Bool {
+        lock.lock(); defer { lock.unlock() }; return flag
+    }
 }

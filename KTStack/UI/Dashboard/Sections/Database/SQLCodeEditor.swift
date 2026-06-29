@@ -1,13 +1,15 @@
-import SwiftUI
 import AppKit
 import KTStackKit
+import SwiftUI
 
 struct SQLCodeEditor: NSViewRepresentable {
     @Binding var text: String
     var catalog: SchemaCatalog
     var keywords: [String]
 
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
 
     func makeNSView(context: Context) -> NSScrollView {
         let scroll = NSScrollView()
@@ -27,13 +29,17 @@ struct SQLCodeEditor: NSViewRepresentable {
         textView.allowsUndo = true
         textView.textContainerInset = NSSize(width: 4, height: 6)
         textView.minSize = NSSize(width: 0, height: 0)
-        textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude,
-                                  height: CGFloat.greatestFiniteMagnitude)
+        textView.maxSize = NSSize(
+            width: CGFloat.greatestFiniteMagnitude,
+            height: CGFloat.greatestFiniteMagnitude
+        )
         textView.isVerticallyResizable = true
         textView.isHorizontallyResizable = false
         textView.autoresizingMask = [.width]
-        textView.textContainer?.containerSize = NSSize(width: scroll.contentSize.width,
-                                                       height: CGFloat.greatestFiniteMagnitude)
+        textView.textContainer?.containerSize = NSSize(
+            width: scroll.contentSize.width,
+            height: CGFloat.greatestFiniteMagnitude
+        )
         textView.textContainer?.widthTracksTextView = true
         textView.catalog = catalog
         textView.keywords = keywords
@@ -64,7 +70,9 @@ struct SQLCodeEditor: NSViewRepresentable {
 
     final class Coordinator: NSObject, NSTextViewDelegate {
         var parent: SQLCodeEditor
-        init(_ parent: SQLCodeEditor) { self.parent = parent }
+        init(_ parent: SQLCodeEditor) {
+            self.parent = parent
+        }
 
         func textDidChange(_ notification: Notification) {
             guard let textView = notification.object as? NSTextView else { return }
@@ -74,7 +82,6 @@ struct SQLCodeEditor: NSViewRepresentable {
 }
 
 final class CompletingTextView: NSTextView {
-
     var catalog: SchemaCatalog = .empty
     var keywords: [String] = []
     var completionController: SQLCompletionController?
@@ -112,16 +119,18 @@ final class CompletingTextView: NSTextView {
     }
 
     private func refreshCompletions() {
-        let string = self.string
+        let string = string
         let utf16Caret = selectedRange().location
         let swiftIndex = String.Index(utf16Offset: utf16Caret, in: string)
         let caret = string.distance(from: string.startIndex, to: swiftIndex)
         let items = SQLCompletionEngine.completions(
-            text: string, caret: caret, catalog: catalog, keywords: keywords)
+            text: string, caret: caret, catalog: catalog, keywords: keywords
+        )
 
         let partial = currentPartial(in: string, caret: utf16Caret)
         if items.isEmpty
-            || (items.count == 1 && items[0].text.lowercased() == partial.lowercased()) {
+            || (items.count == 1 && items[0].text.lowercased() == partial.lowercased())
+        {
             completionController?.hide()
         } else {
             completionController?.update(items: items, partial: partial)

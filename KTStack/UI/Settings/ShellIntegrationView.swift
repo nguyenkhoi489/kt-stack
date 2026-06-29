@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 @MainActor
 final class ShellIntegrationModel: ObservableObject {
@@ -32,7 +32,9 @@ final class ShellIntegrationModel: ObservableObject {
         }
     }
 
-    func reapply() { setEnabled(true) }
+    func reapply() {
+        setEnabled(true)
+    }
 }
 
 struct ShellIntegrationView: View {
@@ -42,8 +44,9 @@ struct ShellIntegrationView: View {
         Section("Shell PATH") {
             Toggle("Add php, composer, node and wp to your shell PATH", isOn: Binding(
                 get: { model.status.enabled },
-                set: { model.setEnabled($0) }))
-                .disabled(model.busy)
+                set: { model.setEnabled($0) }
+            ))
+            .disabled(model.busy)
             Text("Opens a managed PATH block in ~/.zshrc (and bash if present). New terminals run the PHP version each project asks for via .php-version or composer.json.")
                 .font(KDFont.footnote).foregroundStyle(.secondary)
             if model.busy {
@@ -55,9 +58,11 @@ struct ShellIntegrationView: View {
                 Button("Re-apply") { model.reapply() }.disabled(model.busy)
             }
             if model.composerWarning {
-                Label("Composer download didn't finish — the composer command won't work yet. Re-apply to retry.",
-                      systemImage: "exclamationmark.triangle")
-                    .font(KDFont.footnote).foregroundStyle(.orange)
+                Label(
+                    "Composer download didn't finish — the composer command won't work yet. Re-apply to retry.",
+                    systemImage: "exclamationmark.triangle"
+                )
+                .font(KDFont.footnote).foregroundStyle(.orange)
             }
             if let errorText = model.errorText {
                 Label(errorText, systemImage: "exclamationmark.triangle.fill")

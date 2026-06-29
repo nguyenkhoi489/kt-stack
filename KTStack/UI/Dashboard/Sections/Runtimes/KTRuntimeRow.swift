@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 enum KTRuntimeState {
     case active, installed, available
@@ -14,8 +14,8 @@ struct KTRuntimeRow: View {
     let onInstall: () -> Void
     let onCancel: () -> Void
     let onUninstall: () -> Void
-    var onEditIni: (() -> Void)? = nil
-    var onManageExtensions: (() -> Void)? = nil
+    var onEditIni: (() -> Void)?
+    var onManageExtensions: (() -> Void)?
 
     @State private var hovering = false
 
@@ -95,25 +95,25 @@ struct KTRuntimeRow: View {
 
     private var badgeText: String {
         switch state {
-        case .active: return "Active"
-        case .installed: return "Installed"
-        case .available: return "Available"
+        case .active: "Active"
+        case .installed: "Installed"
+        case .available: "Available"
         }
     }
 
     private var badgeTint: KTTint {
         switch state {
-        case .active: return KTTint(fg: KTColor.online, bg: KTColor.onlineBg)
-        case .installed: return KTTint(fg: KTColor.ink3, bg: KTColor.pillBg)
-        case .available: return KTTint(fg: KTColor.accent, bg: Color(hex: 0xEAF1FF))
+        case .active: KTTint(fg: KTColor.online, bg: KTColor.onlineBg)
+        case .installed: KTTint(fg: KTColor.ink3, bg: KTColor.pillBg)
+        case .available: KTTint(fg: KTColor.accent, bg: Color(hex: 0xEAF1FF))
         }
     }
 
     private var note: String {
         switch state {
-        case .active: return "Default for new sites and terminals."
-        case .installed: return "Installed and ready."
-        case .available: return "Not installed — download to use."
+        case .active: language == .php ? "Default for new sites and terminals." : "Installed and ready."
+        case .installed: "Installed and ready."
+        case .available: "Not installed — download to use."
         }
     }
 }

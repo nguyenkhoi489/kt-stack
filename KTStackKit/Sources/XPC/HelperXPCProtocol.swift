@@ -1,7 +1,7 @@
 import Foundation
 
-@objc public protocol HelperXPCProtocol {
-  
+@objc
+public protocol HelperXPCProtocol {
     func ping(reply: @escaping (String) -> Void)
 
     func enableDNS(tld: String, reply: @escaping (Bool, String?) -> Void)
@@ -24,7 +24,7 @@ import Foundation
 public struct HelperDNSStatus: Sendable, Equatable {
     public let resolverPresent: Bool
     public let dnsmasqRunning: Bool
-   
+
     public let conflictProcess: String?
 
     public init(resolverPresent: Bool, dnsmasqRunning: Bool, conflictProcess: String?) {
@@ -33,7 +33,9 @@ public struct HelperDNSStatus: Sendable, Equatable {
         self.conflictProcess = conflictProcess
     }
 
-    public var isHealthy: Bool { resolverPresent && dnsmasqRunning && conflictProcess == nil }
+    public var isHealthy: Bool {
+        resolverPresent && dnsmasqRunning && conflictProcess == nil
+    }
 
     public static let unknown = HelperDNSStatus(resolverPresent: false, dnsmasqRunning: false, conflictProcess: nil)
 }

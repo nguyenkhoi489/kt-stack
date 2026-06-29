@@ -1,18 +1,18 @@
 import Foundation
 
-
 public struct PHPFPMPoolWriter {
     public init() {}
 
-   
-    public func poolConfig(paths: AppSupportPaths,
-                           poolName: String,
-                           user: String = NSUserName()) -> String {
+    public func poolConfig(
+        paths: AppSupportPaths,
+        poolName: String,
+        user: String = NSUserName()
+    ) -> String {
         let socket = paths.phpFpmSocket(poolName).path
         let log = paths.phpFpmLog(poolName).path
-        
+
         let sendmail = "'\(paths.binary("mailpit").path)' sendmail -S 127.0.0.1:1025"
-        
+
         let mysqlSocket = paths.serviceSocket("mysql").path
         let base = """
         [global]

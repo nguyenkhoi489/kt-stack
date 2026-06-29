@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct KTNewDatabaseModal: View {
     @EnvironmentObject private var vm: DatabaseViewModel
@@ -9,15 +9,23 @@ struct KTNewDatabaseModal: View {
     @State private var name = ""
     @State private var submitting = false
 
-    private var engineKind: DatabaseKind { vm.selectedProfile?.kind ?? .mysql }
+    private var engineKind: DatabaseKind {
+        vm.selectedProfile?.kind ?? .mysql
+    }
+
     private var canSubmit: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !submitting
     }
 
     var body: some View {
-        KTModalCard(icon: "cylinder.split.1x2", tint: KTIconTint.db,
-                    title: "New Database", subtitle: "Create an empty database on this server.",
-                    width: 460, onClose: onClose) {
+        KTModalCard(
+            icon: "cylinder.split.1x2",
+            tint: KTIconTint.db,
+            title: "New Database",
+            subtitle: "Create an empty database on this server.",
+            width: 460,
+            onClose: onClose
+        ) {
             VStack(alignment: .leading, spacing: 0) {
                 fields
                 footer
@@ -30,11 +38,14 @@ struct KTNewDatabaseModal: View {
             fieldLabel("Database name")
             KTModalField(placeholder: "my_database", text: $name, mono: true)
             fieldLabel("Engine").padding(.top, 16)
-            KTEngineCard(name: engineDisplay(engineKind),
-                         tint: KTEngineTint.of(engineKind.rawValue),
-                         active: true, action: {})
-                .allowsHitTesting(false)
-                .padding(.top, 2)
+            KTEngineCard(
+                name: engineDisplay(engineKind),
+                tint: KTEngineTint.of(engineKind.rawValue),
+                active: true,
+                action: {}
+            )
+            .allowsHitTesting(false)
+            .padding(.top, 2)
         }
         .padding(.horizontal, 24).padding(.top, 22).padding(.bottom, 8)
     }
@@ -85,10 +96,10 @@ struct KTNewDatabaseModal: View {
 
     private func engineDisplay(_ kind: DatabaseKind) -> String {
         switch kind {
-        case .mysql: return "MySQL"
-        case .postgres: return "PostgreSQL"
-        case .sqlite: return "SQLite"
-        case .mongodb: return "MongoDB"
+        case .mysql: "MySQL"
+        case .postgres: "PostgreSQL"
+        case .sqlite: "SQLite"
+        case .mongodb: "MongoDB"
         }
     }
 }

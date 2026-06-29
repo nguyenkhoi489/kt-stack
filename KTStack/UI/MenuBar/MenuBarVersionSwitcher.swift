@@ -1,6 +1,5 @@
-import SwiftUI
 import KTStackKit
-
+import SwiftUI
 
 struct MenuBarVersionSwitcher: View {
     @EnvironmentObject private var runtimes: RuntimeManager

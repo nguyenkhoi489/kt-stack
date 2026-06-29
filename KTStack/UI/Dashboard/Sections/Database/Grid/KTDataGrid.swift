@@ -1,20 +1,22 @@
-import SwiftUI
 import AppKit
 import KTStackKit
+import SwiftUI
 
 struct KTDataGrid: NSViewRepresentable {
     let result: QueryResult
-    var selectedRow: Binding<Int?>? = nil
-    var onActivate: ((Int) -> Void)? = nil
-    var onNearEnd: (() -> Void)? = nil
-    var sort: SortSpec? = nil
-    var onSortColumn: ((String) -> Void)? = nil
+    var selectedRow: Binding<Int?>?
+    var onActivate: ((Int) -> Void)?
+    var onNearEnd: (() -> Void)?
+    var sort: SortSpec?
+    var onSortColumn: ((String) -> Void)?
     var editableColumns: Set<String> = []
-    var onCommitEdit: ((Int, Int, String) -> Void)? = nil
+    var onCommitEdit: ((Int, Int, String) -> Void)?
     var foreignKeyColumns: Set<String> = []
-    var onNavigateFK: ((Int, Int) -> Void)? = nil
+    var onNavigateFK: ((Int, Int) -> Void)?
 
-    func makeCoordinator() -> Coordinator { Coordinator(result: result) }
+    func makeCoordinator() -> Coordinator {
+        Coordinator(result: result)
+    }
 
     func makeNSView(context: Context) -> NSScrollView {
         let coordinator = context.coordinator
@@ -52,7 +54,7 @@ struct KTDataGrid: NSViewRepresentable {
         return scroll
     }
 
-    func updateNSView(_ scroll: NSScrollView, context: Context) {
+    func updateNSView(_: NSScrollView, context: Context) {
         context.coordinator.selectedRow = selectedRow
         context.coordinator.onActivate = onActivate
         context.coordinator.onNearEnd = onNearEnd
@@ -65,7 +67,7 @@ struct KTDataGrid: NSViewRepresentable {
         context.coordinator.apply(result)
     }
 
-    static func dismantleNSView(_ scroll: NSScrollView, coordinator: Coordinator) {
+    static func dismantleNSView(_: NSScrollView, coordinator: Coordinator) {
         coordinator.stopObserving()
     }
 
@@ -89,16 +91,17 @@ struct KTDataGrid: NSViewRepresentable {
         private var committedEdit = false
 
         static let cellFont: NSFont =
-            NSFont(name: "JetBrainsMono-Medium", size: 12.5)
-            ?? .monospacedSystemFont(ofSize: 12, weight: .regular)
+            .init(name: "JetBrainsMono-Medium", size: 12.5)
+                ?? .monospacedSystemFont(ofSize: 12, weight: .regular)
         static let headerFont: NSFont =
-            NSFont(name: "JetBrainsMono-SemiBold", size: 11)
-            ?? .monospacedSystemFont(ofSize: 11, weight: .semibold)
+            .init(name: "JetBrainsMono-SemiBold", size: 11)
+                ?? .monospacedSystemFont(ofSize: 11, weight: .semibold)
         static let nullFont: NSFont = {
             let base = NSFont.monospacedSystemFont(ofSize: 12.5, weight: .regular)
             let descriptor = base.fontDescriptor.withSymbolicTraits(.italic)
             return NSFont(descriptor: descriptor, size: 12.5) ?? base
         }()
+
         static let gridBackground = NSColor(hexValue: 0xFFFFFF)
         static let headerBackground = NSColor(hexValue: 0xF7F7FA)
         static let textColor = NSColor(hexValue: 0x1D1D1F)
@@ -124,12 +127,14 @@ struct KTDataGrid: NSViewRepresentable {
 
         static func isNumeric(_ cell: Cell) -> Bool {
             switch cell {
-            case .int, .double: return true
-            default: return false
+            case .int, .double: true
+            default: false
             }
         }
 
-        init(result: QueryResult) { self.result = result }
+        init(result: QueryResult) {
+            self.result = result
+        }
 
         deinit { NotificationCenter.default.removeObserver(self) }
 
@@ -137,14 +142,16 @@ struct KTDataGrid: NSViewRepresentable {
             scrollView = scroll
             NotificationCenter.default.addObserver(
                 self, selector: #selector(boundsDidChange),
-                name: NSView.boundsDidChangeNotification, object: scroll.contentView)
+                name: NSView.boundsDidChangeNotification, object: scroll.contentView
+            )
         }
 
         func stopObserving() {
             NotificationCenter.default.removeObserver(self)
         }
 
-        @objc private func boundsDidChange() {
+        @objc
+        private func boundsDidChange() {
             guard let scroll = scrollView, let table, !result.rows.isEmpty else { return }
             if editingField != nil { table.window?.makeFirstResponder(table) }
             let documentHeight = table.bounds.height
@@ -172,7 +179,8 @@ struct KTDataGrid: NSViewRepresentable {
             return menu
         }
 
-        @objc private func followForeignKey() {
+        @objc
+        private func followForeignKey() {
             guard let grid = table as? KTGridTableView, grid.menuRow >= 0,
                   grid.menuRow < result.rows.count,
                   let column = dataIndex(ofViewColumn: grid.menuColumn),
@@ -180,11 +188,23 @@ struct KTDataGrid: NSViewRepresentable {
             onNavigateFK?(grid.menuRow, column)
         }
 
-        @objc private func copyTSV() { copySelectedRows(includeHeaders: false, asCSV: false) }
-        @objc private func copyTSVWithHeaders() { copySelectedRows(includeHeaders: true, asCSV: false) }
-        @objc private func copyCSV() { copySelectedRows(includeHeaders: true, asCSV: true) }
+        @objc
+        private func copyTSV() {
+            copySelectedRows(includeHeaders: false, asCSV: false)
+        }
 
-        @objc private func editRow() {
+        @objc
+        private func copyTSVWithHeaders() {
+            copySelectedRows(includeHeaders: true, asCSV: false)
+        }
+
+        @objc
+        private func copyCSV() {
+            copySelectedRows(includeHeaders: true, asCSV: true)
+        }
+
+        @objc
+        private func editRow() {
             guard let onActivate, let row = table?.selectedRowIndexes.first,
                   row < result.rows.count else { return }
             onActivate(row)
@@ -226,12 +246,12 @@ struct KTDataGrid: NSViewRepresentable {
             updateSortIndicators()
         }
 
-        func tableView(_ tableView: NSTableView, didClick tableColumn: NSTableColumn) {
+        func tableView(_: NSTableView, didClick tableColumn: NSTableColumn) {
             guard let onSortColumn, tableColumn.identifier.rawValue != Self.rownumIdentifier else { return }
             onSortColumn(tableColumn.title)
         }
 
-        func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
+        func tableView(_ tableView: NSTableView, rowViewForRow _: Int) -> NSTableRowView? {
             let identifier = NSUserInterfaceItemIdentifier("ktgridrow")
             if let reused = tableView.makeView(withIdentifier: identifier, owner: self) as? KTGridRowView {
                 return reused
@@ -246,9 +266,12 @@ struct KTDataGrid: NSViewRepresentable {
             for column in table.tableColumns {
                 if let sort, column.title == sort.column {
                     table.setIndicatorImage(
-                        NSImage(systemSymbolName: sort.ascending ? "chevron.up" : "chevron.down",
-                                accessibilityDescription: nil),
-                        in: column)
+                        NSImage(
+                            systemSymbolName: sort.ascending ? "chevron.up" : "chevron.down",
+                            accessibilityDescription: nil
+                        ),
+                        in: column
+                    )
                     table.highlightedTableColumn = column
                 } else {
                     table.setIndicatorImage(nil, in: column)
@@ -258,7 +281,9 @@ struct KTDataGrid: NSViewRepresentable {
 
         func rebuildColumns(for result: QueryResult) {
             guard let table else { return }
-            for column in table.tableColumns { table.removeTableColumn(column) }
+            for column in table.tableColumns {
+                table.removeTableColumn(column)
+            }
             let rownum = NSTableColumn(identifier: NSUserInterfaceItemIdentifier(Self.rownumIdentifier))
             rownum.title = ""
             rownum.width = 50; rownum.minWidth = 40; rownum.maxWidth = 72
@@ -277,10 +302,15 @@ struct KTDataGrid: NSViewRepresentable {
             }
         }
 
-        func numberOfRows(in tableView: NSTableView) -> Int { result.rows.count }
+        func numberOfRows(in _: NSTableView) -> Int {
+            result.rows.count
+        }
 
-        func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?,
-                       row: Int) -> NSView? {
+        func tableView(
+            _ tableView: NSTableView,
+            viewFor tableColumn: NSTableColumn?,
+            row: Int
+        ) -> NSView? {
             guard let tableColumn, row < result.rows.count else { return nil }
 
             if tableColumn.identifier.rawValue == Self.rownumIdentifier {
@@ -330,13 +360,14 @@ struct KTDataGrid: NSViewRepresentable {
             return field
         }
 
-        func tableViewSelectionDidChange(_ notification: Notification) {
+        func tableViewSelectionDidChange(_: Notification) {
             guard let table else { return }
             let indexes = table.selectedRowIndexes
             selectedRow?.wrappedValue = indexes.count == 1 ? indexes.first : nil
         }
 
-        @objc func handleDoubleClick() {
+        @objc
+        func handleDoubleClick() {
             guard let table, table.clickedRow >= 0, table.clickedRow < result.rows.count else { return }
             let row = table.clickedRow
             let viewColumn = table.clickedColumn
@@ -407,7 +438,8 @@ final class KTGridTableView: NSTableView {
 
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
-           event.charactersIgnoringModifiers == "c" {
+           event.charactersIgnoringModifiers == "c"
+        {
             onCopy?()
             return true
         }
@@ -426,9 +458,9 @@ final class KTGridTableView: NSTableView {
 }
 
 final class KTGridRowView: NSTableRowView {
-    private static let selectionFill = NSColor(srgbRed: 47/255, green: 107/255, blue: 255/255, alpha: 0.10)
+    private static let selectionFill = NSColor(srgbRed: 47 / 255, green: 107 / 255, blue: 255 / 255, alpha: 0.10)
 
-    override func drawSelection(in dirtyRect: NSRect) {
+    override func drawSelection(in _: NSRect) {
         guard isSelected else { return }
         Self.selectionFill.setFill()
         bounds.fill()
@@ -437,9 +469,11 @@ final class KTGridRowView: NSTableRowView {
 
 private extension NSColor {
     convenience init(hexValue: UInt32) {
-        self.init(srgbRed: CGFloat((hexValue >> 16) & 0xFF) / 255,
-                  green: CGFloat((hexValue >> 8) & 0xFF) / 255,
-                  blue: CGFloat(hexValue & 0xFF) / 255,
-                  alpha: 1)
+        self.init(
+            srgbRed: CGFloat((hexValue >> 16) & 0xFF) / 255,
+            green: CGFloat((hexValue >> 8) & 0xFF) / 255,
+            blue: CGFloat(hexValue & 0xFF) / 255,
+            alpha: 1
+        )
     }
 }

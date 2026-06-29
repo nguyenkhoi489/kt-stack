@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct KTServiceRow: View {
     let snapshot: ServiceSnapshot
@@ -60,7 +60,7 @@ struct KTServiceRow: View {
                 Button { onCancelInstall() } label: { Image(systemName: "xmark.circle").foregroundStyle(KTColor.muted) }
                     .buttonStyle(.plain)
             }
-        } else if !snapshot.isInstalled && snapshot.installable {
+        } else if !snapshot.isInstalled, snapshot.installable {
             KTButton(title: "Install", kind: .primary, action: onInstall)
         } else if snapshot.isBusy {
             ProgressView().controlSize(.small).frame(width: 40)
@@ -90,7 +90,7 @@ struct KTServiceRow: View {
         Menu {
             Button("Open Logs", systemImage: "text.alignleft", action: onOpenLogs)
                 .disabled(snapshot.kind == .dnsmasq)
-            if snapshot.kind == .mongodb && snapshot.status == .error {
+            if snapshot.kind == .mongodb, snapshot.status == .error {
                 Divider()
                 Button("Reset Data…", systemImage: "trash", role: .destructive) { showResetConfirm = true }
             }
@@ -101,7 +101,9 @@ struct KTServiceRow: View {
         .menuStyle(.borderlessButton).menuIndicator(.hidden).frame(width: 28)
     }
 
-    private var canRestart: Bool { canToggle && snapshot.isInstalled && snapshot.status == .running }
+    private var canRestart: Bool {
+        canToggle && snapshot.isInstalled && snapshot.status == .running
+    }
 
     private var pillText: String {
         guard snapshot.isInstalled else { return "Not installed" }
@@ -137,5 +139,7 @@ struct KTServiceRow: View {
         }
     }
 
-    private var tint: KTTint { KTServiceVisuals.tint(snapshot.kind) }
+    private var tint: KTTint {
+        KTServiceVisuals.tint(snapshot.kind)
+    }
 }

@@ -3,56 +3,95 @@ import XCTest
 
 @MainActor
 final class DatabaseViewModelInlineEditTests: XCTestCase {
-
     private final class InlineStub: RelationalDriver, @unchecked Sendable {
         let kind: DatabaseKind = .mysql
         var includePrimaryKey = true
         private(set) var updateCalls: [(values: [ColumnValue], key: [ColumnValue])] = []
 
         func ping() async throws {}
-        func listDatabases() async throws -> [DatabaseInfo] { [DatabaseInfo(name: "db")] }
-        func listTables(database: String) async throws -> [TableInfo] { [TableInfo(name: "t")] }
-        func columns(database: String, table: String) async throws -> [ColumnInfo] {
-            var cols = [ColumnInfo(name: "name", dataType: "varchar", isNullable: true, isPrimaryKey: false),
-                        ColumnInfo(name: "qty", dataType: "int", isNullable: true, isPrimaryKey: false)]
+        func listDatabases() async throws -> [DatabaseInfo] {
+            [DatabaseInfo(name: "db")]
+        }
+
+        func listTables(database _: String) async throws -> [TableInfo] {
+            [TableInfo(name: "t")]
+        }
+
+        func columns(database _: String, table _: String) async throws -> [ColumnInfo] {
+            var cols = [
+                ColumnInfo(name: "name", dataType: "varchar", isNullable: true, isPrimaryKey: false),
+                ColumnInfo(name: "qty", dataType: "int", isNullable: true, isPrimaryKey: false),
+            ]
             if includePrimaryKey {
-                cols.insert(ColumnInfo(name: "id", dataType: "int", isNullable: false, isPrimaryKey: true),
-                            at: 0)
+                cols.insert(
+                    ColumnInfo(name: "id", dataType: "int", isNullable: false, isPrimaryKey: true),
+                    at: 0
+                )
             }
             return cols
         }
-        func indexes(database: String, table: String) async throws -> [IndexInfo] { [] }
-        func foreignKeys(database: String) async throws -> [ForeignKeyRelation] { [] }
-        func query(_ sql: String, database: String?) async throws -> QueryResult {
+
+        func indexes(database _: String, table _: String) async throws -> [IndexInfo] {
+            []
+        }
+
+        func foreignKeys(database _: String) async throws -> [ForeignKeyRelation] {
+            []
+        }
+
+        func query(_: String, database _: String?) async throws -> QueryResult {
             QueryResult(columns: [], rows: [])
         }
-        func paginatedRows(database: String, table: String,
-                           limit: Int, offset: Int) async throws -> QueryResult {
+
+        func paginatedRows(
+            database _: String,
+            table _: String,
+            limit _: Int,
+            offset _: Int
+        ) async throws -> QueryResult {
             if includePrimaryKey {
-                return QueryResult(columns: [ColumnMeta(name: "id"), ColumnMeta(name: "name"), ColumnMeta(name: "qty")],
-                                   rows: [[.int(1), .text("ann"), .int(10)],
-                                          [.int(2), .text("bob"), .int(20)]])
+                return QueryResult(
+                    columns: [ColumnMeta(name: "id"), ColumnMeta(name: "name"), ColumnMeta(name: "qty")],
+                    rows: [
+                        [.int(1), .text("ann"), .int(10)],
+                        [.int(2), .text("bob"), .int(20)],
+                    ]
+                )
             }
-            return QueryResult(columns: [ColumnMeta(name: "name"), ColumnMeta(name: "qty")],
-                               rows: [[.text("ann"), .int(10)]])
+            return QueryResult(
+                columns: [ColumnMeta(name: "name"), ColumnMeta(name: "qty")],
+                rows: [[.text("ann"), .int(10)]]
+            )
         }
+
         func openSession() async throws {}
         func closeSession() async {}
-        func runSelect(_ statement: DMLStatement, database: String?) async throws -> QueryResult {
+        func runSelect(_: DMLStatement, database _: String?) async throws -> QueryResult {
             QueryResult(columns: [], rows: [])
         }
-        func insert(database: String, table: String, values: [ColumnValue]) async throws {}
-        func update(database: String, table: String, values: [ColumnValue], key: [ColumnValue]) async throws {
+
+        func insert(database _: String, table _: String, values _: [ColumnValue]) async throws {}
+        func update(database _: String, table _: String, values: [ColumnValue], key: [ColumnValue]) async throws {
             updateCalls.append((values, key))
         }
-        func delete(database: String, table: String, key: [ColumnValue]) async throws {}
+
+        func delete(database _: String, table _: String, key _: [ColumnValue]) async throws {}
     }
 
-    private func browse(_ driver: InlineStub,
-                        readOnly: Bool = false) async -> DatabaseViewModel {
+    private func browse(
+        _ driver: InlineStub,
+        readOnly: Bool = false
+    ) async -> DatabaseViewModel {
         let vm = DatabaseViewModel(makeDriver: { _, _ in driver }, passwordFor: { _ in nil })
-        let profile = ConnectionProfile(name: "c", kind: .mysql, host: "127.0.0.1", port: 3306,
-                                        user: "u", database: "db", readOnly: readOnly)
+        let profile = ConnectionProfile(
+            name: "c",
+            kind: .mysql,
+            host: "127.0.0.1",
+            port: 3306,
+            user: "u",
+            database: "db",
+            readOnly: readOnly
+        )
         await vm.select(profile: profile)
         await vm.select(database: "db")
         await vm.select(table: TableInfo(name: "t"))

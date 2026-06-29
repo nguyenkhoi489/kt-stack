@@ -1,6 +1,6 @@
-import SwiftUI
 import AppKit
 import KTStackKit
+import SwiftUI
 
 struct KTImportFolderForm: View {
     @Binding var folder: URL?
@@ -50,7 +50,8 @@ struct KTImportFolderForm: View {
                         KTDropdownOption(label: "PHP \(v)", active: v == phpVersion) { phpVersion = v }
                     },
                     leading: { KTSiteFormControls.phpBadge },
-                    value: "PHP \(phpVersion)")
+                    value: "PHP \(phpVersion)"
+                )
             }
 
             if let detectedType {

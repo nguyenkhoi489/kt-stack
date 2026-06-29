@@ -16,8 +16,11 @@ public struct WPressArchiveReader: RestoreArchiveExtractor {
         static let chunkSize = 256 * 1024
     }
 
-    public func extract(_ file: URL, into staging: URL,
-                        emit: @Sendable (String) -> Void) async throws -> PreparedWordPressPayload {
+    public func extract(
+        _ file: URL,
+        into staging: URL,
+        emit: @Sendable (String) -> Void
+    ) async throws -> PreparedWordPressPayload {
         try RestoreDiskPreflight.ensureSpace(forArchive: file, at: staging)
 
         let docroot = staging.appendingPathComponent("extracted", isDirectory: true)
@@ -51,14 +54,17 @@ public struct WPressArchiveReader: RestoreArchiveExtractor {
             sourceURL: sourceURL,
             wpVersion: metadata.wpVersion,
             isContentOnly: true,
-            kind: .aioWpress)
+            kind: .aioWpress
+        )
     }
 
     private struct Header {
         let name: String
         let size: Int
         let prefix: String
-        var relativePath: String { prefix.isEmpty ? name : prefix + "/" + name }
+        var relativePath: String {
+            prefix.isEmpty ? name : prefix + "/" + name
+        }
     }
 
     private func readFully(_ handle: FileHandle, _ count: Int) throws -> Data {
@@ -117,7 +123,9 @@ public struct WPressArchiveReader: RestoreArchiveExtractor {
         let field = data[start..<end]
         let terminated = field.prefix { $0 != 0 }
         var slice = terminated
-        while let last = slice.last, last == 0x20 { slice = slice.dropLast() }
+        while let last = slice.last, last == 0x20 {
+            slice = slice.dropLast()
+        }
         return String(decoding: slice, as: UTF8.self)
     }
 
@@ -139,7 +147,8 @@ public struct WPressArchiveReader: RestoreArchiveExtractor {
     private func readPackageMetadata(in docroot: URL) -> PackageMetadata {
         let url = docroot.appendingPathComponent("package.json")
         guard let data = try? Data(contentsOf: url),
-              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else {
             return PackageMetadata()
         }
         func nestedString(_ path: [String]) -> String? {
@@ -160,6 +169,7 @@ public struct WPressArchiveReader: RestoreArchiveExtractor {
         return PackageMetadata(
             sourceURL: firstString([["SiteURL"], ["HomeURL"], ["Domain"], ["URL"]]),
             wpVersion: firstString([["WordPress", "Version"], ["WordPressVersion"], ["Version"]]),
-            tablePrefix: firstString([["Database", "Prefix"], ["Prefix"], ["TablePrefix"]]))
+            tablePrefix: firstString([["Database", "Prefix"], ["Prefix"], ["TablePrefix"]])
+        )
     }
 }

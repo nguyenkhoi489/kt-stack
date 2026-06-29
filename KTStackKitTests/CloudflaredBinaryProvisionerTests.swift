@@ -11,8 +11,10 @@ final class CloudflaredBinaryProvisionerTests: XCTestCase {
     func testToolsDirIsRootedAndInDirectoryTree() {
         let (paths, _) = freshPaths()
         XCTAssertTrue(paths.tools.path.hasPrefix(paths.root.path))
-        XCTAssertTrue(paths.toolVersionDir("cloudflared", "2026.6.0").path
-            .hasSuffix("tools/cloudflared/2026.6.0"))
+        XCTAssertTrue(
+            paths.toolVersionDir("cloudflared", "2026.6.0").path
+                .hasSuffix("tools/cloudflared/2026.6.0")
+        )
         XCTAssertTrue(paths.allDirectories.contains(paths.tools))
     }
 
@@ -36,7 +38,7 @@ final class CloudflaredBinaryProvisionerTests: XCTestCase {
         let expected = ServiceBinaryCatalog.arch == "arm64" ? release.arm64SHA256 : release.x86_64SHA256
         XCTAssertEqual(release.sha256ForCurrentArch, expected)
         XCTAssertEqual(release.sha256ForCurrentArch.count, 64)
-        XCTAssertTrue(release.sha256ForCurrentArch.allSatisfy { $0.isHexDigit })
+        XCTAssertTrue(release.sha256ForCurrentArch.allSatisfy(\.isHexDigit))
     }
 
     func testNotInstalledOnCleanPaths() async {
@@ -50,8 +52,10 @@ final class CloudflaredBinaryProvisionerTests: XCTestCase {
     }
 
     func testEnsureInstalledDownloadsVerifiesAndIsIdempotent() async throws {
-        try XCTSkipUnless(ProcessInfo.processInfo.environment["KTSTACK_NET_IT"] == "1",
-                          "Set KTSTACK_NET_IT=1 to download the cloudflared mirror over the network.")
+        try XCTSkipUnless(
+            ProcessInfo.processInfo.environment["KTSTACK_NET_IT"] == "1",
+            "Set KTSTACK_NET_IT=1 to download the cloudflared mirror over the network."
+        )
         let (paths, root) = freshPaths()
         defer { try? FileManager.default.removeItem(at: root) }
         let provisioner = CloudflaredBinaryProvisioner(paths: paths)

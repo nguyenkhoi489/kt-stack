@@ -3,7 +3,6 @@ import XCTest
 
 @MainActor
 final class DatabaseViewModelFetchMoreTests: XCTestCase {
-
     private final class FetchStub: RelationalDriver, @unchecked Sendable {
         let kind: DatabaseKind = .mysql
         var total: Int
@@ -11,25 +10,46 @@ final class DatabaseViewModelFetchMoreTests: XCTestCase {
         var columnNameByTable: [String: String] = ["users": "id", "orders": "ref"]
         private(set) var paginateOffsets: [Int] = []
 
-        init(total: Int) { self.total = total }
+        init(total: Int) {
+            self.total = total
+        }
 
         func ping() async throws {}
-        func listDatabases() async throws -> [DatabaseInfo] { [DatabaseInfo(name: "db")] }
-        func listTables(database: String) async throws -> [TableInfo] {
+        func listDatabases() async throws -> [DatabaseInfo] {
+            [DatabaseInfo(name: "db")]
+        }
+
+        func listTables(database _: String) async throws -> [TableInfo] {
             [TableInfo(name: "users"), TableInfo(name: "orders")]
         }
-        func columns(database: String, table: String) async throws -> [ColumnInfo] {
-            [ColumnInfo(name: columnNameByTable[table] ?? "id", dataType: "int",
-                        isNullable: false, isPrimaryKey: true)]
+
+        func columns(database _: String, table: String) async throws -> [ColumnInfo] {
+            [ColumnInfo(
+                name: columnNameByTable[table] ?? "id",
+                dataType: "int",
+                isNullable: false,
+                isPrimaryKey: true
+            )]
         }
-        func indexes(database: String, table: String) async throws -> [IndexInfo] { [] }
-        func foreignKeys(database: String) async throws -> [ForeignKeyRelation] { [] }
-        func query(_ sql: String, database: String?) async throws -> QueryResult {
+
+        func indexes(database _: String, table _: String) async throws -> [IndexInfo] {
+            []
+        }
+
+        func foreignKeys(database _: String) async throws -> [ForeignKeyRelation] {
+            []
+        }
+
+        func query(_: String, database _: String?) async throws -> QueryResult {
             QueryResult(columns: [], rows: [])
         }
 
-        func paginatedRows(database: String, table: String,
-                           limit: Int, offset: Int) async throws -> QueryResult {
+        func paginatedRows(
+            database _: String,
+            table: String,
+            limit: Int,
+            offset: Int
+        ) async throws -> QueryResult {
             if paginateDelay > .zero { try? await Task.sleep(for: paginateDelay) }
             paginateOffsets.append(offset)
             let name = columnNameByTable[table] ?? "id"
@@ -40,16 +60,20 @@ final class DatabaseViewModelFetchMoreTests: XCTestCase {
 
         func openSession() async throws {}
         func closeSession() async {}
-        func runSelect(_ statement: DMLStatement, database: String?) async throws -> QueryResult {
+        func runSelect(_: DMLStatement, database _: String?) async throws -> QueryResult {
             QueryResult(columns: [], rows: [])
         }
-        func insert(database: String, table: String, values: [ColumnValue]) async throws {}
-        func update(database: String, table: String, values: [ColumnValue], key: [ColumnValue]) async throws {}
-        func delete(database: String, table: String, key: [ColumnValue]) async throws {}
+
+        func insert(database _: String, table _: String, values _: [ColumnValue]) async throws {}
+        func update(database _: String, table _: String, values _: [ColumnValue], key _: [ColumnValue]) async throws {}
+        func delete(database _: String, table _: String, key _: [ColumnValue]) async throws {}
     }
 
-    private func browse(_ driver: FetchStub, pageSize: Int,
-                        table: String = "users") async -> DatabaseViewModel {
+    private func browse(
+        _ driver: FetchStub,
+        pageSize: Int,
+        table: String = "users"
+    ) async -> DatabaseViewModel {
         let vm = DatabaseViewModel(makeDriver: { _, _ in driver }, passwordFor: { _ in nil })
         vm.pageSize = pageSize
         await vm.select(profile: .managedMySQL)

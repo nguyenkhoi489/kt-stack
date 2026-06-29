@@ -21,7 +21,7 @@ final class KeychainStoreTests: XCTestCase {
 
     func testSetOverwritesExistingPassword() throws {
         try store.set("first", account: account)
-        try store.set("second", account: account)   // update, not duplicate-insert
+        try store.set("second", account: account) // update, not duplicate-insert
         XCTAssertEqual(try store.get(account: account), "second")
     }
 

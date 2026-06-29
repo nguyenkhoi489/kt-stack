@@ -10,15 +10,15 @@ public enum TunnelStatus: Equatable, Sendable {
 
     public var publicURL: URL? {
         switch self {
-        case .active(let url), .activeUnverified(let url): return url
-        default: return nil
+        case let .active(url), let .activeUnverified(url): url
+        default: nil
         }
     }
 
     public var isBusy: Bool {
         switch self {
-        case .starting, .active, .activeUnverified: return true
-        case .idle, .expired, .error: return false
+        case .starting, .active, .activeUnverified: true
+        case .idle, .expired, .error: false
         }
     }
 }
@@ -31,11 +31,18 @@ public struct TunnelSession: Identifiable, Sendable {
     public let startedAt: Date
     public let expiresAt: Date?
 
-    public var id: UUID { siteID }
+    public var id: UUID {
+        siteID
+    }
 
-    public init(siteID: UUID, domain: String, secure: Bool,
-                status: TunnelStatus = .starting, startedAt: Date = Date(),
-                expiresAt: Date? = nil) {
+    public init(
+        siteID: UUID,
+        domain: String,
+        secure: Bool,
+        status: TunnelStatus = .starting,
+        startedAt: Date = Date(),
+        expiresAt: Date? = nil
+    ) {
         self.siteID = siteID
         self.domain = domain
         self.secure = secure
@@ -57,8 +64,10 @@ public enum TunnelOrigin {
 
 public enum TrycloudflareURL {
     public static func first(in text: String) -> URL? {
-        guard let range = text.range(of: "https://[a-z0-9-]+\\.trycloudflare\\.com",
-                                     options: .regularExpression) else { return nil }
+        guard let range = text.range(
+            of: "https://[a-z0-9-]+\\.trycloudflare\\.com",
+            options: .regularExpression
+        ) else { return nil }
         return URL(string: String(text[range]))
     }
 }

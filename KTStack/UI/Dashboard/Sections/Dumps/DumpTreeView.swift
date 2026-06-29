@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct DumpTreeView: View {
     let node: DumpNode
@@ -12,13 +12,13 @@ struct DumpTreeView: View {
 
     var body: some View {
         switch node {
-        case .scalar(let s):
+        case let .scalar(s):
             Text(s)
                 .font(KDFont.mono)
                 .foregroundStyle(scalarColor(s))
                 .textSelection(.enabled)
 
-        case .array(let items):
+        case let .array(items):
             if items.isEmpty {
                 Text("[]").font(KDFont.mono).foregroundStyle(.secondary)
             } else {
@@ -39,7 +39,7 @@ struct DumpTreeView: View {
                 }
             }
 
-        case .object(let cls, let props):
+        case let .object(cls, props):
             if props.isEmpty {
                 Text("\(cls) {}").font(KDFont.mono).foregroundStyle(.secondary)
             } else {
@@ -60,7 +60,7 @@ struct DumpTreeView: View {
                 }
             }
 
-        case .reference(let n):
+        case let .reference(n):
             Text("&\(n)").font(KDFont.mono).foregroundStyle(.secondary)
         }
     }

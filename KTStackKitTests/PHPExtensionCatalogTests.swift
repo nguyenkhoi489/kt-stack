@@ -6,9 +6,6 @@ import XCTest
 /// case). Live `php -m` is exercised by PHPModules' own tests; here the installed set + on-disk flag are
 /// injected so the resolution rules are tested without a real PHP binary.
 final class PHPExtensionCatalogTests: XCTestCase {
-
-    // MARK: - Manifest
-
     func testManifestEntriesAreWellFormed() {
         XCTAssertFalse(PHPExtensionCatalog.manifest.isEmpty)
         for r in PHPExtensionCatalog.manifest {
@@ -26,8 +23,10 @@ final class PHPExtensionCatalogTests: XCTestCase {
     func testEveryManifestExtensionHasAnOptionalDescriptor() {
         let optionalIDs = Set(PHPExtensionCatalog.optional().map(\.id))
         for r in PHPExtensionCatalog.manifest {
-            XCTAssertTrue(optionalIDs.contains(r.extID),
-                          "manifest ext \(r.extID) must have an optional (non-built-in) descriptor")
+            XCTAssertTrue(
+                optionalIDs.contains(r.extID),
+                "manifest ext \(r.extID) must have an optional (non-built-in) descriptor"
+            )
         }
     }
 
@@ -46,8 +45,6 @@ final class PHPExtensionCatalogTests: XCTestCase {
         XCTAssertEqual(PHPExtensionCatalog.descriptor("xdebug")?.loadDirective, .zendExtension)
         XCTAssertEqual(PHPExtensionCatalog.descriptor("imagick")?.loadDirective, .module)
     }
-
-    // MARK: - Status resolution (pure, injected inputs)
 
     private let catalog = PHPExtensionCatalog(paths: AppSupportPaths())
 
@@ -76,8 +73,10 @@ final class PHPExtensionCatalogTests: XCTestCase {
     func testStatusInstalledButFailedToLoadWhenOnDiskButAbsentFromPhpM() {
         let apcu = PHPExtensionCatalog.descriptor("apcu")!
         // .so present on disk but php -m omits it → a silent load failure, not a no-op (red-team H2).
-        XCTAssertEqual(catalog.status(apcu, phpVersion: "8.4", installed: [], soOnDisk: true),
-                       .installedButFailedToLoad)
+        XCTAssertEqual(
+            catalog.status(apcu, phpVersion: "8.4", installed: [], soOnDisk: true),
+            .installedButFailedToLoad
+        )
     }
 
     func testStatusAvailableWhenReleaseExistsAndNotInstalled() {
@@ -87,11 +86,15 @@ final class PHPExtensionCatalogTests: XCTestCase {
         XCTAssertEqual(catalog.status(swoole, phpVersion: "8.1", installed: [], soOnDisk: false), .unavailable)
     }
 
-    func testInstalledExtensionsEmptyWhenBinaryAbsent() throws {
-        let paths = AppSupportPaths(root: FileManager.default.temporaryDirectory
-            .appendingPathComponent("ktstack-ext-\(UUID().uuidString)"))
+    func testInstalledExtensionsEmptyWhenBinaryAbsent() {
+        let paths = AppSupportPaths(
+            root: FileManager.default.temporaryDirectory
+                .appendingPathComponent("ktstack-ext-\(UUID().uuidString)")
+        )
         XCTAssertTrue(catalogFor(paths).installedExtensions("9.9").isEmpty)
     }
 
-    private func catalogFor(_ paths: AppSupportPaths) -> PHPExtensionCatalog { PHPExtensionCatalog(paths: paths) }
+    private func catalogFor(_ paths: AppSupportPaths) -> PHPExtensionCatalog {
+        PHPExtensionCatalog(paths: paths)
+    }
 }

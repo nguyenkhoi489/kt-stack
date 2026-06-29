@@ -1,5 +1,5 @@
-import XCTest
 import Security
+import XCTest
 @testable import KTStackKit
 
 final class HelperIdentityRequirementTests: XCTestCase {
@@ -31,16 +31,17 @@ final class HelperIdentityRequirementTests: XCTestCase {
     func testAbsentTeamNeverProducesSatisfiableBundleIDPinInRelease() {
         let requirement = HelperIdentity.requirement(for: "com.ktstack.app", team: nil)
         #if DEBUG
-        XCTAssertEqual(requirement, "identifier \"com.ktstack.app\"")
+            XCTAssertEqual(requirement, "identifier \"com.ktstack.app\"")
         #else
-        XCTAssertEqual(requirement, HelperIdentity.unsatisfiableRequirement)
+            XCTAssertEqual(requirement, HelperIdentity.unsatisfiableRequirement)
         #endif
     }
 
     func testUnsatisfiableRequirementParses() {
         var requirement: SecRequirement?
         let status = SecRequirementCreateWithString(
-            HelperIdentity.unsatisfiableRequirement as CFString, [], &requirement)
+            HelperIdentity.unsatisfiableRequirement as CFString, [], &requirement
+        )
         XCTAssertEqual(status, errSecSuccess)
         XCTAssertNotNil(requirement)
     }

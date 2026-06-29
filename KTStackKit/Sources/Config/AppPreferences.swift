@@ -1,32 +1,53 @@
-import Foundation
 import Combine
-
+import Foundation
 
 @MainActor
 public final class AppPreferences: ObservableObject {
     public static let defaultTLD = "test"
 
-   
     public static let safeTLDs = ["test", "localhost", "home.arpa", "internal"]
 
-    
-    public static var defaultSitesRootPath: String { AppSupportPaths.defaultSitesRoot.path }
+    public static var defaultSitesRootPath: String {
+        AppSupportPaths.defaultSitesRoot.path
+    }
 
     public enum ReleaseChannel: String, CaseIterable, Sendable, Identifiable {
         case stable, beta
-        public var id: String { rawValue }
-        public var label: String { self == .stable ? "Stable" : "Beta" }
+        public var id: String {
+            rawValue
+        }
+
+        public var label: String {
+            self == .stable ? "Stable" : "Beta"
+        }
     }
 
     @Published public private(set) var sitesRootPath: String
     @Published public private(set) var tld: String
 
-    @Published public var launchAtLogin: Bool { didSet { defaults.set(launchAtLogin, forKey: Key.launchAtLogin) } }
-    @Published public var autoStartServer: Bool { didSet { defaults.set(autoStartServer, forKey: Key.autoStartServer) } }
-    @Published public var showInMenuBar: Bool { didSet { defaults.set(showInMenuBar, forKey: Key.showInMenuBar) } }
-    @Published public var serveHTTPSByDefault: Bool { didSet { defaults.set(serveHTTPSByDefault, forKey: Key.serveHTTPS) } }
-    @Published public var automaticUpdates: Bool { didSet { defaults.set(automaticUpdates, forKey: Key.automaticUpdates) } }
-    @Published public var releaseChannel: ReleaseChannel { didSet { defaults.set(releaseChannel.rawValue, forKey: Key.releaseChannel) } }
+    @Published public var launchAtLogin: Bool {
+        didSet { defaults.set(launchAtLogin, forKey: Key.launchAtLogin) }
+    }
+
+    @Published public var autoStartServer: Bool {
+        didSet { defaults.set(autoStartServer, forKey: Key.autoStartServer) }
+    }
+
+    @Published public var showInMenuBar: Bool {
+        didSet { defaults.set(showInMenuBar, forKey: Key.showInMenuBar) }
+    }
+
+    @Published public var serveHTTPSByDefault: Bool {
+        didSet { defaults.set(serveHTTPSByDefault, forKey: Key.serveHTTPS) }
+    }
+
+    @Published public var automaticUpdates: Bool {
+        didSet { defaults.set(automaticUpdates, forKey: Key.automaticUpdates) }
+    }
+
+    @Published public var releaseChannel: ReleaseChannel {
+        didSet { defaults.set(releaseChannel.rawValue, forKey: Key.releaseChannel) }
+    }
 
     private let defaults: UserDefaults
     private enum Key {
@@ -42,22 +63,29 @@ public final class AppPreferences: ObservableObject {
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        self.sitesRootPath = defaults.string(forKey: Key.sitesRoot) ?? Self.defaultSitesRootPath
+        sitesRootPath = defaults.string(forKey: Key.sitesRoot) ?? Self.defaultSitesRootPath
         let stored = defaults.string(forKey: Key.tld) ?? Self.defaultTLD
 
-        self.tld = Self.isValidTLD(stored) ? stored : Self.defaultTLD
-        self.launchAtLogin = defaults.bool(forKey: Key.launchAtLogin)
-        self.autoStartServer = defaults.bool(forKey: Key.autoStartServer)
-        self.showInMenuBar = defaults.object(forKey: Key.showInMenuBar) as? Bool ?? true
-        self.serveHTTPSByDefault = defaults.object(forKey: Key.serveHTTPS) as? Bool ?? true
-        self.automaticUpdates = defaults.object(forKey: Key.automaticUpdates) as? Bool ?? true
-        self.releaseChannel = ReleaseChannel(rawValue: defaults.string(forKey: Key.releaseChannel) ?? "") ?? .stable
+        tld = Self.isValidTLD(stored) ? stored : Self.defaultTLD
+        launchAtLogin = defaults.bool(forKey: Key.launchAtLogin)
+        autoStartServer = defaults.bool(forKey: Key.autoStartServer)
+        showInMenuBar = defaults.object(forKey: Key.showInMenuBar) as? Bool ?? true
+        serveHTTPSByDefault = defaults.object(forKey: Key.serveHTTPS) as? Bool ?? true
+        automaticUpdates = defaults.object(forKey: Key.automaticUpdates) as? Bool ?? true
+        releaseChannel = ReleaseChannel(rawValue: defaults.string(forKey: Key.releaseChannel) ?? "") ?? .stable
     }
 
-    public func setLaunchAtLogin(_ on: Bool) { launchAtLogin = on }
-    public func setReleaseChannel(_ channel: ReleaseChannel) { releaseChannel = channel }
+    public func setLaunchAtLogin(_ on: Bool) {
+        launchAtLogin = on
+    }
 
-    public var sitesRootURL: URL { URL(fileURLWithPath: sitesRootPath) }
+    public func setReleaseChannel(_ channel: ReleaseChannel) {
+        releaseChannel = channel
+    }
+
+    public var sitesRootURL: URL {
+        URL(fileURLWithPath: sitesRootPath)
+    }
 
     public func setSitesRootPath(_ path: String) {
         let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -66,10 +94,8 @@ public final class AppPreferences: ObservableObject {
         defaults.set(trimmed, forKey: Key.sitesRoot)
     }
 
-   
     @discardableResult
     public func setTLD(_ raw: String) -> Bool {
-
         let candidate = raw.trimmingCharacters(in: .whitespaces)
         guard candidate != tld else { return true }
         guard Self.isValidTLD(candidate) else { return false }
@@ -78,5 +104,7 @@ public final class AppPreferences: ObservableObject {
         return true
     }
 
-    public static func isValidTLD(_ s: String) -> Bool { DNSConstants.isValidTLD(s) }
+    public static func isValidTLD(_ s: String) -> Bool {
+        DNSConstants.isValidTLD(s)
+    }
 }

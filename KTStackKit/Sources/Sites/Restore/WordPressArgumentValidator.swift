@@ -7,12 +7,12 @@ enum WordPressArgumentError: LocalizedError, Equatable {
 
     var errorDescription: String? {
         switch self {
-        case .invalidURL(let value):
-            return "Refused unsafe URL from the backup: “\(value)”."
-        case .invalidTablePrefix(let value):
-            return "Refused unsafe table prefix from the backup: “\(value)”."
-        case .invalidDatabaseName(let value):
-            return "Refused unsafe database name: “\(value)”."
+        case let .invalidURL(value):
+            "Refused unsafe URL from the backup: “\(value)”."
+        case let .invalidTablePrefix(value):
+            "Refused unsafe table prefix from the backup: “\(value)”."
+        case let .invalidDatabaseName(value):
+            "Refused unsafe database name: “\(value)”."
         }
     }
 }

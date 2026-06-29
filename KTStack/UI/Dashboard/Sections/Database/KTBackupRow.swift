@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct KTBackupRow: View {
     let backup: BackupSet
@@ -9,7 +9,9 @@ struct KTBackupRow: View {
 
     @State private var hovering = false
 
-    private var isFull: Bool { backup.databases.count != 1 }
+    private var isFull: Bool {
+        backup.databases.count != 1
+    }
 
     var body: some View {
         HStack(spacing: 14) {
@@ -19,9 +21,11 @@ struct KTBackupRow: View {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 9) {
                     Text(title).font(.jbMono(14, .regular)).foregroundStyle(KTColor.ink)
-                    KTBadge(text: isFull ? "Full" : "Single",
-                            tint: isFull ? KTTint(fg: KTColor.accent, bg: Color(hex: 0xEAF1FF)) : KTTint(fg: KTColor.ink3, bg: KTColor.pillBg),
-                            radius: 6)
+                    KTBadge(
+                        text: isFull ? "Full" : "Single",
+                        tint: isFull ? KTTint(fg: KTColor.accent, bg: Color(hex: 0xEAF1FF)) : KTTint(fg: KTColor.ink3, bg: KTColor.pillBg),
+                        radius: 6
+                    )
                 }
                 Text("\(created) · \(size)").font(KTType.sub).foregroundStyle(KTColor.muted)
             }

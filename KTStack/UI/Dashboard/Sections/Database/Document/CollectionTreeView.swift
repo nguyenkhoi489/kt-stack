@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct CollectionTreeView: View {
     @EnvironmentObject private var vm: DocumentViewModel
@@ -26,18 +26,24 @@ struct CollectionTreeView: View {
                 Text("Collections")
                     .font(KDFont.footnote).foregroundStyle(.secondary)
                 Spacer(minLength: 0)
-                SchemaHeaderButton(systemImage: "externaldrive.badge.timemachine",
-                                   help: backupsHelp,
-                                   isEnabled: canOpenBackups,
-                                   action: onOpenBackups)
-                SchemaHeaderButton(systemImage: "plus",
-                                   help: createDatabaseHelp,
-                                   isEnabled: canCreateDatabase,
-                                   action: onCreateDatabase)
-                SchemaHeaderButton(systemImage: "square.and.arrow.down.on.square",
-                                   help: importExportHelp,
-                                   isEnabled: canImportExport,
-                                   action: onImportExport)
+                SchemaHeaderButton(
+                    systemImage: "externaldrive.badge.timemachine",
+                    help: backupsHelp,
+                    isEnabled: canOpenBackups,
+                    action: onOpenBackups
+                )
+                SchemaHeaderButton(
+                    systemImage: "plus",
+                    help: createDatabaseHelp,
+                    isEnabled: canCreateDatabase,
+                    action: onCreateDatabase
+                )
+                SchemaHeaderButton(
+                    systemImage: "square.and.arrow.down.on.square",
+                    help: importExportHelp,
+                    isEnabled: canImportExport,
+                    action: onImportExport
+                )
             }
             .padding(.horizontal, KDSpacing.space3)
             .padding(.vertical, KDSpacing.space2)
@@ -76,7 +82,6 @@ struct CollectionTreeView: View {
         }
     }
 
-    @ViewBuilder
     private func databaseRow(_ database: DatabaseInfo) -> some View {
         DisclosureGroup(isExpanded: expandedBinding(database.name)) {
             if vm.selectedDatabase == database.name {
@@ -137,6 +142,7 @@ struct CollectionTreeView: View {
                 } else {
                     expanded.remove(name)
                 }
-            })
+            }
+        )
     }
 }

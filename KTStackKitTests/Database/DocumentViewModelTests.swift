@@ -3,7 +3,6 @@ import XCTest
 
 @MainActor
 final class DocumentViewModelTests: XCTestCase {
-
     private final class StubDocumentDriver: DocumentDriver, @unchecked Sendable {
         let kind: DatabaseKind = .mongodb
         var pingShouldThrow: DatabaseError?
@@ -14,14 +13,25 @@ final class DocumentViewModelTests: XCTestCase {
         private(set) var updateCalls: [(record: DocumentRecord, json: String)] = []
         private(set) var deleteCalls: [DocumentRecord] = []
 
-        func ping() async throws { if let pingShouldThrow { throw pingShouldThrow } }
-        func listDatabases() async throws -> [DatabaseInfo] { [DatabaseInfo(name: "shop"), DatabaseInfo(name: "admin")] }
-        func listCollections(database: String) async throws -> [CollectionInfo] {
+        func ping() async throws {
+            if let pingShouldThrow { throw pingShouldThrow }
+        }
+
+        func listDatabases() async throws -> [DatabaseInfo] {
+            [DatabaseInfo(name: "shop"), DatabaseInfo(name: "admin")]
+        }
+
+        func listCollections(database _: String) async throws -> [CollectionInfo] {
             [CollectionInfo(name: "users"), CollectionInfo(name: "orders")]
         }
 
-        func find(database: String, collection: String,
-                  filterJSON: String?, limit: Int, skip: Int) async throws -> [DocumentRecord] {
+        func find(
+            database: String,
+            collection: String,
+            filterJSON: String?,
+            limit: Int,
+            skip: Int
+        ) async throws -> [DocumentRecord] {
             findCalls.append((database, collection, filterJSON, limit, skip))
             if let findShouldThrow { throw findShouldThrow }
             return (0..<limit).map {
@@ -29,29 +39,43 @@ final class DocumentViewModelTests: XCTestCase {
             }
         }
 
-        func aggregate(database: String, collection: String,
-                       pipelineJSON: String, limit: Int) async throws -> [DocumentRecord] { [] }
+        func aggregate(
+            database _: String,
+            collection _: String,
+            pipelineJSON _: String,
+            limit _: Int
+        ) async throws -> [DocumentRecord] {
+            []
+        }
 
-        func insert(database: String, collection: String, json: String) async throws {
+        func insert(database _: String, collection _: String, json: String) async throws {
             if let writeShouldThrow { throw writeShouldThrow }
             insertCalls.append(json)
         }
-        func update(database: String, collection: String,
-                    record: DocumentRecord, json: String) async throws {
+
+        func update(
+            database _: String,
+            collection _: String,
+            record: DocumentRecord,
+            json: String
+        ) async throws {
             if let writeShouldThrow { throw writeShouldThrow }
             updateCalls.append((record, json))
         }
-        func delete(database: String, collection: String, record: DocumentRecord) async throws {
+
+        func delete(database _: String, collection _: String, record: DocumentRecord) async throws {
             if let writeShouldThrow { throw writeShouldThrow }
             deleteCalls.append(record)
         }
+
         private(set) var createdCollections: [String] = []
         private(set) var droppedCollections: [String] = []
-        func createCollection(database: String, name: String) async throws {
+        func createCollection(database _: String, name: String) async throws {
             if let writeShouldThrow { throw writeShouldThrow }
             createdCollections.append(name)
         }
-        func dropCollection(database: String, collection: String) async throws {
+
+        func dropCollection(database _: String, collection: String) async throws {
             if let writeShouldThrow { throw writeShouldThrow }
             droppedCollections.append(collection)
         }

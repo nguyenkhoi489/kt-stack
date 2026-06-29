@@ -13,7 +13,6 @@ public struct APIVariable: Codable, Hashable, Sendable {
 }
 
 public enum APIVariableStore {
-
     private static let defaults = UserDefaults.standard
 
     private static func key(siteKey: String) -> String {
@@ -34,7 +33,6 @@ public enum APIVariableStore {
 }
 
 public enum APIVariableInterpolator {
-
     public static func resolve(_ text: String, with values: [String: String]) -> String {
         guard text.contains("{{") else { return text }
         var result = ""

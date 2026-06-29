@@ -32,8 +32,11 @@ enum RestoreNaming {
         return trimmed.isEmpty ? "site" : trimmed
     }
 
-    static func uniqueName(base: String, separator: String = "_",
-                           exists: (String) async throws -> Bool) async throws -> String {
+    static func uniqueName(
+        base: String,
+        separator: String = "_",
+        exists: (String) async throws -> Bool
+    ) async throws -> String {
         if try await !exists(base) { return base }
         var suffix = 2
         while true {

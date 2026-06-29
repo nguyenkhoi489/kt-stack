@@ -9,7 +9,8 @@ public enum ImageMagickEnvironment {
 
     public static func isPresent(modulesDir: URL) -> Bool {
         FileManager.default.fileExists(
-            atPath: directory(modulesDir: modulesDir).appendingPathComponent("coders", isDirectory: true).path)
+            atPath: directory(modulesDir: modulesDir).appendingPathComponent("coders", isDirectory: true).path
+        )
     }
 
     public static func variables(modulesDir: URL) -> [String: String] {

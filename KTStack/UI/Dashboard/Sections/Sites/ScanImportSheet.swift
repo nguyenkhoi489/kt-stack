@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct ScanImportSheet: View {
     @ObservedObject var registry: SiteRegistry
@@ -7,7 +7,7 @@ struct ScanImportSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var scanned: [SiteScanner.ScannedSite] = []
-    @State private var selected: Set<String> = []   // folder.path of ticked rows
+    @State private var selected: Set<String> = [] // folder.path of ticked rows
     @State private var didScan = false
 
     var body: some View {
@@ -55,7 +55,6 @@ struct ScanImportSheet: View {
         selected.isEmpty ? "Import" : "Import \(selected.count) Site\(selected.count == 1 ? "" : "s")"
     }
 
-    @ViewBuilder
     private func rowView(_ row: SiteScanner.ScannedSite) -> some View {
         HStack(spacing: KDSpacing.space2) {
             Toggle("", isOn: binding(for: row)).labelsHidden().disabled(row.alreadyRegistered)
@@ -77,7 +76,8 @@ struct ScanImportSheet: View {
             get: { selected.contains(row.folder.path) },
             set: { on in
                 if on { selected.insert(row.folder.path) } else { selected.remove(row.folder.path) }
-            })
+            }
+        )
     }
 
     private func runScan() async {
@@ -86,14 +86,13 @@ struct ScanImportSheet: View {
             SiteScanner().scan(root: root, tld: tld, existingPaths: existing)
         }.value
         scanned = result
-        selected = Set(result.filter { !$0.alreadyRegistered }.map { $0.folder.path })
+        selected = Set(result.filter { !$0.alreadyRegistered }.map(\.folder.path))
         didScan = true
     }
 
     private func importSelected() {
         for row in scanned where selected.contains(row.folder.path) && !row.alreadyRegistered {
             do {
-               
                 try registry.add(folder: row.folder)
             } catch {
                 NSLog("KTStack: scan import skipped \(row.folder.lastPathComponent): \(error.localizedDescription)")

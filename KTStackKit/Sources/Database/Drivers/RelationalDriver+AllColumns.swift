@@ -1,7 +1,6 @@
 import Foundation
 
 public extension RelationalDriver {
-
     func allColumns(database: String) async throws -> [String: [String]] {
         let tables = try await listTables(database: database)
         var map: [String: [String]] = [:]

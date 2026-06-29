@@ -3,56 +3,97 @@ import XCTest
 
 @MainActor
 final class DatabaseViewModelForeignKeyNavTests: XCTestCase {
-
     private final class FKStub: RelationalDriver, @unchecked Sendable {
         let kind: DatabaseKind = .mysql
         private(set) var runSelectCalls: [DMLStatement] = []
 
         func ping() async throws {}
-        func listDatabases() async throws -> [DatabaseInfo] { [DatabaseInfo(name: "db")] }
-        func listTables(database: String) async throws -> [TableInfo] {
+        func listDatabases() async throws -> [DatabaseInfo] {
+            [DatabaseInfo(name: "db")]
+        }
+
+        func listTables(database _: String) async throws -> [TableInfo] {
             [TableInfo(name: "orders"), TableInfo(name: "customers"), TableInfo(name: "other")]
         }
-        func columns(database: String, table: String) async throws -> [ColumnInfo] {
+
+        func columns(database _: String, table: String) async throws -> [ColumnInfo] {
             switch table {
             case "customers":
-                return [ColumnInfo(name: "id", dataType: "int", isNullable: false, isPrimaryKey: true),
-                        ColumnInfo(name: "name", dataType: "text", isNullable: true, isPrimaryKey: false)]
+                [
+                    ColumnInfo(name: "id", dataType: "int", isNullable: false, isPrimaryKey: true),
+                    ColumnInfo(name: "name", dataType: "text", isNullable: true, isPrimaryKey: false),
+                ]
             default:
-                return [ColumnInfo(name: "id", dataType: "int", isNullable: false, isPrimaryKey: true),
-                        ColumnInfo(name: "user_id", dataType: "int", isNullable: true, isPrimaryKey: false),
-                        ColumnInfo(name: "a", dataType: "int", isNullable: true, isPrimaryKey: false),
-                        ColumnInfo(name: "b", dataType: "int", isNullable: true, isPrimaryKey: false),
-                        ColumnInfo(name: "z", dataType: "int", isNullable: true, isPrimaryKey: false)]
+                [
+                    ColumnInfo(name: "id", dataType: "int", isNullable: false, isPrimaryKey: true),
+                    ColumnInfo(name: "user_id", dataType: "int", isNullable: true, isPrimaryKey: false),
+                    ColumnInfo(name: "a", dataType: "int", isNullable: true, isPrimaryKey: false),
+                    ColumnInfo(name: "b", dataType: "int", isNullable: true, isPrimaryKey: false),
+                    ColumnInfo(name: "z", dataType: "int", isNullable: true, isPrimaryKey: false),
+                ]
             }
         }
-        func indexes(database: String, table: String) async throws -> [IndexInfo] { [] }
-        func foreignKeys(database: String) async throws -> [ForeignKeyRelation] {
-            [ForeignKeyRelation(fromTable: "orders", fromColumn: "user_id",
-                                toTable: "customers", toColumn: "id", constraintName: "fk_user"),
-             ForeignKeyRelation(fromTable: "orders", fromColumn: "a",
-                                toTable: "other", toColumn: "x", constraintName: "fk_composite"),
-             ForeignKeyRelation(fromTable: "orders", fromColumn: "b",
-                                toTable: "other", toColumn: "y", constraintName: "fk_composite"),
-             ForeignKeyRelation(fromTable: "orders", fromColumn: "z",
-                                toTable: "external", toColumn: "id", constraintName: "fk_cross")]
+
+        func indexes(database _: String, table _: String) async throws -> [IndexInfo] {
+            []
         }
-        func query(_ sql: String, database: String?) async throws -> QueryResult {
+
+        func foreignKeys(database _: String) async throws -> [ForeignKeyRelation] {
+            [
+                ForeignKeyRelation(
+                    fromTable: "orders",
+                    fromColumn: "user_id",
+                    toTable: "customers",
+                    toColumn: "id",
+                    constraintName: "fk_user"
+                ),
+                ForeignKeyRelation(
+                    fromTable: "orders",
+                    fromColumn: "a",
+                    toTable: "other",
+                    toColumn: "x",
+                    constraintName: "fk_composite"
+                ),
+                ForeignKeyRelation(
+                    fromTable: "orders",
+                    fromColumn: "b",
+                    toTable: "other",
+                    toColumn: "y",
+                    constraintName: "fk_composite"
+                ),
+                ForeignKeyRelation(
+                    fromTable: "orders",
+                    fromColumn: "z",
+                    toTable: "external",
+                    toColumn: "id",
+                    constraintName: "fk_cross"
+                ),
+            ]
+        }
+
+        func query(_: String, database _: String?) async throws -> QueryResult {
             QueryResult(columns: [], rows: [])
         }
-        func paginatedRows(database: String, table: String,
-                           limit: Int, offset: Int) async throws -> QueryResult {
+
+        func paginatedRows(
+            database _: String,
+            table _: String,
+            limit _: Int,
+            offset _: Int
+        ) async throws -> QueryResult {
             QueryResult(columns: [ColumnMeta(name: "id")], rows: [[.int(1)]])
         }
+
         func openSession() async throws {}
         func closeSession() async {}
-        func runSelect(_ statement: DMLStatement, database: String?) async throws -> QueryResult {
+        func runSelect(_ statement: DMLStatement, database _: String?) async throws -> QueryResult {
             runSelectCalls.append(statement)
             return QueryResult(columns: [ColumnMeta(name: "id")], rows: [[.int(42)]])
         }
-        func insert(database: String, table: String, values: [ColumnValue]) async throws {}
-        func update(database: String, table: String, values: [ColumnValue], key: [ColumnValue]) async throws {}
-        func delete(database: String, table: String, key: [ColumnValue]) async throws {}
+
+        func insert(database _: String, table _: String, values _: [ColumnValue]) async throws {}
+        func update(database _: String, table _: String, values _: [ColumnValue], key _: [ColumnValue]) async throws {}
+        func delete(database _: String, table _: String, key _: [ColumnValue]) async throws {}
     }
 
     private func browseOrders(_ driver: FKStub) async -> DatabaseViewModel {

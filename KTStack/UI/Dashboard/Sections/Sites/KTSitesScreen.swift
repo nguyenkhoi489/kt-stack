@@ -1,6 +1,6 @@
-import SwiftUI
 import AppKit
 import KTStackKit
+import SwiftUI
 
 struct KTSitesScreen: View {
     var onOpenLogs: (String?) -> Void = { _ in }
@@ -12,9 +12,15 @@ struct KTSitesScreen: View {
     @EnvironmentObject private var tunnels: TunnelManager
 
     var body: some View {
-        KTSitesContent(server: server, registry: server.registry, dns: dns,
-                       preferences: preferences, tunnels: tunnels,
-                       onOpenLogs: onOpenLogs, onNavigate: onNavigate)
+        KTSitesContent(
+            server: server,
+            registry: server.registry,
+            dns: dns,
+            preferences: preferences,
+            tunnels: tunnels,
+            onOpenLogs: onOpenLogs,
+            onNavigate: onNavigate
+        )
     }
 }
 
@@ -32,7 +38,6 @@ private struct KTSitesContent: View {
     @State private var searchText = ""
     @State private var gridView = false
     @State private var showScan = false
-    @State private var showImport = false
     @State private var restoreSite: Site?
     @State private var removingSiteID: UUID?
     @State private var actionError: String?
@@ -47,12 +52,13 @@ private struct KTSitesContent: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            KTSitesHeader(siteCount: registry.sites.count,
-                          onScan: { showScan = true },
-                          onImport: { showImport = true },
-                          onNewSite: { overlay.newSitePresented = true })
-                .padding(.horizontal, KTSpacing.screenGutter)
-                .padding(.top, 18)
+            KTSitesHeader(
+                siteCount: registry.sites.count,
+                onScan: { showScan = true },
+                onNewSite: { overlay.newSitePresented = true }
+            )
+            .padding(.horizontal, KTSpacing.screenGutter)
+            .padding(.top, 18)
 
             serverStatusRow
                 .padding(.horizontal, KTSpacing.screenGutter)
@@ -82,7 +88,6 @@ private struct KTSitesContent: View {
         .ktTooltipHost()
         .background(KTColor.contentBg)
         .sheet(isPresented: $showScan) { ScanImportSheet(registry: registry, sitesRoot: preferences.sitesRootURL) }
-        .sheet(isPresented: $showImport) { MigrateImportSheet(registry: registry, availableVersions: server.availableVersions) }
         .sheet(item: $restoreSite) { RestoreBackupSheet(site: $0, registry: registry, server: server) }
     }
 
@@ -122,9 +127,11 @@ private struct KTSitesContent: View {
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(active ? KTColor.ink : KTColor.ink3)
                 .frame(width: 30, height: 26)
-                .background(RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(active ? Color.white : Color.clear)
-                    .shadow(color: active ? .black.opacity(0.10) : .clear, radius: 1.5, y: 1))
+                .background(
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(active ? Color.white : Color.clear)
+                        .shadow(color: active ? .black.opacity(0.10) : .clear, radius: 1.5, y: 1)
+                )
         }
         .buttonStyle(.plain)
     }
@@ -145,20 +152,24 @@ private struct KTSitesContent: View {
     private var list: some View {
         LazyVStack(spacing: 0) {
             ForEach(Array(filteredSites.enumerated()), id: \.element.id) { index, site in
-                KTSiteListRow(site: site, availableVersions: server.availableVersions,
-                              canOpen: server.isRunning, isSharing: isSharing(site),
-                              shareStarting: isStartingShare(site), shareURL: shareURL(site),
-                              shareExpiresAt: shareExpiresAt(site),
-                              onOpen: { KTSiteActions.openInBrowser(site) },
-                              onSetVersion: { registry.setPHPVersion(site, to: $0) },
-                              onSetSecure: { server.setSiteSecure(site, $0) },
-                              onEditDomain: { try registry.editDomain(site, to: $0) },
-                              onOpenLogs: { onOpenLogs("site-\(site.domain)-access") },
-                              onToggleShare: { toggleShare(site, $0) },
-                              onRemove: { confirmRemove(site) },
-                              onError: { actionError = $0 },
-                              onOpenRuntimes: { onNavigate(.runtimes) },
-                              onRestore: { restoreSite = site })
+                KTSiteListRow(
+                    site: site,
+                    availableVersions: server.availableVersions,
+                    canOpen: server.isRunning,
+                    isSharing: isSharing(site),
+                    shareStarting: isStartingShare(site),
+                    shareURL: shareURL(site),
+                    shareExpiresAt: shareExpiresAt(site),
+                    onOpen: { KTSiteActions.openInBrowser(site) },
+                    onSetVersion: { registry.setPHPVersion(site, to: $0) },
+                    onSetSecure: { server.setSiteSecure(site, $0) },
+                    onEditDomain: { try registry.editDomain(site, to: $0) },
+                    onOpenLogs: { onOpenLogs("site-\(site.domain)-access") },
+                    onToggleShare: { toggleShare(site, $0) },
+                    onRemove: { confirmRemove(site) },
+                    onError: { actionError = $0 },
+                    onRestore: { restoreSite = site }
+                )
                 if index < filteredSites.count - 1 {
                     Rectangle().fill(KTColor.sepFaint).frame(height: 0.5).padding(.leading, 16)
                 }
@@ -169,18 +180,23 @@ private struct KTSitesContent: View {
     private var grid: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 252), spacing: 14)], spacing: 14) {
             ForEach(filteredSites) { site in
-                KTSiteGridCard(site: site, availableVersions: server.availableVersions,
-                               canOpen: server.isRunning, isSharing: isSharing(site),
-                               shareStarting: isStartingShare(site), shareURL: shareURL(site),
-                               shareExpiresAt: shareExpiresAt(site),
-                               onOpen: { KTSiteActions.openInBrowser(site) },
-                               onSetVersion: { registry.setPHPVersion(site, to: $0) },
-                               onSetSecure: { server.setSiteSecure(site, $0) },
-                               onOpenLogs: { onOpenLogs("site-\(site.domain)-access") },
-                               onToggleShare: { toggleShare(site, $0) },
-                               onRemove: { confirmRemove(site) },
-                               onError: { actionError = $0 },
-                               onRestore: { restoreSite = site })
+                KTSiteGridCard(
+                    site: site,
+                    availableVersions: server.availableVersions,
+                    canOpen: server.isRunning,
+                    isSharing: isSharing(site),
+                    shareStarting: isStartingShare(site),
+                    shareURL: shareURL(site),
+                    shareExpiresAt: shareExpiresAt(site),
+                    onOpen: { KTSiteActions.openInBrowser(site) },
+                    onSetVersion: { registry.setPHPVersion(site, to: $0) },
+                    onSetSecure: { server.setSiteSecure(site, $0) },
+                    onOpenLogs: { onOpenLogs("site-\(site.domain)-access") },
+                    onToggleShare: { toggleShare(site, $0) },
+                    onRemove: { confirmRemove(site) },
+                    onError: { actionError = $0 },
+                    onRestore: { restoreSite = site }
+                )
             }
         }
     }
@@ -217,8 +233,12 @@ private struct KTSitesContent: View {
     }
 
     private func confirmRemove(_ site: Site) {
-        overlay.confirm(title: "Remove \(site.domain)?", message: removeMessage(site),
-                        okLabel: "Remove Site", danger: true) { remove(site) }
+        overlay.confirm(
+            title: "Remove \(site.domain)?",
+            message: removeMessage(site),
+            okLabel: "Remove Site",
+            danger: true
+        ) { remove(site) }
     }
 
     private func removeMessage(_ site: Site) -> String {
@@ -242,7 +262,8 @@ private struct KTSitesContent: View {
                         let database = DatabaseProvisioner(ensureEngine: { try await mysql.start() })
                         try await database.dropDatabase(name)
                     },
-                    removeRecord: { site in await MainActor.run { registry.remove(site) } })
+                    removeRecord: { site in await MainActor.run { registry.remove(site) } }
+                )
                 try await coordinator.remove(site)
                 overlay.toast("Removed \(site.domain)")
             } catch {

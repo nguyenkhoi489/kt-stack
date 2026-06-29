@@ -16,16 +16,14 @@ public struct SQLiteDriver: RelationalDriver {
     public init(profile: ConnectionProfile) {
         self.profile = profile
         let capturedProfile = profile
-        self.session = ConnectionSession {
-            SQLiteSessionConnection(queue: try SQLiteDriver.makeQueue(profile: capturedProfile))
+        session = ConnectionSession {
+            try SQLiteSessionConnection(queue: SQLiteDriver.makeQueue(profile: capturedProfile))
         }
     }
 
     /// SQLite's single attached file is its one database; surfaced as `main` so the schema browser's
     /// database → tables flow works unchanged.
     public static let mainDatabase = "main"
-
-    // MARK: - RelationalDriver
 
     public func ping() async throws {
         let queue = try makeQueue()
@@ -36,7 +34,7 @@ public struct SQLiteDriver: RelationalDriver {
         [DatabaseInfo(name: Self.mainDatabase)]
     }
 
-    public func listTables(database: String) async throws -> [TableInfo] {
+    public func listTables(database _: String) async throws -> [TableInfo] {
         let queue = try makeQueue()
         return try await queue.read { db in
             let rows = try Row.fetchAll(db, sql: """
@@ -52,7 +50,7 @@ public struct SQLiteDriver: RelationalDriver {
 
     /// The SQL runner may carry DDL/DML, so a writable connection runs through `write` (which can also
     /// read); a read-only connection uses `read`, where any write attempt fails closed.
-    public func query(_ sql: String, database: String?) async throws -> QueryResult {
+    public func query(_ sql: String, database _: String?) async throws -> QueryResult {
         let queue = try makeQueue()
         do {
             return profile.readOnly
@@ -63,8 +61,12 @@ public struct SQLiteDriver: RelationalDriver {
         }
     }
 
-    public func paginatedRows(database: String, table: String,
-                              limit: Int, offset: Int) async throws -> QueryResult {
+    public func paginatedRows(
+        database: String,
+        table: String,
+        limit: Int,
+        offset: Int
+    ) async throws -> QueryResult {
         let qualified = try dialect.qualifiedTable(schema: database, table: table)
         let sql = dialect.paginate("SELECT * FROM \(qualified)", limit: limit, offset: offset)
         return try await session.runText(sql)
@@ -78,11 +80,9 @@ public struct SQLiteDriver: RelationalDriver {
         await session.shutdown()
     }
 
-    public func runSelect(_ statement: DMLStatement, database: String?) async throws -> QueryResult {
+    public func runSelect(_ statement: DMLStatement, database _: String?) async throws -> QueryResult {
         try await session.runSelect(statement)
     }
-
-    // MARK: - Shared statement execution
 
     /// Prepares the statement first so column names survive a zero-row result (the schema browser shows
     /// the header even when a table is empty). A statement with no result columns (DDL/DML) is just
@@ -101,8 +101,6 @@ public struct SQLiteDriver: RelationalDriver {
         }
         return QueryResult(columns: columns, rows: cells)
     }
-
-    // MARK: - Connection + errors
 
     func makeQueue() throws -> DatabaseQueue {
         try Self.makeQueue(profile: profile)

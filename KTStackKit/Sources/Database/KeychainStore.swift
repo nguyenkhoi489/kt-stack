@@ -2,7 +2,6 @@ import Foundation
 import Security
 
 public struct KeychainStore: Sendable {
-   
     public static let accessibleAttr = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
 
     public static let synchronizable = false
@@ -28,7 +27,8 @@ public struct KeychainStore: Sendable {
 
         let updateStatus = SecItemUpdate(
             query as CFDictionary,
-            [kSecValueData as String: data] as CFDictionary)
+            [kSecValueData as String: data] as CFDictionary
+        )
         if updateStatus == errSecSuccess { return }
         guard updateStatus == errSecItemNotFound else {
             throw keychainError(updateStatus, "update password")

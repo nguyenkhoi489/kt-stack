@@ -1,6 +1,6 @@
-import Network
-import Foundation
 import Combine
+import Foundation
+import Network
 
 public final class DumpServer: @unchecked Sendable {
     public static let preferredPort: UInt16 = 9912
@@ -24,11 +24,10 @@ public final class DumpServer: @unchecked Sendable {
         let params = NWParameters.tcp
         params.allowLocalEndpointReuse = true
 
-        let assignedPort: NWEndpoint.Port
-        if let preferred = NWEndpoint.Port(rawValue: Self.preferredPort) {
-            assignedPort = preferred
+        let assignedPort: NWEndpoint.Port = if let preferred = NWEndpoint.Port(rawValue: Self.preferredPort) {
+            preferred
         } else {
-            assignedPort = .any
+            .any
         }
 
         let l = try NWListener(using: params, on: assignedPort)
@@ -77,13 +76,13 @@ public final class DumpServer: @unchecked Sendable {
             while let newline = accumulated.firstIndex(of: UInt8(ascii: "\n")) {
                 let lineData = accumulated[accumulated.startIndex..<newline]
                 if !lineData.isEmpty, let event = try? DumpEventDecoder.decode(line: Data(lineData)) {
-                    self.subject.send(event)
+                    subject.send(event)
                 }
                 accumulated = accumulated[accumulated.index(after: newline)...]
             }
 
-            if !isComplete && error == nil {
-                self.readLines(from: connection, buffer: accumulated)
+            if !isComplete, error == nil {
+                readLines(from: connection, buffer: accumulated)
             } else {
                 connection.cancel()
             }

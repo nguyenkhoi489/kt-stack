@@ -13,12 +13,20 @@ final class SiteConfigGeneratorNodeTests: XCTestCase {
     }
 
     private func nodeSite(enabled: Bool, port: Int?) -> Site {
-        Site(name: "app", path: "/tmp/app", docroot: "/tmp/app",
-             domain: "app.test", phpVersion: "8.4", type: .node,
-             nodePort: port, nodeCommand: "npm run dev", nodeEnabled: enabled)
+        Site(
+            name: "app",
+            path: "/tmp/app",
+            docroot: "/tmp/app",
+            domain: "app.test",
+            phpVersion: "8.4",
+            type: .node,
+            nodePort: port,
+            nodeCommand: "npm run dev",
+            nodeEnabled: enabled
+        )
     }
 
-    func testEnabledNodeSiteEmitsProxyVhost() {
+    func testNodeSiteWithPortEmitsProxyVhost() {
         let (paths, root) = makePaths(); defer { try? fm.removeItem(at: root) }
         let gen = SiteConfigGenerator(paths: paths)
         let vhost = gen.vhostText(for: nodeSite(enabled: true, port: 3001), port: 80)
@@ -26,15 +34,15 @@ final class SiteConfigGeneratorNodeTests: XCTestCase {
         XCTAssertFalse(vhost.contains("try_files"))
     }
 
-    func testDisabledNodeSiteStaysStatic() {
+    func testNodeSiteWithPortProxiesRegardlessOfEnabledFlag() {
         let (paths, root) = makePaths(); defer { try? fm.removeItem(at: root) }
         let gen = SiteConfigGenerator(paths: paths)
         let vhost = gen.vhostText(for: nodeSite(enabled: false, port: 3001), port: 80)
-        XCTAssertFalse(vhost.contains("proxy_pass"))
-        XCTAssertTrue(vhost.contains("try_files $uri $uri/ =404;"))
+        XCTAssertTrue(vhost.contains("proxy_pass http://127.0.0.1:3001;"))
+        XCTAssertFalse(vhost.contains("try_files"))
     }
 
-    func testEnabledNodeSiteWithoutPortStaysStatic() {
+    func testNodeSiteWithoutPortStaysStatic() {
         let (paths, root) = makePaths(); defer { try? fm.removeItem(at: root) }
         let gen = SiteConfigGenerator(paths: paths)
         let vhost = gen.vhostText(for: nodeSite(enabled: true, port: nil), port: 80)

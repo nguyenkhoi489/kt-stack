@@ -1,14 +1,12 @@
 import Foundation
 
 public enum SQLKeywords {
-
     public static func forKind(_ kind: DatabaseKind) -> [String] {
-        let words: [String]
-        switch kind {
-        case .mysql:    words = common + mysql
-        case .postgres: words = common + postgres
-        case .sqlite:   words = common + sqlite
-        case .mongodb:  words = common
+        let words: [String] = switch kind {
+        case .mysql: common + mysql
+        case .postgres: common + postgres
+        case .sqlite: common + sqlite
+        case .mongodb: common
         }
         return Array(Set(words)).sorted()
     }

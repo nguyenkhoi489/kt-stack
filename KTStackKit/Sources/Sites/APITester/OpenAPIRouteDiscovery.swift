@@ -5,7 +5,7 @@ public struct OpenAPIRouteDiscovery: Sendable {
 
     static let candidatePaths = [
         "/openapi.json", "/swagger.json", "/swagger/v1/swagger.json",
-        "/v3/api-docs", "/api-docs", "/api-docs.json", "/docs.json"
+        "/v3/api-docs", "/api-docs", "/api-docs.json", "/docs.json",
     ]
 
     static let httpMethods = ["get", "post", "put", "patch", "delete", "options"]
@@ -51,7 +51,8 @@ public struct OpenAPIRouteDiscovery: Sendable {
                     middleware: [],
                     action: "",
                     fields: [],
-                    rulesResolved: false))
+                    rulesResolved: false
+                ))
             }
         }
         return sorted(routes)
@@ -59,7 +60,8 @@ public struct OpenAPIRouteDiscovery: Sendable {
 
     private static func serverBasePath(_ spec: [String: Any]) -> String {
         if let servers = spec["servers"] as? [[String: Any]],
-           let first = servers.first, let urlString = first["url"] as? String {
+           let first = servers.first, let urlString = first["url"] as? String
+        {
             if let url = URL(string: urlString), !url.path.isEmpty { return url.path }
             if urlString.hasPrefix("/") { return urlString }
         }

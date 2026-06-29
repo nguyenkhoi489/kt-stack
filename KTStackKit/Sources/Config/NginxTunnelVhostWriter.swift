@@ -5,10 +5,16 @@ public struct NginxTunnelVhostWriter {
 
     public init() {}
 
-    public func vhost(site: Site, port: Int, phpFpmSocket: URL?,
-                      accessLog: URL? = nil, errorLog: URL? = nil,
-                      publicHost: String? = nil, supportsBodyRewrite: Bool = false,
-                      hostPrependFile: URL? = nil) -> String {
+    public func vhost(
+        site: Site,
+        port: Int,
+        phpFpmSocket: URL?,
+        accessLog: URL? = nil,
+        errorLog: URL? = nil,
+        publicHost: String? = nil,
+        supportsBodyRewrite: Bool = false,
+        hostPrependFile: URL? = nil
+    ) -> String {
         let root = URL(fileURLWithPath: site.docroot)
         let prepend = publicHost == nil ? nil : hostPrependFile
         let routing = phpFpmSocket.map { phpRouting(socket: $0, localHost: site.domain, publicHost: publicHost, prependFile: prepend) } ?? staticRouting()

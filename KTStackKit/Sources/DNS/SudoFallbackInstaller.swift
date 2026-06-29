@@ -1,7 +1,6 @@
 import Foundation
 
 public struct SudoFallbackInstaller {
-   
     public let bundledDnsmasq: URL
 
     public let tld: String
@@ -11,13 +10,14 @@ public struct SudoFallbackInstaller {
         self.tld = tld
     }
 
-   
-    public func installScript() -> String { "#!/bin/bash\nset -euo pipefail\n" + installBody(tld: tld) }
+    public func installScript() -> String {
+        "#!/bin/bash\nset -euo pipefail\n" + installBody(tld: tld)
+    }
 
+    public func uninstallScript() -> String {
+        "#!/bin/bash\nset -uo pipefail\n" + uninstallBody(tld: tld)
+    }
 
-    public func uninstallScript() -> String { "#!/bin/bash\nset -uo pipefail\n" + uninstallBody(tld: tld) }
-
-   
     public func resetScript() -> String {
         "#!/bin/bash\nset -uo pipefail\n" + uninstallBody(tld: tld) + "\nset -e\n" + installBody(tld: tld)
     }
@@ -29,8 +29,6 @@ public struct SudoFallbackInstaller {
             + installBody(tld: new)
             + "\n/usr/bin/dscacheutil -flushcache || true\n"
     }
-
-    // MARK: - Script bodies (no shebang) — composed by the public scripts above.
 
     private func installBody(tld: String) -> String {
         """
@@ -69,16 +67,19 @@ public struct SudoFallbackInstaller {
     static func shellQuote(_ value: String) -> String {
         "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
-    private func q(_ value: String) -> String { Self.shellQuote(value) }
 
-    // MARK: - Staging + execution
+    private func q(_ value: String) -> String {
+        Self.shellQuote(value)
+    }
 
     @discardableResult
     public func writeScripts(to dir: URL) throws -> (install: URL, uninstall: URL, reset: URL) {
-       
         _ = try DNSConstants.validatedTLD(tld)
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true,
-                                                attributes: [.posixPermissions: 0o700])
+        try FileManager.default.createDirectory(
+            at: dir,
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
         let install = dir.appendingPathComponent("install.sh")
         let uninstall = dir.appendingPathComponent("uninstall.sh")
         let reset = dir.appendingPathComponent("reset.sh")
@@ -96,22 +97,26 @@ public struct SudoFallbackInstaller {
     }
 
     public func runInstallWithAdminPrivileges() throws {
-        try runAsAdmin(try writeScripts(to: Self.freshStagingDir()).install.path)
+        try runAsAdmin(writeScripts(to: Self.freshStagingDir()).install.path)
     }
+
     public func runUninstallWithAdminPrivileges() throws {
-        try runAsAdmin(try writeScripts(to: Self.freshStagingDir()).uninstall.path)
+        try runAsAdmin(writeScripts(to: Self.freshStagingDir()).uninstall.path)
     }
+
     public func runResetWithAdminPrivileges() throws {
-        try runAsAdmin(try writeScripts(to: Self.freshStagingDir()).reset.path)
+        try runAsAdmin(writeScripts(to: Self.freshStagingDir()).reset.path)
     }
 
     public func runSetTLDWithAdminPrivileges(old: String, new: String) throws {
-      
         _ = try DNSConstants.validatedTLD(old)
         _ = try DNSConstants.validatedTLD(new)
         let dir = Self.freshStagingDir()
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true,
-                                                attributes: [.posixPermissions: 0o700])
+        try FileManager.default.createDirectory(
+            at: dir,
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
         let script = dir.appendingPathComponent("set-tld.sh")
         try setTLDScript(old: old, new: new).write(to: script, atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: script.path)
@@ -129,8 +134,11 @@ public struct SudoFallbackInstaller {
         try proc.run()
         proc.waitUntilExit()
         if proc.terminationStatus != 0 {
-            throw NSError(domain: "KTStack", code: Int(proc.terminationStatus),
-                          userInfo: [NSLocalizedDescriptionKey: "Admin authorization was cancelled or failed."])
+            throw NSError(
+                domain: "KTStack",
+                code: Int(proc.terminationStatus),
+                userInfo: [NSLocalizedDescriptionKey: "Admin authorization was cancelled or failed."]
+            )
         }
     }
 }

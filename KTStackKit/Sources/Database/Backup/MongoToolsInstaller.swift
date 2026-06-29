@@ -10,8 +10,8 @@ public struct MongoToolsInstaller: Sendable {
 
     public init(paths: AppSupportPaths) {
         self.paths = paths
-        self.downloader = RuntimeDownloader(paths: paths)
-        self.catalog = MongoToolsCatalog(paths: paths)
+        downloader = RuntimeDownloader(paths: paths)
+        catalog = MongoToolsCatalog(paths: paths)
     }
 
     public typealias Progress = RuntimeDownloader.Progress
@@ -25,11 +25,13 @@ public struct MongoToolsInstaller: Sendable {
         try paths.ensureDirectoryTree()
         try FileManager.default.createDirectory(
             at: paths.toolsDir(MongoToolsCatalog.toolsName),
-            withIntermediateDirectories: true)
+            withIntermediateDirectories: true
+        )
         let installed = try await downloader.installArchive(
             url: url, sha256: release.sha256,
             into: dest, markerRelPath: "bin/mongodump",
-            onProgress: onProgress)
+            onProgress: onProgress
+        )
         try Self.adHocSign(in: installed)
         return installed
     }

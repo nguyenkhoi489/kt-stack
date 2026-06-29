@@ -13,8 +13,14 @@ final class SiteConfigGeneratorTests: XCTestCase {
     }
 
     private func site(_ domain: String, type: SiteType, version: String = "8.4") -> Site {
-        Site(name: domain, path: "/tmp/\(domain)", docroot: "/tmp/\(domain)/public",
-             domain: domain, phpVersion: version, type: type)
+        Site(
+            name: domain,
+            path: "/tmp/\(domain)",
+            docroot: "/tmp/\(domain)/public",
+            domain: domain,
+            phpVersion: version,
+            type: type
+        )
     }
 
     func testPHPVhostRoutesToVersionSocketStaticDoesNot() {
@@ -30,24 +36,27 @@ final class SiteConfigGeneratorTests: XCTestCase {
         XCTAssertTrue(stat.contains("try_files $uri $uri/ =404;"))
 
         let node = gen.vhostText(for: site("node.test", type: .node), port: 80)
-        XCTAssertFalse(node.contains("fastcgi_pass"))   // node not served through PHP-FPM
+        XCTAssertFalse(node.contains("fastcgi_pass")) // node not served through PHP-FPM
     }
 
     func testRequiredVersionsOnlyCountsPHPSites() {
-        let sites = [site("a.test", type: .php, version: "8.4"),
-                     site("b.test", type: .php, version: "8.1"),
-                     site("c.test", type: .staticSite, version: "8.4")]
+        let sites = [
+            site("a.test", type: .php, version: "8.4"),
+            site("b.test", type: .php, version: "8.1"),
+            site("c.test", type: .staticSite, version: "8.4"),
+        ]
         XCTAssertEqual(SiteConfigGenerator.requiredVersions(for: sites), ["8.4", "8.1"])
     }
-
-    // MARK: - PHP version fallback (pinned-but-not-installed → serve on an installed version)
 
     private func installPHP(_ versions: [String], in paths: AppSupportPaths) throws {
         for v in versions {
             let bin = paths.runtimeBin("php", v)
             try fm.createDirectory(at: bin, withIntermediateDirectories: true)
-            fm.createFile(atPath: bin.appendingPathComponent("php-fpm").path,
-                          contents: Data(), attributes: [.posixPermissions: 0o755])
+            fm.createFile(
+                atPath: bin.appendingPathComponent("php-fpm").path,
+                contents: Data(),
+                attributes: [.posixPermissions: 0o755]
+            )
         }
     }
 
@@ -55,43 +64,47 @@ final class SiteConfigGeneratorTests: XCTestCase {
         let (paths, root) = makePaths(); defer { try? fm.removeItem(at: root) }
         try installPHP(["8.1"], in: paths)
         let gen = SiteConfigGenerator(paths: paths)
-        XCTAssertEqual(gen.effectivePHPVersion("8.4"), "8.1")   // pin missing → newest installed
-        XCTAssertEqual(gen.effectivePHPVersion("8.1"), "8.1")   // pin installed → unchanged
+        XCTAssertEqual(gen.effectivePHPVersion("8.4"), "8.1") // pin missing → newest installed
+        XCTAssertEqual(gen.effectivePHPVersion("8.1"), "8.1") // pin installed → unchanged
     }
 
     func testEffectivePHPVersionPicksNewestInstalledNumerically() throws {
         let (paths, root) = makePaths(); defer { try? fm.removeItem(at: root) }
-        try installPHP(["8.1", "8.3", "8.10"], in: paths)   // 8.10 > 8.3 numerically (not lexically)
+        try installPHP(["8.1", "8.3", "8.10"], in: paths) // 8.10 > 8.3 numerically (not lexically)
         let gen = SiteConfigGenerator(paths: paths)
         XCTAssertEqual(gen.effectivePHPVersion("8.4"), "8.10")
     }
 
-    func testEffectivePHPVersionKeepsPinWhenNothingInstalled() throws {
+    func testEffectivePHPVersionKeepsPinWhenNothingInstalled() {
         let (paths, root) = makePaths(); defer { try? fm.removeItem(at: root) }
         let gen = SiteConfigGenerator(paths: paths)
-        XCTAssertEqual(gen.effectivePHPVersion("8.4"), "8.4")   // nothing to fall back to
+        XCTAssertEqual(gen.effectivePHPVersion("8.4"), "8.4") // nothing to fall back to
     }
 
     func testPoolVersionsAndVhostRouteToFallback() throws {
         let (paths, root) = makePaths(); defer { try? fm.removeItem(at: root) }
         try installPHP(["8.1"], in: paths)
         let gen = SiteConfigGenerator(paths: paths)
-        let sites = [site("a.test", type: .php, version: "8.4"),
-                     site("b.test", type: .php, version: "8.1")]
+        let sites = [
+            site("a.test", type: .php, version: "8.4"),
+            site("b.test", type: .php, version: "8.1"),
+        ]
         // Both PHP sites collapse onto the one installed version → a single 8.1 pool.
         XCTAssertEqual(gen.poolVersions(for: sites), ["8.1"])
         // The 8.4 site's vhost routes to the 8.1 fallback socket (so nginx has a live upstream).
         let vhost = gen.vhostText(for: site("a.test", type: .php, version: "8.4"), port: 80)
-        XCTAssertTrue(vhost.contains("fastcgi_pass \"unix:\(paths.phpFpmSocket("8.1").path)\";"),
-                      "an 8.4 site must route to the 8.1 fallback socket")
+        XCTAssertTrue(
+            vhost.contains("fastcgi_pass \"unix:\(paths.phpFpmSocket("8.1").path)\";"),
+            "an 8.4 site must route to the 8.1 fallback socket"
+        )
     }
 
     func testGenerateWritesIdempotentlyAndRemovesOrphans() throws {
         let (paths, root) = makePaths(); defer { try? fm.removeItem(at: root) }
         let gen = SiteConfigGenerator(paths: paths)
 
-        XCTAssertTrue(try gen.generate(sites: [site("demo.test", type: .php)]))      // first write: changed
-        XCTAssertFalse(try gen.generate(sites: [site("demo.test", type: .php)]))     // identical: no change
+        XCTAssertTrue(try gen.generate(sites: [site("demo.test", type: .php)])) // first write: changed
+        XCTAssertFalse(try gen.generate(sites: [site("demo.test", type: .php)])) // identical: no change
         XCTAssertTrue(fm.fileExists(atPath: paths.vhost("demo.test").path))
 
         // Removing the site deletes its vhost (orphan cleanup).
@@ -108,10 +121,12 @@ final class SiteConfigGeneratorTests: XCTestCase {
         _ = try gen.generate(sites: [s])
         XCTAssertTrue(fm.fileExists(atPath: paths.vhost("keep.test").path))
 
-        s.docroot = "/tmp/bad;rm -rf"   // fails isSafePath → skipped
+        s.docroot = "/tmp/bad;rm -rf" // fails isSafePath → skipped
         _ = try gen.generate(sites: [s])
-        XCTAssertTrue(fm.fileExists(atPath: paths.vhost("keep.test").path),
-                      "a registered-but-skipped site must keep its prior vhost (not orphaned)")
+        XCTAssertTrue(
+            fm.fileExists(atPath: paths.vhost("keep.test").path),
+            "a registered-but-skipped site must keep its prior vhost (not orphaned)"
+        )
     }
 
     func testGeneratePreservesActiveTunnelVhosts() throws {
@@ -141,11 +156,15 @@ final class BundledPHPTests: XCTestCase {
         for v in ["8.4", "8.1"] {
             let bin = root.appendingPathComponent("\(v)/bin", isDirectory: true)
             try FileManager.default.createDirectory(at: bin, withIntermediateDirectories: true)
-            FileManager.default.createFile(atPath: bin.appendingPathComponent("php-fpm").path,
-                                           contents: Data(), attributes: [.posixPermissions: 0o755])
+            FileManager.default.createFile(
+                atPath: bin.appendingPathComponent("php-fpm").path,
+                contents: Data(),
+                attributes: [.posixPermissions: 0o755]
+            )
         }
         try FileManager.default.createDirectory(
-            at: root.appendingPathComponent("7.4/bin", isDirectory: true), withIntermediateDirectories: true)
+            at: root.appendingPathComponent("7.4/bin", isDirectory: true), withIntermediateDirectories: true
+        )
         XCTAssertEqual(BundledPHP.availableVersions(php: root), ["8.1", "8.4"])
     }
 }

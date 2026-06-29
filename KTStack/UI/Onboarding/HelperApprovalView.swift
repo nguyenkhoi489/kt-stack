@@ -1,6 +1,5 @@
-import SwiftUI
 import KTStackKit
-
+import SwiftUI
 
 struct DNSStatusBar: View {
     @ObservedObject var dns: DNSAutomationService
@@ -33,33 +32,35 @@ struct DNSStatusBar: View {
 
     private var title: String {
         switch dns.status {
-        case .enabled:           return "Automatic DNS is on — *.test resolves"
-        case .disabled:          return "Automatic DNS is off"
-        case .conflict(let p):   return "DNS port conflict: \(p)"
-        case .unknown:           return "DNS status unknown"
+        case .enabled: "Automatic DNS is on — *.test resolves"
+        case .disabled: "Automatic DNS is off"
+        case let .conflict(p): "DNS port conflict: \(p)"
+        case .unknown: "DNS status unknown"
         }
     }
+
     private var subtitle: String {
         dns.usesHelper
             ? "Managed by the KTStack privileged helper."
             : "Uses a one-time admin password (helper signing arrives later)."
     }
+
     private var icon: String {
         switch dns.status {
-        case .enabled:  return "checkmark.seal.fill"
-        case .conflict: return "exclamationmark.triangle.fill"
-        default:        return "network"
+        case .enabled: "checkmark.seal.fill"
+        case .conflict: "exclamationmark.triangle.fill"
+        default: "network"
         }
     }
+
     private var tint: Color {
         switch dns.status {
-        case .enabled:  return Color.KDStatus.running
-        case .conflict: return Color.KDStatus.warning
-        default:        return .secondary
+        case .enabled: Color.KDStatus.running
+        case .conflict: Color.KDStatus.warning
+        default: .secondary
         }
     }
 }
-
 
 struct HelperApprovalView: View {
     @ObservedObject var dns: DNSAutomationService
@@ -69,10 +70,12 @@ struct HelperApprovalView: View {
         VStack(alignment: .leading, spacing: KDSpacing.space3) {
             Label("Enable automatic .test DNS", systemImage: "network")
                 .font(KDFont.title)
-            Text(dns.usesHelper
-                 ? "KTStack installs a small background helper to run a local DNS resolver for *.test. macOS will ask you to allow it in System Settings → Login Items."
-                 : "KTStack will ask for your admin password once to set up local DNS for *.test. No background item is installed on this build.")
-                .font(KDFont.body).foregroundStyle(.secondary)
+            Text(
+                dns.usesHelper
+                    ? "KTStack installs a small background helper to run a local DNS resolver for *.test. macOS will ask you to allow it in System Settings → Login Items."
+                    : "KTStack will ask for your admin password once to set up local DNS for *.test. No background item is installed on this build."
+            )
+            .font(KDFont.body).foregroundStyle(.secondary)
             if let error = dns.lastError {
                 Label(error, systemImage: "exclamationmark.triangle.fill")
                     .font(KDFont.footnote).foregroundStyle(Color.KDStatus.error)

@@ -7,9 +7,9 @@ public enum PHPFramework: String, Sendable, Equatable {
 
     public var label: String {
         switch self {
-        case .wordpress: return "WordPress"
-        case .laravel:   return "Laravel"
-        case .plain:     return "PHP"
+        case .wordpress: "WordPress"
+        case .laravel: "Laravel"
+        case .plain: "PHP"
         }
     }
 }
@@ -20,8 +20,11 @@ public struct PHPFrameworkDetector: Sendable {
 
     public init() {}
 
-    public func detect(siteAt folder: URL, docroot: URL? = nil,
-                       fileManager: FileManager = .default) -> PHPFramework {
+    public func detect(
+        siteAt folder: URL,
+        docroot: URL? = nil,
+        fileManager: FileManager = .default
+    ) -> PHPFramework {
         if laravel.isLaravel(siteAt: folder, fileManager: fileManager) { return .laravel }
         if wordpress.isWordPress(siteAt: folder, docroot: docroot, fileManager: fileManager) { return .wordpress }
         return .plain

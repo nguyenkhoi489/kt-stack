@@ -1,7 +1,6 @@
-import Foundation
 import Combine
+import Foundation
 import ServiceManagement
-
 
 @MainActor
 public final class UninstallService: ObservableObject {
@@ -18,8 +17,8 @@ public final class UninstallService: ObservableObject {
     public init(paths: AppSupportPaths, dns: DNSAutomationService, mkcertBinary: URL) {
         self.paths = paths
         self.dns = dns
-        self.mkcert = MkcertRunner(mkcert: mkcertBinary, caroot: paths.caDir)
-        self.agents = LaunchAgentManager(paths: paths)
+        mkcert = MkcertRunner(mkcert: mkcertBinary, caroot: paths.caDir)
+        agents = LaunchAgentManager(paths: paths)
     }
 
     public func uninstall() {
@@ -38,7 +37,7 @@ public final class UninstallService: ObservableObject {
             record("Shell PATH cleanup warning: \(error.localizedDescription)")
         }
 
-        let agents = self.agents, mkcert = self.mkcert, root = paths.root, resolverTLD = dns.tld
+        let agents = agents, mkcert = mkcert, root = paths.root, resolverTLD = dns.tld
         Task.detached(priority: .userInitiated) { [weak self] in
             agents.bootoutAll()
             await self?.record("Stopped all launchd services.")
@@ -59,13 +58,14 @@ public final class UninstallService: ObservableObject {
                 }
             } catch { failure = error.localizedDescription }
 
- 
             let resolverLeft = FileManager.default.fileExists(atPath: DNSConstants.resolverPath(for: resolverTLD))
 
             await MainActor.run {
-                self?.record(failure == nil
-                    ? "Removed all app-support data, runtimes and databases."
-                    : "Data removal warning: \(failure!)")
+                self?.record(
+                    failure == nil
+                        ? "Removed all app-support data, runtimes and databases."
+                        : "Data removal warning: \(failure!)"
+                )
                 if resolverLeft {
                     self?.record("Warning: \(DNSConstants.resolverPath(for: resolverTLD)) still present — re-run, or remove it with sudo.")
                 }
@@ -80,7 +80,9 @@ public final class UninstallService: ObservableObject {
         }
     }
 
-    private func record(_ message: String) { log.append(message) }
+    private func record(_ message: String) {
+        log.append(message)
+    }
 
     private nonisolated static func unregisterDaemonIfSigned() {
         guard HelperIdentity.hasSigningIdentity, #available(macOS 13.0, *) else { return }

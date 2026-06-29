@@ -1,10 +1,9 @@
 import Foundation
 #if canImport(ServiceManagement)
-import ServiceManagement
+    import ServiceManagement
 #endif
 
 public enum LegacyKDWarmMigration {
-
     private static let didMigrateKey = "ktstack.didMigrateFromKDWarm.v1"
     private static let legacyDataDirName = "KDWarm"
     private static let legacyDefaultsSuite = "com.kdwarm.app"
@@ -13,8 +12,10 @@ public enum LegacyKDWarmMigration {
     private static let legacyLaunchPrefix = "com.kdwarm."
     private static let legacyHelperPlist = "com.kdwarm.helper.plist"
 
-    public static func runIfNeeded(paths: AppSupportPaths = AppSupportPaths(),
-                                   defaults: UserDefaults = .standard) {
+    public static func runIfNeeded(
+        paths: AppSupportPaths = AppSupportPaths(),
+        defaults: UserDefaults = .standard
+    ) {
         guard !defaults.bool(forKey: didMigrateKey) else { return }
 
         let fileManager = FileManager.default
@@ -37,8 +38,11 @@ public enum LegacyKDWarmMigration {
     }
 
     @discardableResult
-    static func relocateDataDirectory(from legacyRoot: URL, to newRoot: URL,
-                                      fileManager: FileManager = .default) -> Bool {
+    static func relocateDataDirectory(
+        from legacyRoot: URL,
+        to newRoot: URL,
+        fileManager: FileManager = .default
+    ) -> Bool {
         guard fileManager.fileExists(atPath: legacyRoot.path),
               !fileManager.fileExists(atPath: newRoot.path) else { return false }
         do {
@@ -52,7 +56,8 @@ public enum LegacyKDWarmMigration {
     static func purgeLegacyLaunchPlists(in paths: AppSupportPaths) {
         let fileManager = FileManager.default
         guard let entries = try? fileManager.contentsOfDirectory(
-            at: paths.launchAgents, includingPropertiesForKeys: nil) else { return }
+            at: paths.launchAgents, includingPropertiesForKeys: nil
+        ) else { return }
         for url in entries where url.lastPathComponent.hasPrefix(legacyLaunchPrefix) {
             try? fileManager.removeItem(at: url)
         }
@@ -70,9 +75,9 @@ public enum LegacyKDWarmMigration {
 
     private static func unregisterLegacyHelper() {
         #if canImport(ServiceManagement)
-        if #available(macOS 13.0, *) {
-            try? SMAppService.daemon(plistName: legacyHelperPlist).unregister()
-        }
+            if #available(macOS 13.0, *) {
+                try? SMAppService.daemon(plistName: legacyHelperPlist).unregister()
+            }
         #endif
     }
 }

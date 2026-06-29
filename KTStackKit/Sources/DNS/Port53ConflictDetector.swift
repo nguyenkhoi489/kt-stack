@@ -20,9 +20,9 @@ public struct Port53ConflictDetector {
     static func message(for process: String) -> String {
         switch process.lowercased() {
         case let p where p.contains("herd") || p.contains("valet"):
-            return "Another local-dev DNS tool (\(process)) is using port 53. Stop Herd/Valet, then enable KTStack DNS."
+            "Another local-dev DNS tool (\(process)) is using port 53. Stop Herd/Valet, then enable KTStack DNS."
         default:
-            return "Port 53 is already in use by “\(process)”. Stop it, then enable KTStack DNS."
+            "Port 53 is already in use by “\(process)”. Stop it, then enable KTStack DNS."
         }
     }
 

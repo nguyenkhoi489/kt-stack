@@ -9,28 +9,36 @@ public final class WordPressRestoreService: Sendable {
     private let enableHTTPS: @Sendable () async throws -> Void
     private let finalizeSite: @Sendable (String) async -> Void
 
-    public init(paths: AppSupportPaths,
-                dumpService: DumpService = DumpService(),
-                ensureEngine: @escaping @Sendable () async throws -> Void,
-                applyServerConfig: @escaping @Sendable () async throws -> Void,
-                enableHTTPS: @escaping @Sendable () async throws -> Void,
-                finalizeSite: @escaping @Sendable (String) async -> Void) {
+    public init(
+        paths: AppSupportPaths,
+        dumpService: DumpService = DumpService(),
+        ensureEngine: @escaping @Sendable () async throws -> Void,
+        applyServerConfig: @escaping @Sendable () async throws -> Void,
+        enableHTTPS: @escaping @Sendable () async throws -> Void,
+        finalizeSite: @escaping @Sendable (String) async -> Void
+    ) {
         self.paths = paths
         self.dumpService = dumpService
-        self.provisioner = DatabaseProvisioner(ensureEngine: ensureEngine)
-        self.staging = RestoreStagingArea(paths: paths)
+        provisioner = DatabaseProvisioner(ensureEngine: ensureEngine)
+        staging = RestoreStagingArea(paths: paths)
         self.applyServerConfig = applyServerConfig
         self.enableHTTPS = enableHTTPS
         self.finalizeSite = finalizeSite
     }
 
-    public func restore(_ request: RestoreRequest,
-                        emit: @Sendable @escaping (RestoreEvent) -> Void) async throws -> RestoreOutcome {
+    public func restore(
+        _ request: RestoreRequest,
+        emit: @Sendable @escaping (RestoreEvent) -> Void
+    ) async throws -> RestoreOutcome {
         let stagingRoot = try staging.make()
         defer { staging.discard(stagingRoot) }
 
         var undo: [@Sendable () async -> Void] = []
-        func rollback() async { for step in undo.reversed() { await step() } }
+        func rollback() async {
+            for step in undo.reversed() {
+                await step()
+            }
+        }
 
         do {
             let php = paths.phpBinary(version: request.phpVersion)
@@ -75,8 +83,12 @@ public final class WordPressRestoreService: Sendable {
 
             try Task.checkCancellation()
             emit(RestoreEvent(phase: .importingDatabase, message: "Importing database…"))
-            try await dumpService.importDump(profile: .managedMySQL, password: nil,
-                                             database: database, from: payload.sqlDump)
+            try await dumpService.importDump(
+                profile: .managedMySQL,
+                password: nil,
+                database: database,
+                from: payload.sqlDump
+            )
 
             if request.repairEncoding {
                 try Task.checkCancellation()
@@ -143,7 +155,7 @@ public final class WordPressRestoreService: Sendable {
         }
     }
 
-    private func preflight(request: RestoreRequest, wpCliPhar: URL) async throws {
+    private func preflight(request: RestoreRequest, wpCliPhar _: URL) async throws {
         let installed = BundledPHP.availableVersions(php: paths.phpRuntimesRoot)
         guard installed.contains(request.phpVersion) else {
             throw RestoreServiceError.phpVersionNotInstalled(request.phpVersion)

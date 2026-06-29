@@ -1,14 +1,14 @@
 import Foundation
 
-struct WordPressCLI: Sendable {
+struct WordPressCLI {
     static let skipFlags = ["--skip-plugins", "--skip-themes", "--skip-packages"]
 
     private let runner: InstallCommandRunner
     private let phar: String
 
     init(php: URL, phpIni: URL?, wpCliPhar: URL) {
-        self.runner = InstallCommandRunner(php: php, phpIni: phpIni)
-        self.phar = wpCliPhar.path
+        runner = InstallCommandRunner(php: php, phpIni: phpIni)
+        phar = wpCliPhar.path
     }
 
     @discardableResult

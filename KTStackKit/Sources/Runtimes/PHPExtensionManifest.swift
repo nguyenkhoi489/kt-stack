@@ -1,42 +1,100 @@
 import Foundation
 
 extension PHPExtensionCatalog {
-
-
     public static let descriptors: [PHPExtension] = optionalDescriptors + builtInDescriptors
 
     static let optionalDescriptors: [PHPExtension] = [
-        PHPExtension(id: "apcu", displayName: "APCu", type: .cache,
-                     summary: "In-memory user-data cache (APC User Cache)."),
-        PHPExtension(id: "redis", displayName: "Redis", type: .cache,
-                     summary: "Redis client (phpredis) — caching, sessions, queues."),
-        PHPExtension(id: "memcached", displayName: "Memcached", type: .cache,
-                     summary: "Memcached client (libmemcached) — distributed object caching."),
-        PHPExtension(id: "imagick", displayName: "Imagick", type: .graphics,
-                     summary: "ImageMagick bindings for image creation and manipulation."),
-        PHPExtension(id: "xdebug", displayName: "Xdebug", type: .debugger,
-                     summary: "Step debugger, profiler, and stack traces.",
-                     loadDirective: .zendExtension),
-        PHPExtension(id: "xhprof", displayName: "XHProf", type: .debugger,
-                     summary: "Hierarchical profiler for production-grade performance analysis."),
-        PHPExtension(id: "grpc", displayName: "gRPC", type: .rpc,
-                     summary: "gRPC client/server runtime for high-performance RPC."),
-        PHPExtension(id: "protobuf", displayName: "Protobuf", type: .data,
-                     summary: "Protocol Buffers runtime (C extension) for gRPC/serialization."),
-        PHPExtension(id: "swoole", displayName: "Swoole", type: .runtime,
-                     summary: "Async coroutine runtime — used via CLI (php server.php), not under php-fpm."),
-        PHPExtension(id: "event", displayName: "Event", type: .runtime,
-                     summary: "libevent bindings for event-driven, async I/O servers."),
-        PHPExtension(id: "mongodb", displayName: "MongoDB", type: .database,
-                     summary: "MongoDB driver (ext-mongodb, libmongoc/libbson) — for MongoDB from PHP/Laravel."),
-        PHPExtension(id: "ssh2", displayName: "SSH2", type: .network,
-                     summary: "libssh2 bindings — SSH connections, SFTP, remote exec from PHP."),
-        PHPExtension(id: "snmp", displayName: "SNMP", type: .network,
-                     summary: "net-snmp bindings for querying SNMP-managed devices."),
-        PHPExtension(id: "zstd", displayName: "Zstd", type: .data,
-                     summary: "Zstandard compression bindings."),
-        PHPExtension(id: "xlswriter", displayName: "XLSWriter", type: .data,
-                     summary: "High-performance Excel (xlsx) reader/writer."),
+        PHPExtension(
+            id: "apcu",
+            displayName: "APCu",
+            type: .cache,
+            summary: "In-memory user-data cache (APC User Cache)."
+        ),
+        PHPExtension(
+            id: "redis",
+            displayName: "Redis",
+            type: .cache,
+            summary: "Redis client (phpredis) — caching, sessions, queues."
+        ),
+        PHPExtension(
+            id: "memcached",
+            displayName: "Memcached",
+            type: .cache,
+            summary: "Memcached client (libmemcached) — distributed object caching."
+        ),
+        PHPExtension(
+            id: "imagick",
+            displayName: "Imagick",
+            type: .graphics,
+            summary: "ImageMagick bindings for image creation and manipulation."
+        ),
+        PHPExtension(
+            id: "xdebug",
+            displayName: "Xdebug",
+            type: .debugger,
+            summary: "Step debugger, profiler, and stack traces.",
+            loadDirective: .zendExtension
+        ),
+        PHPExtension(
+            id: "xhprof",
+            displayName: "XHProf",
+            type: .debugger,
+            summary: "Hierarchical profiler for production-grade performance analysis."
+        ),
+        PHPExtension(
+            id: "grpc",
+            displayName: "gRPC",
+            type: .rpc,
+            summary: "gRPC client/server runtime for high-performance RPC."
+        ),
+        PHPExtension(
+            id: "protobuf",
+            displayName: "Protobuf",
+            type: .data,
+            summary: "Protocol Buffers runtime (C extension) for gRPC/serialization."
+        ),
+        PHPExtension(
+            id: "swoole",
+            displayName: "Swoole",
+            type: .runtime,
+            summary: "Async coroutine runtime — used via CLI (php server.php), not under php-fpm."
+        ),
+        PHPExtension(
+            id: "event",
+            displayName: "Event",
+            type: .runtime,
+            summary: "libevent bindings for event-driven, async I/O servers."
+        ),
+        PHPExtension(
+            id: "mongodb",
+            displayName: "MongoDB",
+            type: .database,
+            summary: "MongoDB driver (ext-mongodb, libmongoc/libbson) — for MongoDB from PHP/Laravel."
+        ),
+        PHPExtension(
+            id: "ssh2",
+            displayName: "SSH2",
+            type: .network,
+            summary: "libssh2 bindings — SSH connections, SFTP, remote exec from PHP."
+        ),
+        PHPExtension(
+            id: "snmp",
+            displayName: "SNMP",
+            type: .network,
+            summary: "net-snmp bindings for querying SNMP-managed devices."
+        ),
+        PHPExtension(
+            id: "zstd",
+            displayName: "Zstd",
+            type: .data,
+            summary: "Zstandard compression bindings."
+        ),
+        PHPExtension(
+            id: "xlswriter",
+            displayName: "XLSWriter",
+            type: .data,
+            summary: "High-performance Excel (xlsx) reader/writer."
+        ),
     ]
 
     static let builtInDescriptors: [PHPExtension] = [
@@ -49,8 +107,13 @@ extension PHPExtensionCatalog {
         ("ldap", "LDAP", .network), ("bz2", "Bzip2", .data),
         ("sysvshm", "SysV SHM", .utility), ("calendar", "Calendar", .utility), ("gmp", "GMP", .data),
         ("sysvmsg", "SysV Msg", .utility),
-    ].map { PHPExtension(id: $0.0, displayName: $0.1, type: $0.2, summary: "Compiled into the base PHP.",
-                         isBuiltIn: true) }
+    ].map { PHPExtension(
+        id: $0.0,
+        displayName: $0.1,
+        type: $0.2,
+        summary: "Compiled into the base PHP.",
+        isBuiltIn: true
+    ) }
 
     public static let manifest: [PHPExtensionRelease] = [
         ext("apcu", "7.4", "13b2cfbc94618fb75ae5218b3e2f13d09d10e8cff5b8efd8961000f4a7472e27"),
@@ -135,9 +198,23 @@ extension PHPExtensionCatalog {
         ext("zstd", "8.2", "f5201aa2410db7abdbd813541fd2144bb69e51ffea99ac79d6b80b145fcf80ac"),
         ext("zstd", "8.3", "872d38833354c80b2edf4da284440feac4c4feef8811e53af6fdc7cab43ac370"),
         ext("zstd", "8.4", "7a675caa517ee6f9f471bea7d7b48805341498a883865eabb3938c22151f53be"),
+        ext("apcu", "8.5", "a3551a8f71e75aee1fcaa8cbd6a0666b2d9562017fa14ffec27a98ee506156e1"),
+        ext("event", "8.5", "133579a89b296026e8c37bbf6e531e787b2671a401349e8fc9526354e691ad2d"),
+        ext("grpc", "8.5", "fe9272ce4af6111543fa2df6bd01559a0327e32a32ce4e5696ea23058af9d63c"),
+        ext("imagick", "8.5", "5ca9d9bf433158bb3454dd49f938466deeb6605751cb9e161354cafc2243c533"),
+        ext("memcached", "8.5", "bec21565a25481712ce20142221f53ecd81bdc53796fb5d743a7718c9e24aae8"),
+        ext("mongodb", "8.5", "1a0829521d4ff3b7b22c9afbc861abcede00a5c52811ce005fb42bdf0fbb38d3"),
+        ext("protobuf", "8.5", "2ad2f9c1d57f3581e91aab63d59a4d8e939a5092163c42d5ff994218a315ce5e"),
+        ext("redis", "8.5", "b97310ea1d6601f338bf2a2b83ef7f9ac494f78567e1ffd2c9510fd901c6cdac"),
+        ext("snmp", "8.5", "3d8329bef05724b643dc4fbcae418cf52de010fbe1d0b838d7db6c7ebfbe6c4b"),
+        ext("ssh2", "8.5", "1a31e173a06e3c98204b137a9537cbf6c580958c722d4d735a03e7b9b5e8018c"),
+        ext("swoole", "8.5", "0fee7922f04c4b96317ca451a3f9db5f5a064b84442d099ecdee3ee7b8eb37b3"),
+        ext("xdebug", "8.5", "9f07535eabdb73cf0ab6b37d88420b9dc6a661d9205b6b5f95e9be6ef40110e8"),
+        ext("xhprof", "8.5", "f19b73d597c6a9fbeace2f000a295cf01454193060adae63b5f9752156cc8bbb"),
+        ext("xlswriter", "8.5", "dcc07353cb6b9bb3fded9b4707f3e4507f133294283d3e2c978d99633a668c18"),
+        ext("zstd", "8.5", "7bd9f2010036e85254b1d998374ae131bc423a7f259008315a380898e4a7a64e"),
     ]
 
-   
     private static func ext(_ id: String, _ version: String, _ arm64: String) -> PHPExtensionRelease {
         var sha256ByArch = ["arm64": arm64]
         if let x86 = extChecksumsX86["\(id)-\(version)"] { sha256ByArch["x86_64"] = x86 }
@@ -145,6 +222,21 @@ extension PHPExtensionCatalog {
     }
 
     static let extChecksumsX86: [String: String] = [
+        "apcu-8.5": "2485cc54a8fc3c3238c21a1f5266334dd138403ccc346dcc1e51122bcf45d4e9",
+        "event-8.5": "33bb6bd2512f1f29e25148683c3cf9cf50c4a9e58bfcfcfc70c2cf880cbbf865",
+        "grpc-8.5": "250880a752d54230ea56d1e62364059d9e6727099e47f83fb7cbdabb98483ffc",
+        "imagick-8.5": "6632ac2e7d4673a8ad320ed77b885622f6f4e4a22b19f63acdff0abeae5ec3bf",
+        "memcached-8.5": "7b2453f1754483fe548596cdc5c9623c36ec7ecca979fb822f508ead502cfb58",
+        "mongodb-8.5": "3a4f97c5280275468dfc0cd21991fc607f93d3386e7383c9df99f7dc6e4d2d76",
+        "protobuf-8.5": "700594c3cfc722e7c8435ee6567eb7bebc3c1ad759aea78593f7de3c1a107142",
+        "redis-8.5": "fcef3617a06b1a7812b8da4154957976faab5adaf5b8c6d2d2b26b9fc0f96e1f",
+        "snmp-8.5": "03472596c4cc23ab977828c634f25c6e78ca96bc72a597b04aa4a1b9d6fb4ae3",
+        "ssh2-8.5": "cb994970913685f312d411a38da5fa9bfcc832071f2080abd9775abb50d2de5f",
+        "swoole-8.5": "228463a532637ce17b15c605fceeb134a26bf1a0ee625447a2bee8af491354aa",
+        "xdebug-8.5": "6442a48c3d94d94bddc992c5c1927f88a50c60b2a67a967d3d32d0fb5b2442f8",
+        "xhprof-8.5": "281ef98a0f7403e75015cfea12c2b8e798e131d4b612b2d8abe32c618d43ee8b",
+        "xlswriter-8.5": "f18bbe6a0c830bdfa3a1d3751084a6d51034be1202ce27c7b46e07ec571d1149",
+        "zstd-8.5": "828ecda2caab5129585ad397e46df698002a2748600bc7bf8abd9effb4e531d3",
         "apcu-7.4": "644b7300484a9ddbacea04d2aee8cc6eb7a5dca747377f701ad16b8c6821d2b2",
         "apcu-8.0": "0a6a40713b49e5f42b9582a6c603bd865e0bb313e411dc86ed9868e1d14481e2",
         "apcu-8.1": "1bcd3747a226b693732bb1f31ddadbbaf05889a608396f6ef9414fb7a6e1433c",

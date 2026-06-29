@@ -2,7 +2,6 @@ import XCTest
 @testable import KTStackKit
 
 final class ForeignKeyIntrospectionTests: XCTestCase {
-
     private var tempDir: URL!
 
     override func setUpWithError() throws {
@@ -17,9 +16,16 @@ final class ForeignKeyIntrospectionTests: XCTestCase {
 
     private func makeSQLiteDriver() -> SQLiteDriver {
         let path = tempDir.appendingPathComponent("test.db").path
-        let profile = ConnectionProfile(name: "t", kind: .sqlite, host: "", port: 0,
-                                        user: "", database: SQLiteDriver.mainDatabase,
-                                        filePath: path, readOnly: false)
+        let profile = ConnectionProfile(
+            name: "t",
+            kind: .sqlite,
+            host: "",
+            port: 0,
+            user: "",
+            database: SQLiteDriver.mainDatabase,
+            filePath: path,
+            readOnly: false
+        )
         return SQLiteDriver(profile: profile)
     }
 
@@ -94,9 +100,9 @@ final class ForeignKeyIntrospectionTests: XCTestCase {
     func testRowParserHandlesCompositeAndSelfRefRows() {
         let rows: [[Cell]] = [
             [.text("orders"), .text("user_id"), .text("users"), .text("id"), .text("fk_orders_user")],
-            [.text("child"),  .text("pa"),      .text("parent"), .text("a"), .text("fk_child_pa_pb")],
-            [.text("child"),  .text("pb"),      .text("parent"), .text("b"), .text("fk_child_pa_pb")],
-            [.text("node"),   .text("parent_id"), .text("node"), .text("id"), .text("fk_node_self")]
+            [.text("child"), .text("pa"), .text("parent"), .text("a"), .text("fk_child_pa_pb")],
+            [.text("child"), .text("pb"), .text("parent"), .text("b"), .text("fk_child_pa_pb")],
+            [.text("node"), .text("parent_id"), .text("node"), .text("id"), .text("fk_node_self")],
         ]
         let parsed = ForeignKeyRowParser.parseRelational(rows)
         XCTAssertEqual(parsed.count, 4)
@@ -110,8 +116,8 @@ final class ForeignKeyIntrospectionTests: XCTestCase {
     func testRowParserSkipsRowsWithMissingFields() {
         let rows: [[Cell]] = [
             [.text("orders"), .text("user_id"), .text("users"), .text("id")],
-            [.text(""),       .text("col"),     .text("t"),     .text("c")],
-            [.text("orders"), .null,            .text("users"), .text("id")]
+            [.text(""), .text("col"), .text("t"), .text("c")],
+            [.text("orders"), .null, .text("users"), .text("id")],
         ]
         let parsed = ForeignKeyRowParser.parseRelational(rows)
         XCTAssertEqual(parsed.count, 1)

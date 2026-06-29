@@ -11,7 +11,9 @@ public final class PHPFPMPoolManager: @unchecked Sendable {
         self.agents = agents
     }
 
-    public func socket(for version: String) -> URL { paths.phpFpmSocket(version) }
+    public func socket(for version: String) -> URL {
+        paths.phpFpmSocket(version)
+    }
 
     public var activeVersions: [String] {
         lock.lock(); defer { lock.unlock() }
@@ -25,7 +27,6 @@ public final class PHPFPMPoolManager: @unchecked Sendable {
 
     @discardableResult
     public func reconcile(required: Set<String>) throws -> [String] {
-       
         for (version, ctl) in snapshot() where !required.contains(version) {
             ctl.stop()
             lock.lock(); pools[version] = nil; lock.unlock()
@@ -44,7 +45,6 @@ public final class PHPFPMPoolManager: @unchecked Sendable {
         return missing
     }
 
-   
     public func reload(version: String) throws {
         guard let ctl = pool(for: version) else { return }
         try ctl.reload()
@@ -57,7 +57,9 @@ public final class PHPFPMPoolManager: @unchecked Sendable {
     }
 
     public func stopAll(grace: TimeInterval = 3.0) {
-        for (_, ctl) in snapshot() { ctl.stop(grace: grace) }
+        for (_, ctl) in snapshot() {
+            ctl.stop(grace: grace)
+        }
         lock.lock(); pools.removeAll(); lock.unlock()
     }
 
@@ -65,6 +67,7 @@ public final class PHPFPMPoolManager: @unchecked Sendable {
         lock.lock(); defer { lock.unlock() }
         return pools[version]
     }
+
     private func snapshot() -> [(String, PHPFPMController)] {
         lock.lock(); defer { lock.unlock() }
         return pools.map { ($0.key, $0.value) }

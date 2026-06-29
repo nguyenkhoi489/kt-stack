@@ -3,7 +3,6 @@ import XCTest
 
 @MainActor
 final class DatabaseV2ViewModelTests: XCTestCase {
-
     private final class TestDriver: RelationalDriver, @unchecked Sendable {
         let kind: DatabaseKind = .mysql
 
@@ -19,18 +18,18 @@ final class DatabaseV2ViewModelTests: XCTestCase {
 
         var databases: [DatabaseInfo] = [
             DatabaseInfo(name: "testdb"),
-            DatabaseInfo(name: "otherdb")
+            DatabaseInfo(name: "otherdb"),
         ]
         var tables: [TableInfo] = [
             TableInfo(name: "users"),
-            TableInfo(name: "posts")
+            TableInfo(name: "posts"),
         ]
         var columns: [ColumnInfo] = [
             ColumnInfo(name: "id", dataType: "int", isNullable: false, isPrimaryKey: true),
-            ColumnInfo(name: "name", dataType: "varchar(255)", isNullable: true, isPrimaryKey: false)
+            ColumnInfo(name: "name", dataType: "varchar(255)", isNullable: true, isPrimaryKey: false),
         ]
         var indexes: [IndexInfo] = [
-            IndexInfo(name: "idx_name", columns: ["name"], isUnique: false)
+            IndexInfo(name: "idx_name", columns: ["name"], isUnique: false),
         ]
         var foreignKeys: [ForeignKeyRelation] = [
             ForeignKeyRelation(
@@ -39,7 +38,7 @@ final class DatabaseV2ViewModelTests: XCTestCase {
                 toTable: "users",
                 toColumn: "id",
                 constraintName: "fk_user_posts"
-            )
+            ),
         ]
 
         var total: Int = 250
@@ -71,26 +70,26 @@ final class DatabaseV2ViewModelTests: XCTestCase {
             return tables
         }
 
-        func columns(database: String, table: String) async throws -> [ColumnInfo] {
+        func columns(database _: String, table _: String) async throws -> [ColumnInfo] {
             if shouldGetColumnsFail { throw TestError.columnsFailed }
             return columns
         }
 
-        func allColumns(database: String) async throws -> [String: [String]] {
-            return ["users": ["id", "name"], "posts": ["id", "user_id"]]
+        func allColumns(database _: String) async throws -> [String: [String]] {
+            ["users": ["id", "name"], "posts": ["id", "user_id"]]
         }
 
-        func allColumnsDetailed(database: String) async throws -> [String: [ColumnInfo]] {
+        func allColumnsDetailed(database _: String) async throws -> [String: [ColumnInfo]] {
             if shouldGetAllColumnsFail { throw TestError.allColumnsFailed }
             return ["users": columns, "posts": columns]
         }
 
-        func indexes(database: String, table: String) async throws -> [IndexInfo] {
+        func indexes(database _: String, table _: String) async throws -> [IndexInfo] {
             if shouldGetIndexesFail { throw TestError.indexesFailed }
             return indexes
         }
 
-        func foreignKeys(database: String) async throws -> [ForeignKeyRelation] {
+        func foreignKeys(database _: String) async throws -> [ForeignKeyRelation] {
             if shouldGetForeignKeysFail { throw TestError.foreignKeysFailed }
             return foreignKeys
         }
@@ -120,7 +119,7 @@ final class DatabaseV2ViewModelTests: XCTestCase {
             cancelCalled = true
         }
 
-        func runSelect(_ statement: DMLStatement, database: String?) async throws -> QueryResult {
+        func runSelect(_: DMLStatement, database _: String?) async throws -> QueryResult {
             QueryResult(columns: [], rows: [])
         }
 
@@ -224,7 +223,7 @@ final class DatabaseV2ViewModelTests: XCTestCase {
 
         await vm.connect(profile: .managedMySQL)
 
-        if case .failed(let message) = vm.connectionState {
+        if case let .failed(message) = vm.connectionState {
             XCTAssertTrue(message.contains("Unsupported engine"))
         } else {
             XCTFail("Expected .failed state for unsupported engine")
@@ -663,7 +662,7 @@ final class DatabaseV2ViewModelTests: XCTestCase {
     func testCanEditIsFalseWhenNoPrimaryKey() async {
         let driver = TestDriver()
         driver.columns = [
-            ColumnInfo(name: "email", dataType: "varchar", isNullable: true, isPrimaryKey: false)
+            ColumnInfo(name: "email", dataType: "varchar", isNullable: true, isPrimaryKey: false),
         ]
         let vm = DatabaseV2ViewModel(
             makeDriver: { _, _ in driver },
@@ -745,7 +744,7 @@ final class DatabaseV2ViewModelTests: XCTestCase {
     func testDeleteRowDoesNothingWhenNoPrimaryKey() async {
         let driver = TestDriver()
         driver.columns = [
-            ColumnInfo(name: "email", dataType: "varchar", isNullable: true, isPrimaryKey: false)
+            ColumnInfo(name: "email", dataType: "varchar", isNullable: true, isPrimaryKey: false),
         ]
         let vm = DatabaseV2ViewModel(
             makeDriver: { _, _ in driver },

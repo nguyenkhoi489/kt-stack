@@ -5,8 +5,8 @@ public struct DatabaseProvisioner: Sendable {
         case alreadyExists(String)
         public var errorDescription: String? {
             switch self {
-            case .alreadyExists(let name):
-                return "A database named “\(name)” already exists — choose another name."
+            case let .alreadyExists(name):
+                "A database named “\(name)” already exists — choose another name."
             }
         }
     }
@@ -15,8 +15,11 @@ public struct DatabaseProvisioner: Sendable {
     private let port: Int
     private let ensureEngine: @Sendable () async throws -> Void
 
-    public init(host: String = "127.0.0.1", port: Int = 3306,
-                ensureEngine: @escaping @Sendable () async throws -> Void) {
+    public init(
+        host: String = "127.0.0.1",
+        port: Int = 3306,
+        ensureEngine: @escaping @Sendable () async throws -> Void
+    ) {
         self.host = host
         self.port = port
         self.ensureEngine = ensureEngine

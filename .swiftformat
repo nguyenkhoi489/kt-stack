@@ -1,0 +1,18 @@
+--swiftversion 5.9
+
+--indent 4
+--self remove
+--importgrouping testable-bottom
+--commas always
+--trimwhitespace always
+--emptybraces no-space
+--ranges no-space
+--wraparguments before-first
+--wrapparameters before-first
+--wrapcollections before-first
+--funcattributes prev-line
+--typeattributes prev-line
+
+--disable noForceUnwrapInTests,noForceTryInTests
+
+--exclude Resources/bin,spikes,.build,build,KTStack.xcodeproj,vendor,Pods

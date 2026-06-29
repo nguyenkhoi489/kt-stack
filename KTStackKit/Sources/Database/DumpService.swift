@@ -9,8 +9,10 @@ public struct DumpService: Sendable {
     let catalog: ServiceBinaryCatalog
     let systemToolSearchPaths: [URL]
 
-    public init(catalog: ServiceBinaryCatalog = ServiceBinaryCatalog(paths: AppSupportPaths()),
-                systemToolSearchPaths: [URL] = DumpService.defaultSystemToolSearchPaths()) {
+    public init(
+        catalog: ServiceBinaryCatalog = ServiceBinaryCatalog(paths: AppSupportPaths()),
+        systemToolSearchPaths: [URL] = DumpService.defaultSystemToolSearchPaths()
+    ) {
         self.catalog = catalog
         self.systemToolSearchPaths = systemToolSearchPaths
     }
@@ -26,7 +28,9 @@ public struct DumpService: Sendable {
     }
 
     /// True when `mysqldump` resolves (managed or system); the UI disables import/export otherwise.
-    public var isEngineInstalled: Bool { clientBinary("bin/mysqldump") != nil }
+    public var isEngineInstalled: Bool {
+        clientBinary("bin/mysqldump") != nil
+    }
 
     /// Resolve a client binary: the managed engine catalog first, then system search paths. Only an
     /// executable file qualifies, so a catalog path for a binary that isn't actually present is skipped.
@@ -43,20 +47,25 @@ public struct DumpService: Sendable {
         return nil
     }
 
-    // MARK: - Export
-
     /// Dump a whole database (or a single `table`) to `output` as `.sql`. mysqldump writes to stdout,
     /// which we redirect to the file handle.
-    public func export(profile: ConnectionProfile, password: String?,
-                       database: String, table: String?, to output: URL) async throws {
+    public func export(
+        profile: ConnectionProfile,
+        password: String?,
+        database: String,
+        table: String?,
+        to output: URL
+    ) async throws {
         let dump = try resolveBinary("bin/mysqldump")
         try DumpService.validateIdentifier(database, label: "database")
         if let table { try DumpService.validateIdentifier(table, label: "table") }
 
         let defaults = try DumpService.writeDefaultsFile(
-            content: try DumpService.defaultsContent(
+            content: DumpService.defaultsContent(
                 user: profile.user, host: profile.host, port: profile.port, password: password,
-                tlsMode: profile.tlsMode))
+                tlsMode: profile.tlsMode
+            )
+        )
         defer { try? FileManager.default.removeItem(at: defaults) }
 
         FileManager.default.createFile(atPath: output.path, contents: nil)
@@ -80,13 +89,15 @@ public struct DumpService: Sendable {
         }
     }
 
-    // MARK: - Import
-
     /// Load a `.sql` dump into `database`, creating it first (import-into-new default). A killed import
     /// into a freshly created DB can't corrupt unrelated data. Replacing an existing DB is the UI's
     /// explicit-confirm decision; this method just runs the load.
-    public func importDump(profile: ConnectionProfile, password: String?,
-                           database: String, from input: URL) async throws {
+    public func importDump(
+        profile: ConnectionProfile,
+        password: String?,
+        database: String,
+        from input: URL
+    ) async throws {
         let mysql = try resolveBinary("bin/mysql")
         try DumpService.validateIdentifier(database, label: "database")
         guard FileManager.default.fileExists(atPath: input.path) else {
@@ -94,26 +105,37 @@ public struct DumpService: Sendable {
         }
 
         let defaults = try DumpService.writeDefaultsFile(
-            content: try DumpService.defaultsContent(
+            content: DumpService.defaultsContent(
                 user: profile.user, host: profile.host, port: profile.port, password: password,
-                tlsMode: profile.tlsMode))
+                tlsMode: profile.tlsMode
+            )
+        )
         defer { try? FileManager.default.removeItem(at: defaults) }
 
         // Create the target DB up front. The name is validated above and backtick-quoted; the SQL
         // rides in argv (visible to `ps`) but carries no secret.
         let quoted = try SQLDialect.forKind(.mysql).quoteIdent(database)
-        try await runProcess(mysql,
-                      args: ["--defaults-extra-file=\(defaults.path)", "-e",
-                             "CREATE DATABASE IF NOT EXISTS \(quoted)"],
-                      stdin: nil, stdout: nil)
+        try await runProcess(
+            mysql,
+            args: [
+                "--defaults-extra-file=\(defaults.path)",
+                "-e",
+                "CREATE DATABASE IF NOT EXISTS \(quoted)",
+            ],
+            stdin: nil,
+            stdout: nil
+        )
 
         guard let inHandle = try? FileHandle(forReadingFrom: input) else {
             throw DatabaseError.connection("Couldn't open the dump file for reading.")
         }
         defer { try? inHandle.close() }
-        try await runProcess(mysql,
-                      args: ["--defaults-extra-file=\(defaults.path)", "--", database],
-                      stdin: inHandle, stdout: nil)
+        try await runProcess(
+            mysql,
+            args: ["--defaults-extra-file=\(defaults.path)", "--", database],
+            stdin: inHandle,
+            stdout: nil
+        )
     }
 
     public func importFullDump(profile: ConnectionProfile, password: String?, from input: URL) async throws {
@@ -123,39 +145,53 @@ public struct DumpService: Sendable {
         }
 
         let defaults = try DumpService.writeDefaultsFile(
-            content: try DumpService.defaultsContent(
+            content: DumpService.defaultsContent(
                 user: profile.user, host: profile.host, port: profile.port, password: password,
-                tlsMode: profile.tlsMode))
+                tlsMode: profile.tlsMode
+            )
+        )
         defer { try? FileManager.default.removeItem(at: defaults) }
 
         guard let inHandle = try? FileHandle(forReadingFrom: input) else {
             throw DatabaseError.connection("Couldn't open the dump file for reading.")
         }
         defer { try? inHandle.close() }
-        try await runProcess(mysql,
-                      args: ["--defaults-extra-file=\(defaults.path)"],
-                      stdin: inHandle, stdout: nil)
+        try await runProcess(
+            mysql,
+            args: ["--defaults-extra-file=\(defaults.path)"],
+            stdin: inHandle,
+            stdout: nil
+        )
     }
 
-    public func createDatabase(profile: ConnectionProfile, password: String?,
-                               database: String) async throws {
+    public func createDatabase(
+        profile: ConnectionProfile,
+        password: String?,
+        database: String
+    ) async throws {
         let mysql = try resolveBinary("bin/mysql")
         try DumpService.validateIdentifier(database, label: "database")
 
         let defaults = try DumpService.writeDefaultsFile(
-            content: try DumpService.defaultsContent(
+            content: DumpService.defaultsContent(
                 user: profile.user, host: profile.host, port: profile.port, password: password,
-                tlsMode: profile.tlsMode))
+                tlsMode: profile.tlsMode
+            )
+        )
         defer { try? FileManager.default.removeItem(at: defaults) }
 
         let quoted = try SQLDialect.forKind(.mysql).quoteIdent(database)
-        try await runProcess(mysql,
-                      args: ["--defaults-extra-file=\(defaults.path)", "-e",
-                             "CREATE DATABASE \(quoted)"],
-                      stdin: nil, stdout: nil)
+        try await runProcess(
+            mysql,
+            args: [
+                "--defaults-extra-file=\(defaults.path)",
+                "-e",
+                "CREATE DATABASE \(quoted)",
+            ],
+            stdin: nil,
+            stdout: nil
+        )
     }
-
-    // MARK: - Process
 
     func resolveBinary(_ relPath: String) throws -> URL {
         guard let url = clientBinary(relPath) else {
@@ -166,8 +202,12 @@ public struct DumpService: Sendable {
 
     /// Run the client off the main thread (continuation hops to a background queue), draining stderr
     /// for the error message. A non-zero exit surfaces stderr as a connection error.
-    func runProcess(_ executable: URL, args: [String],
-                    stdin: FileHandle?, stdout: FileHandle?) async throws {
+    func runProcess(
+        _ executable: URL,
+        args: [String],
+        stdin: FileHandle?,
+        stdout: FileHandle?
+    ) async throws {
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
             DispatchQueue.global(qos: .userInitiated).async {
                 let proc = Process()
@@ -182,7 +222,8 @@ public struct DumpService: Sendable {
                     try proc.run()
                 } catch {
                     cont.resume(throwing: DatabaseError.connection(
-                        "Couldn't launch \(executable.lastPathComponent): \(error.localizedDescription)"))
+                        "Couldn't launch \(executable.lastPathComponent): \(error.localizedDescription)"
+                    ))
                     return
                 }
                 let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
@@ -193,7 +234,8 @@ public struct DumpService: Sendable {
                     let message = String(data: errData, encoding: .utf8)?
                         .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                     cont.resume(throwing: DatabaseError.connection(
-                        "\(executable.lastPathComponent) failed (exit \(proc.terminationStatus)): \(message)"))
+                        "\(executable.lastPathComponent) failed (exit \(proc.terminationStatus)): \(message)"
+                    ))
                 }
             }
         }
@@ -215,7 +257,8 @@ public struct DumpService: Sendable {
                     try proc.run()
                 } catch {
                     cont.resume(throwing: DatabaseError.connection(
-                        "Couldn't launch \(executable.lastPathComponent): \(error.localizedDescription)"))
+                        "Couldn't launch \(executable.lastPathComponent): \(error.localizedDescription)"
+                    ))
                     return
                 }
                 let outData = outPipe.fileHandleForReading.readDataToEndOfFile()
@@ -227,7 +270,8 @@ public struct DumpService: Sendable {
                     let message = String(data: errData, encoding: .utf8)?
                         .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                     cont.resume(throwing: DatabaseError.connection(
-                        "\(executable.lastPathComponent) failed (exit \(proc.terminationStatus)): \(message)"))
+                        "\(executable.lastPathComponent) failed (exit \(proc.terminationStatus)): \(message)"
+                    ))
                 }
             }
         }

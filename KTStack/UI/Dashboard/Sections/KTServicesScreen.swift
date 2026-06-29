@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct KTServicesScreen: View {
     var onNavigate: (SidebarItem) -> Void = { _ in }
@@ -10,14 +10,22 @@ struct KTServicesScreen: View {
     @EnvironmentObject private var overlay: KTOverlayCenter
     @EnvironmentObject private var caTrust: CATrustService
 
-    private var caExists: Bool { caTrust.status != .notInstalled }
-    private var caTrusted: Bool { caTrust.isTrusted }
+    private var caExists: Bool {
+        caTrust.status != .notInstalled
+    }
+
+    private var caTrusted: Bool {
+        caTrust.isTrusted
+    }
 
     private static let groups: [(title: String, kinds: [ServiceKind])] = [
         ("Core Proxy & DNS", [.nginx, .dnsmasq]),
         ("Runtimes", [.phpFpm]),
-        ("Databases & Cache", [.mysql, .postgres, .redis, .mongodb, .mailpit]),
+        ("Databases & Cache", [.mysql, .postgres, .redis, .mongodb]),
+        ("Mail", [.mailpit]),
     ]
+
+    private static let dbCacheKinds: [ServiceKind] = [.mysql, .postgres, .redis, .mongodb]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -31,20 +39,29 @@ struct KTServicesScreen: View {
                     if !banners.isEmpty {
                         VStack(spacing: 8) {
                             ForEach(banners) { banner in
-                                ServiceErrorBanner(status: banner.status, title: banner.title,
-                                                   message: banner.message, ctaTitle: banner.ctaTitle, action: banner.action)
+                                ServiceErrorBanner(
+                                    status: banner.status,
+                                    title: banner.title,
+                                    message: banner.message,
+                                    ctaTitle: banner.ctaTitle,
+                                    action: banner.action
+                                )
                             }
                         }
                         .padding(.bottom, 8)
                     }
                     ForEach(Self.groups, id: \.title) { group in
-                        let rows = services.snapshots.filter { group.kinds.contains($0.kind) }
-                        if !rows.isEmpty {
-                            Text(group.title.uppercased())
-                                .font(KTType.sectionLabel).tracking(KTType.sectionLabelTracking)
-                                .foregroundStyle(KTColor.muted)
-                                .padding(.horizontal, 2).padding(.top, 18).padding(.bottom, 8)
-                            KTListContainer { groupRows(rows) }
+                        if group.title == "Databases & Cache" {
+                            dbCacheSection
+                        } else {
+                            let rows = services.snapshots.filter { group.kinds.contains($0.kind) }
+                            if !rows.isEmpty {
+                                Text(group.title.uppercased())
+                                    .font(KTType.sectionLabel).tracking(KTType.sectionLabelTracking)
+                                    .foregroundStyle(KTColor.muted)
+                                    .padding(.horizontal, 2).padding(.top, 18).padding(.bottom, 8)
+                                KTListContainer { groupRows(rows) }
+                            }
                         }
                     }
                 }
@@ -71,6 +88,102 @@ struct KTServicesScreen: View {
         }
     }
 
+    @ViewBuilder
+    private var dbCacheSection: some View {
+        Text("DATABASES & CACHE")
+            .font(KTType.sectionLabel).tracking(KTType.sectionLabelTracking)
+            .foregroundStyle(KTColor.muted)
+            .padding(.horizontal, 2).padding(.top, 18).padding(.bottom, 4)
+        Text("Data is stored separately per version.")
+            .font(KTType.sub).foregroundStyle(KTColor.muted)
+            .padding(.horizontal, 2).padding(.bottom, 8)
+        KTListContainer { dbVersionRows }
+    }
+
+    @ViewBuilder
+    private var dbVersionRows: some View {
+        let entries = dbVersionEntries
+        VStack(spacing: 0) {
+            ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
+                let kind = entry.kind
+                let snap = services.snapshots.first(where: { $0.kind == kind })
+                let isEngineActive = snap?.status == .running || snap?.isBusy == true
+                let inFlight = services.isInstallInFlight(kind)
+                KTServiceVersionRow(
+                    kind: kind,
+                    version: entry.version,
+                    state: entry.state,
+                    isEngineRunning: isEngineActive,
+                    isRunning: snap?.status == .running,
+                    isBusy: snap?.isBusy ?? false,
+                    downloadFraction: entry.release.flatMap { services.installProgress(for: $0) },
+                    isSwitchOrInstallInFlight: inFlight,
+                    onSetActive: { handleSetActive(kind: kind, version: entry.version) },
+                    onToggleRunning: { services.toggle(kind) },
+                    onInstall: { if let r = entry.release { services.install(r) } },
+                    onCancel: { if let r = entry.release { services.cancelInstall(r) } },
+                    onUninstall: { handleUninstall(kind: kind, version: entry.version) }
+                )
+                if index < entries.count - 1 {
+                    Rectangle().fill(KTColor.sepFaint).frame(height: 0.5).padding(.leading, 18)
+                }
+            }
+        }
+    }
+
+    private struct DBVersionEntry: Identifiable {
+        var id: String
+        var kind: ServiceKind
+        var version: String
+        var state: KTServiceVersionState
+        var release: ServiceBinaryRelease?
+    }
+
+    private var dbVersionEntries: [DBVersionEntry] {
+        var entries: [DBVersionEntry] = []
+        for kind in Self.dbCacheKinds {
+            let installed = services.installedVersions(kind)
+            let available = services.availableReleases(kind)
+            let active = services.activeVersion(kind)
+            for version in installed {
+                let state: KTServiceVersionState = version == active ? .active : .installed
+                entries.append(DBVersionEntry(
+                    id: "\(kind.rawValue)-\(version)",
+                    kind: kind,
+                    version: version,
+                    state: state,
+                    release: nil
+                ))
+            }
+            for release in available {
+                entries.append(DBVersionEntry(
+                    id: release.id,
+                    kind: kind,
+                    version: release.version,
+                    state: .available,
+                    release: release
+                ))
+            }
+        }
+        return entries
+    }
+
+    private func handleSetActive(kind: ServiceKind, version: String) {
+        do {
+            try services.setActiveVersion(kind, version: version)
+        } catch {
+            overlay.toast(error.localizedDescription)
+        }
+    }
+
+    private func handleUninstall(kind: ServiceKind, version: String) {
+        do {
+            try services.uninstall(kind: kind, version: version)
+        } catch {
+            overlay.toast(error.localizedDescription)
+        }
+    }
+
     private func groupRows(_ rows: [ServiceSnapshot]) -> some View {
         VStack(spacing: 0) {
             ForEach(Array(rows.enumerated()), id: \.element.id) { index, snapshot in
@@ -82,7 +195,8 @@ struct KTServicesScreen: View {
                     onOpenLogs: { onOpenLogs(Self.logSourceID(for: snapshot.kind)) },
                     onInstall: { services.install(snapshot.kind) },
                     onCancelInstall: { services.cancelInstall(snapshot.kind) },
-                    onResetData: { services.resetData(snapshot.kind) })
+                    onResetData: { services.resetData(snapshot.kind) }
+                )
                 if index < rows.count - 1 {
                     Rectangle().fill(KTColor.sepFaint).frame(height: 0.5).padding(.leading, 18)
                 }
@@ -94,18 +208,19 @@ struct KTServicesScreen: View {
         ServicesBannerBuilder.banners(
             snapshots: services.snapshots, dns: dns, caTrusted: caTrusted, caExists: caExists,
             onEnableDNS: { dns.enable() }, onResetDNS: { dns.reset() },
-            onOpenTLSSettings: { onNavigate(.settings) }, onRestart: { services.restart($0) })
+            onOpenTLSSettings: { onNavigate(.settings) }, onRestart: { services.restart($0) }
+        )
     }
 
     private static func logSourceID(for kind: ServiceKind) -> String? {
         switch kind {
-        case .nginx:    return "nginx-error"
-        case .mysql:    return "mysql"
-        case .postgres: return "postgres"
-        case .redis:    return "redis"
-        case .mongodb:  return "mongodb"
-        case .mailpit:  return "mailpit"
-        case .phpFpm, .dnsmasq: return nil
+        case .nginx: "nginx-error"
+        case .mysql: "mysql"
+        case .postgres: "postgres"
+        case .redis: "redis"
+        case .mongodb: "mongodb"
+        case .mailpit: "mailpit"
+        case .phpFpm, .dnsmasq: nil
         }
     }
 }

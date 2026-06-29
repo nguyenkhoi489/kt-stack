@@ -8,10 +8,18 @@ public struct DiscoveredSite: Identifiable, Sendable, Hashable {
     public let phpVersion: String?
     public let experimental: Bool
 
-    public var id: String { "\(tool):\(path.path)" }
+    public var id: String {
+        "\(tool):\(path.path)"
+    }
 
-    public init(tool: String, name: String, path: URL, domain: String,
-                phpVersion: String?, experimental: Bool = false) {
+    public init(
+        tool: String,
+        name: String,
+        path: URL,
+        domain: String,
+        phpVersion: String?,
+        experimental: Bool = false
+    ) {
         self.tool = tool
         self.name = name
         self.path = path
@@ -30,11 +38,15 @@ public protocol ExternalSiteSource: Sendable {
 public enum ImportSafety {
     public struct UnsafeTarget: LocalizedError, Equatable {
         public let reason: String
-        public var errorDescription: String? { reason }
+        public var errorDescription: String? {
+            reason
+        }
     }
 
-    public static func resolvedSafeDocroot(_ path: URL,
-                                           fileManager: FileManager = .default) throws -> URL {
+    public static func resolvedSafeDocroot(
+        _ path: URL,
+        fileManager: FileManager = .default
+    ) throws -> URL {
         let real = URL(fileURLWithPath: (path.path as NSString).resolvingSymlinksInPath)
             .standardizedFileURL
         var isDir: ObjCBool = false

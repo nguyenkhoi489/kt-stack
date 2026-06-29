@@ -56,8 +56,15 @@ final class NginxCatchAllConfigTests: XCTestCase {
         let p = AppSupportPaths(root: tmp)
         try p.ensureDirectoryTree()
         defer { try? FileManager.default.removeItem(at: tmp) }
-        let site = Site(name: "demo", path: tmp.path, docroot: tmp.path,
-                        domain: "demo.test", phpVersion: "8.4", type: .staticSite, secure: false)
+        let site = Site(
+            name: "demo",
+            path: tmp.path,
+            docroot: tmp.path,
+            domain: "demo.test",
+            phpVersion: "8.4",
+            type: .staticSite,
+            secure: false
+        )
         _ = try SiteConfigGenerator(paths: p).generate(sites: [site])
         let conf = try String(contentsOf: p.nginxConf, encoding: .utf8)
         XCTAssertTrue(conf.contains("listen 0.0.0.0:80 default_server;"))
@@ -74,8 +81,15 @@ final class NginxCatchAllConfigTests: XCTestCase {
         try FileManager.default.createDirectory(at: p.siteCertDir("secure.test"), withIntermediateDirectories: true)
         try "cert".write(to: p.siteCert("secure.test"), atomically: true, encoding: .utf8)
         try "key".write(to: p.siteKey("secure.test"), atomically: true, encoding: .utf8)
-        let site = Site(name: "secure", path: tmp.path, docroot: tmp.path,
-                        domain: "secure.test", phpVersion: "8.4", type: .staticSite, secure: true)
+        let site = Site(
+            name: "secure",
+            path: tmp.path,
+            docroot: tmp.path,
+            domain: "secure.test",
+            phpVersion: "8.4",
+            type: .staticSite,
+            secure: true
+        )
         _ = try SiteConfigGenerator(paths: p).generate(sites: [site])
         let conf = try String(contentsOf: p.nginxConf, encoding: .utf8)
         XCTAssertTrue(conf.contains("listen 0.0.0.0:443 ssl default_server;"))

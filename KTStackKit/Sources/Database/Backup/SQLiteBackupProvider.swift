@@ -7,14 +7,23 @@ import GRDB
 public struct SQLiteBackupProvider: BackupProvider {
     public init() {}
 
-    public var fileExtension: String { "sqlite" }
-    public var isAvailable: Bool { true }
+    public var fileExtension: String {
+        "sqlite"
+    }
+
+    public var isAvailable: Bool {
+        true
+    }
 
     private static let sidecarSuffixes = ["-wal", "-shm", "-journal"]
     private static let freeSpaceMargin: Int64 = 8 * 1024 * 1024
 
-    public func backup(profile: ConnectionProfile, password: String?,
-                       database: String, to artifactURL: URL) async throws {
+    public func backup(
+        profile: ConnectionProfile,
+        password _: String?,
+        database _: String,
+        to artifactURL: URL
+    ) async throws {
         guard let path = profile.filePath, !path.isEmpty else {
             throw DatabaseError.connection("No SQLite file selected for this connection.")
         }
@@ -36,14 +45,19 @@ public struct SQLiteBackupProvider: BackupProvider {
         }
     }
 
-    public func restore(profile: ConnectionProfile, password: String?,
-                        from artifactURL: URL, into target: RestoreTarget) async throws {
+    public func restore(
+        profile: ConnectionProfile,
+        password _: String?,
+        from artifactURL: URL,
+        into target: RestoreTarget
+    ) async throws {
         switch target {
-        case .newDatabase(let newPath):
+        case let .newDatabase(newPath):
             let dest = URL(fileURLWithPath: newPath)
             guard !FileManager.default.fileExists(atPath: dest.path) else {
                 throw DatabaseError.connection(
-                    "A file already exists at \"\(newPath)\". Choose another path.")
+                    "A file already exists at \"\(newPath)\". Choose another path."
+                )
             }
             try FileManager.default.copyItem(at: artifactURL, to: dest)
         case .overwrite:
@@ -64,12 +78,15 @@ public struct SQLiteBackupProvider: BackupProvider {
         let snapshotSize = fileSize(snapshot, fm)
         let currentSize = fileSize(target, fm)
         if let available = volumeAvailableBytes(directory),
-           available < snapshotSize + currentSize + freeSpaceMargin {
+           available < snapshotSize + currentSize + freeSpaceMargin
+        {
             throw DatabaseError.connection("Not enough free disk space to restore safely.")
         }
 
-        let safetyDir = directory.appendingPathComponent(".ktstack-restore-\(UUID().uuidString)",
-                                                         isDirectory: true)
+        let safetyDir = directory.appendingPathComponent(
+            ".ktstack-restore-\(UUID().uuidString)",
+            isDirectory: true
+        )
         try fm.createDirectory(at: safetyDir, withIntermediateDirectories: true)
         defer { try? fm.removeItem(at: safetyDir) }
 
@@ -113,7 +130,8 @@ public struct SQLiteBackupProvider: BackupProvider {
                 }
             }
             throw DatabaseError.connection(
-                "Restore failed and the original database was rolled back: \(SQLiteDriver.mapError(error).message)")
+                "Restore failed and the original database was rolled back: \(SQLiteDriver.mapError(error).message)"
+            )
         }
     }
 

@@ -1,5 +1,5 @@
-import Foundation
 import Combine
+import Foundation
 
 @MainActor
 public final class TunnelManager: ObservableObject {
@@ -9,10 +9,10 @@ public final class TunnelManager: ObservableObject {
 
         var errorDescription: String? {
             switch self {
-            case .originPortNotListening(let port):
-                return "Nginx did not start listening on tunnel origin port \(port). Restart local services and try sharing again."
-            case .nginxRecoveryFailed(let port, let message):
-                return "Nginx could not activate tunnel origin port \(port): \(message)"
+            case let .originPortNotListening(port):
+                "Nginx did not start listening on tunnel origin port \(port). Restart local services and try sharing again."
+            case let .nginxRecoveryFailed(port, message):
+                "Nginx could not activate tunnel origin port \(port): \(message)"
             }
         }
     }
@@ -33,25 +33,31 @@ public final class TunnelManager: ObservableObject {
 
     public init(paths: AppSupportPaths = AppSupportPaths()) {
         self.paths = paths
-        self.provisioner = CloudflaredBinaryProvisioner(paths: paths)
-        self.generator = SiteConfigGenerator(paths: paths)
-        self.nginx = NginxController(paths: paths, agents: LaunchAgentManager(paths: paths))
+        provisioner = CloudflaredBinaryProvisioner(paths: paths)
+        generator = SiteConfigGenerator(paths: paths)
+        nginx = NginxController(paths: paths, agents: LaunchAgentManager(paths: paths))
     }
 
     public func isSharing(_ siteID: UUID) -> Bool {
         sessions[siteID]?.status.isBusy ?? false
     }
 
-    public func session(_ siteID: UUID) -> TunnelSession? { sessions[siteID] }
+    public func session(_ siteID: UUID) -> TunnelSession? {
+        sessions[siteID]
+    }
 
     public func start(site: Site) {
         guard !isSharing(site.id), startTasks[site.id] == nil else { return }
         tearDown(site.id)
         let startedAt = Date()
-        sessions[site.id] = TunnelSession(siteID: site.id, domain: site.domain,
-                                          secure: site.secure, status: .starting,
-                                          startedAt: startedAt,
-                                          expiresAt: ttl > 0 ? startedAt.addingTimeInterval(ttl) : nil)
+        sessions[site.id] = TunnelSession(
+            siteID: site.id,
+            domain: site.domain,
+            secure: site.secure,
+            status: .starting,
+            startedAt: startedAt,
+            expiresAt: ttl > 0 ? startedAt.addingTimeInterval(ttl) : nil
+        )
         let siteID = site.id
         startTasks[siteID] = Task { [weak self] in
             await self?.runStart(site: site)
@@ -73,7 +79,8 @@ public final class TunnelManager: ObservableObject {
         let live = Dictionary(sites.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         for (siteID, session) in sessions {
             guard let site = live[siteID],
-                  site.domain == session.domain, site.secure == session.secure else {
+                  site.domain == session.domain, site.secure == session.secure
+            else {
                 stop(site: siteID)
                 continue
             }
@@ -85,7 +92,7 @@ public final class TunnelManager: ObservableObject {
             tearDown(siteID)
         }
         sessions.removeAll()
-        let provisioner = self.provisioner
+        let provisioner = provisioner
         Task { await provisioner.cancel() }
     }
 
@@ -131,7 +138,10 @@ public final class TunnelManager: ObservableObject {
             if Task.isCancelled { clearStart(siteID); return }
             let controller = TunnelController(paths: paths, siteID: siteID)
             controllers[siteID] = controller
-            await controller.start(binary: binary, originPort: originPort, localDomain: site.domain,
+            await controller.start(
+                binary: binary,
+                originPort: originPort,
+                localDomain: site.domain,
                 onURL: { [weak self] url in
                     guard let host = url.host else { return }
                     await self?.applyPublicHost(site: site, port: originPort, publicHost: host)
@@ -140,7 +150,8 @@ public final class TunnelManager: ObservableObject {
                     Task { @MainActor [weak self] in
                         self?.updateStatus(siteID, status)
                     }
-                })
+                }
+            )
             startTasks[siteID] = nil
         } catch is CancellationError {
             clearStart(siteID)
@@ -175,15 +186,21 @@ public final class TunnelManager: ObservableObject {
     private func writeTunnelVhost(site: Site, port: Int, publicHost: String?) throws {
         let socket = site.type == .php ? paths.phpFpmSocket(generator.effectivePHPVersion(site.phpVersion)) : nil
         if publicHost != nil {
-            try? TunnelHostPrepend.write(to: paths.tunnelHostPrependFile,
-                                         chainingPrepend: paths.dumpsPrependFile)
+            try? TunnelHostPrepend.write(
+                to: paths.tunnelHostPrependFile,
+                chainingPrepend: paths.dumpsPrependFile
+            )
         }
-        let config = tunnelWriter.vhost(site: site, port: port, phpFpmSocket: socket,
-                                        accessLog: paths.siteAccessLog(site.domain),
-                                        errorLog: paths.siteErrorLog(site.domain),
-                                        publicHost: publicHost,
-                                        supportsBodyRewrite: nginx.supportsResponseBodyRewrite(),
-                                        hostPrependFile: paths.tunnelHostPrependFile)
+        let config = tunnelWriter.vhost(
+            site: site,
+            port: port,
+            phpFpmSocket: socket,
+            accessLog: paths.siteAccessLog(site.domain),
+            errorLog: paths.siteErrorLog(site.domain),
+            publicHost: publicHost,
+            supportsBodyRewrite: nginx.supportsResponseBodyRewrite(),
+            hostPrependFile: paths.tunnelHostPrependFile
+        )
         try config.write(to: tunnelVhostURL(site.id), atomically: true, encoding: .utf8)
     }
 
@@ -246,8 +263,10 @@ public final class TunnelManager: ObservableObject {
     }
 
     private func removeAllTunnelVhosts() {
-        guard let files = try? FileManager.default.contentsOfDirectory(at: paths.sitesEnabled,
-                                                                       includingPropertiesForKeys: nil) else { return }
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: paths.sitesEnabled,
+            includingPropertiesForKeys: nil
+        ) else { return }
         var removed = false
         for file in files where file.lastPathComponent.hasPrefix("tunnel-") && file.pathExtension == "conf" {
             try? FileManager.default.removeItem(at: file)
@@ -257,15 +276,15 @@ public final class TunnelManager: ObservableObject {
     }
 
     private func selectTunnelPort(_ siteID: UUID) -> Int {
-        let base = 41_000 + stablePortOffset(siteID)
-        for offset in 0..<1_000 {
-            let port = 41_000 + ((base - 41_000 + offset) % 10_000)
+        let base = 41000 + stablePortOffset(siteID)
+        for offset in 0..<1000 {
+            let port = 41000 + ((base - 41000 + offset) % 10000)
             if case .available = preflight.check(port: port) { return port }
         }
         return base
     }
 
     private func stablePortOffset(_ siteID: UUID) -> Int {
-        siteID.uuidString.utf8.reduce(0) { ($0 &+ Int($1)) % 10_000 }
+        siteID.uuidString.utf8.reduce(0) { ($0 &+ Int($1)) % 10000 }
     }
 }

@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 @MainActor
 final class KTOverlayCenter: ObservableObject {
@@ -36,10 +36,20 @@ final class KTOverlayCenter: ObservableObject {
         }
     }
 
-    func confirm(title: String, message: String, okLabel: String = "Confirm",
-                 danger: Bool = true, onConfirm: @escaping () -> Void) {
-        confirmRequest = ConfirmRequest(title: title, message: message, okLabel: okLabel,
-                                        danger: danger, onConfirm: onConfirm)
+    func confirm(
+        title: String,
+        message: String,
+        okLabel: String = "Confirm",
+        danger: Bool = true,
+        onConfirm: @escaping () -> Void
+    ) {
+        confirmRequest = ConfirmRequest(
+            title: title,
+            message: message,
+            okLabel: okLabel,
+            danger: danger,
+            onConfirm: onConfirm
+        )
     }
 }
 
@@ -67,11 +77,15 @@ extension View {
         }
         .overlay {
             if let request = center.confirmRequest {
-                KTConfirmModal(title: request.title, message: request.message,
-                               okLabel: request.okLabel, danger: request.danger,
-                               onCancel: { center.confirmRequest = nil },
-                               onConfirm: { center.confirmRequest = nil; request.onConfirm() })
-                    .transition(.opacity)
+                KTConfirmModal(
+                    title: request.title,
+                    message: request.message,
+                    okLabel: request.okLabel,
+                    danger: request.danger,
+                    onCancel: { center.confirmRequest = nil },
+                    onConfirm: { center.confirmRequest = nil; request.onConfirm() }
+                )
+                .transition(.opacity)
             }
         }
         .animation(.spring(response: 0.32, dampingFraction: 0.78), value: center.toastMessage)

@@ -2,18 +2,23 @@ import XCTest
 @testable import KTStackKit
 
 final class ConnectionSessionTests: XCTestCase {
-
     private final class Probe: @unchecked Sendable {
         private let lock = NSLock()
         private(set) var opens = 0
         private(set) var maxConcurrent = 0
         private var current = 0
 
-        func opened() { lock.lock(); opens += 1; lock.unlock() }
+        func opened() {
+            lock.lock(); opens += 1; lock.unlock()
+        }
+
         func enter() {
             lock.lock(); current += 1; maxConcurrent = max(maxConcurrent, current); lock.unlock()
         }
-        func leave() { lock.lock(); current -= 1; lock.unlock() }
+
+        func leave() {
+            lock.lock(); current -= 1; lock.unlock()
+        }
     }
 
     private final class FakeConnection: SessionConnection, @unchecked Sendable {
@@ -25,9 +30,11 @@ final class ConnectionSessionTests: XCTestCase {
             probe.opened()
         }
 
-        var isLive: Bool { live }
+        var isLive: Bool {
+            live
+        }
 
-        func useDatabase(_ database: String) async throws {}
+        func useDatabase(_: String) async throws {}
 
         func runText(_ sql: String) async throws -> QueryResult {
             probe.enter()
@@ -43,14 +50,21 @@ final class ConnectionSessionTests: XCTestCase {
             return QueryResult(columns: [ColumnMeta(name: statement.sql)], rows: [statement.binds])
         }
 
-        func shutdown() async { live = false }
+        func shutdown() async {
+            live = false
+        }
     }
 
     private final class ConnectionBox: @unchecked Sendable {
         private let lock = NSLock()
         private var connections: [FakeConnection] = []
-        func add(_ connection: FakeConnection) { lock.lock(); connections.append(connection); lock.unlock() }
-        var last: FakeConnection? { lock.lock(); defer { lock.unlock() }; return connections.last }
+        func add(_ connection: FakeConnection) {
+            lock.lock(); connections.append(connection); lock.unlock()
+        }
+
+        var last: FakeConnection? {
+            lock.lock(); defer { lock.unlock() }; return connections.last
+        }
     }
 
     private func makeSession(probe: Probe, box: ConnectionBox) -> ConnectionSession {

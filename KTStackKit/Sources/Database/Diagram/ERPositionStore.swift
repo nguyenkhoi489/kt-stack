@@ -1,8 +1,7 @@
-import Foundation
 import CoreGraphics
+import Foundation
 
 public enum ERPositionStore {
-
     private static let defaults = UserDefaults.standard
 
     private static func key(connectionKey: String, schemaKey: String) -> String {

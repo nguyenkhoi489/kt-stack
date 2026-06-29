@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct V2RowEditorSheet: View {
     @ObservedObject var vm: DatabaseV2ViewModel
@@ -105,7 +105,7 @@ struct V2RowEditorSheet: View {
             let field = fields[column.name] ?? FieldState(text: "", isNull: false)
             if field.isNull {
                 values.append(ColumnValue(column: column.name, value: .null))
-            } else if field.text.isEmpty && (column.defaultValue != nil || column.isNullable) {
+            } else if field.text.isEmpty, column.defaultValue != nil || column.isNullable {
                 continue
             } else if !field.text.isEmpty {
                 values.append(ColumnValue(column: column.name, value: .text(field.text)))

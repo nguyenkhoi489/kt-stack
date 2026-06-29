@@ -1,5 +1,5 @@
-import SwiftUI
 import KTStackKit
+import SwiftUI
 
 struct LogsSectionView: View {
     @ObservedObject var nav: DashboardNavigation
@@ -16,7 +16,8 @@ struct LogsSectionView: View {
     private var sources: [LogSource] {
         LogCatalog(paths: paths).sources(
             siteDomains: server.registry.sites.map(\.domain),
-            phpVersions: server.availableVersions)
+            phpVersions: server.availableVersions
+        )
     }
 
     private var currentSourceName: String {
@@ -86,10 +87,14 @@ struct LogsSectionView: View {
                 }
             }
             .padding(.horizontal, 14).padding(.vertical, 8)
-            .background(RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .fill(tail.isLive ? KTColor.onlineBg : Color.white))
-            .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .stroke(tail.isLive ? Color.clear : KTColor.btnBorder, lineWidth: 0.5))
+            .background(
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .fill(tail.isLive ? KTColor.onlineBg : Color.white)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .stroke(tail.isLive ? Color.clear : KTColor.btnBorder, lineWidth: 0.5)
+            )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -138,17 +143,17 @@ struct LogsSectionView: View {
 
     private func severityLabel(_ severity: LogSeverity) -> String {
         switch severity {
-        case .info: return "INFO"
-        case .warning: return "WARN"
-        case .error: return "ERROR"
+        case .info: "INFO"
+        case .warning: "WARN"
+        case .error: "ERROR"
         }
     }
 
     private func severityColor(_ severity: LogSeverity) -> Color {
         switch severity {
-        case .info: return Color(hex: 0x7FD4A0)
-        case .warning: return Color(hex: 0xFFD479)
-        case .error: return Color(hex: 0xFF8FB0)
+        case .info: Color(hex: 0x7FD4A0)
+        case .warning: Color(hex: 0xFFD479)
+        case .error: Color(hex: 0xFF8FB0)
         }
     }
 

@@ -6,7 +6,7 @@ public final class NginxController: @unchecked Sendable {
 
         public var errorDescription: String? {
             switch self {
-            case .commandFailed(let args, let code, let output):
+            case let .commandFailed(args, code, output):
                 let detail = output.trimmingCharacters(in: .whitespacesAndNewlines)
                 let command = (["nginx"] + args).joined(separator: " ")
                 if detail.isEmpty { return "\(command) failed with exit code \(code)." }
@@ -26,14 +26,14 @@ public final class NginxController: @unchecked Sendable {
         self.agents = agents
     }
 
-   
-    public var isRunning: Bool { agents.isLoaded(label) }
+    public var isRunning: Bool {
+        agents.isLoaded(label)
+    }
 
     public func start() throws {
         try agents.bootstrap(spec())
     }
 
-   
     public func reload() throws {
         try runControlCommand(["-s", "reload"])
     }
@@ -63,7 +63,7 @@ public final class NginxController: @unchecked Sendable {
         return info
     }
 
-    public func stop(grace: TimeInterval = 3.0) {
+    public func stop(grace _: TimeInterval = 3.0) {
         try? agents.bootout(label)
     }
 
@@ -79,7 +79,8 @@ public final class NginxController: @unchecked Sendable {
             workingDirectory: paths.root.path,
             stdoutPath: paths.nginxErrorLog.path,
             stderrPath: paths.nginxErrorLog.path,
-            fileDescriptorLimit: Self.fileDescriptorLimit)
+            fileDescriptorLimit: Self.fileDescriptorLimit
+        )
     }
 
     private func runControlCommand(_ extra: [String]) throws {

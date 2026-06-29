@@ -16,11 +16,14 @@ public struct WordPressCoreReconciler: Sendable {
     private let cli: WordPressCLI
 
     public init(php: URL, phpIni: URL?, wpCliPhar: URL) {
-        self.cli = WordPressCLI(php: php, phpIni: phpIni, wpCliPhar: wpCliPhar)
+        cli = WordPressCLI(php: php, phpIni: phpIni, wpCliPhar: wpCliPhar)
     }
 
-    public func reconcile(payload: PreparedWordPressPayload, targetDocroot: URL,
-                          emit: @Sendable (String) -> Void) async throws -> WordPressReconcileResult {
+    public func reconcile(
+        payload: PreparedWordPressPayload,
+        targetDocroot: URL,
+        emit: @Sendable (String) -> Void
+    ) async throws -> WordPressReconcileResult {
         try FileManager.default.createDirectory(at: targetDocroot, withIntermediateDirectories: true)
 
         guard payload.isContentOnly else {
@@ -36,8 +39,11 @@ public struct WordPressCoreReconciler: Sendable {
         return result
     }
 
-    private func downloadCore(version: String?, into docroot: URL,
-                              emit: @Sendable (String) -> Void) throws -> WordPressReconcileResult {
+    private func downloadCore(
+        version: String?,
+        into docroot: URL,
+        emit: @Sendable (String) -> Void
+    ) throws -> WordPressReconcileResult {
         let base = ["core", "download", cli.pathArgument(docroot), "--force"] + WordPressCLI.skipFlags
         if let version, isPlausibleVersion(version) {
             do {

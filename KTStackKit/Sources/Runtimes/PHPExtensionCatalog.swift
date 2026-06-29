@@ -1,10 +1,11 @@
 import Foundation
 
-
 public enum PHPExtensionLoadDirective: String, Sendable, Hashable {
-    case module = "extension"            // extension=<ext>.so
-    case zendExtension = "zend_extension"   // zend_extension=/abs/path/<ext>.so
-    public var iniKey: String { rawValue }
+    case module = "extension" // extension=<ext>.so
+    case zendExtension = "zend_extension" // zend_extension=/abs/path/<ext>.so
+    public var iniKey: String {
+        rawValue
+    }
 }
 
 public enum PHPExtensionType: String, Sendable, Hashable, CaseIterable {
@@ -19,8 +20,14 @@ public struct PHPExtension: Sendable, Hashable, Identifiable {
     public let loadDirective: PHPExtensionLoadDirective
     public let isBuiltIn: Bool
 
-    public init(id: String, displayName: String, type: PHPExtensionType, summary: String,
-                loadDirective: PHPExtensionLoadDirective = .module, isBuiltIn: Bool = false) {
+    public init(
+        id: String,
+        displayName: String,
+        type: PHPExtensionType,
+        summary: String,
+        loadDirective: PHPExtensionLoadDirective = .module,
+        isBuiltIn: Bool = false
+    ) {
         self.id = id
         self.displayName = displayName
         self.type = type
@@ -35,7 +42,9 @@ public struct PHPExtensionRelease: Sendable, Hashable, Identifiable {
     public let phpVersion: String
     public let sha256ByArch: [String: String]
 
-    public var id: String { "\(extID)-\(phpVersion)" }
+    public var id: String {
+        "\(extID)-\(phpVersion)"
+    }
 
     public init(extID: String, phpVersion: String, sha256ByArch: [String: String]) {
         self.extID = extID
@@ -43,16 +52,23 @@ public struct PHPExtensionRelease: Sendable, Hashable, Identifiable {
         self.sha256ByArch = sha256ByArch
     }
 
-    public var fileName: String { "php-ext-\(extID)-\(phpVersion)-\(RuntimeCatalog.arch).tar.gz" }
+    public var fileName: String {
+        "php-ext-\(extID)-\(phpVersion)-\(RuntimeCatalog.arch).tar.gz"
+    }
 
     public var url: URL {
         URL(string: "https://github.com/KTStackAPP/KTStack/releases/download/binaries-v1/\(fileName)")!
     }
 
-    public var sha256: String { sha256ByArch[RuntimeCatalog.arch] ?? "" }
+    public var sha256: String {
+        sha256ByArch[RuntimeCatalog.arch] ?? ""
+    }
 
-    public var supportsCurrentArch: Bool { ChecksumVerifier.isResolved(sha256ByArch[RuntimeCatalog.arch]) }
+    public var supportsCurrentArch: Bool {
+        ChecksumVerifier.isResolved(sha256ByArch[RuntimeCatalog.arch])
+    }
 }
+
 public enum PHPExtensionStatus: String, Sendable, Hashable {
     case builtIn
     case installed
@@ -63,41 +79,51 @@ public enum PHPExtensionStatus: String, Sendable, Hashable {
 
 public struct PHPExtensionCatalog: Sendable {
     private let paths: AppSupportPaths
-    public init(paths: AppSupportPaths) { self.paths = paths }
+    public init(paths: AppSupportPaths) {
+        self.paths = paths
+    }
 
-    // MARK: Descriptor / manifest lookups
+    public static func optional() -> [PHPExtension] {
+        descriptors.filter { !$0.isBuiltIn }
+    }
 
-    public static func optional() -> [PHPExtension] { descriptors.filter { !$0.isBuiltIn } }
+    public static func descriptor(_ extID: String) -> PHPExtension? {
+        descriptors.first { $0.id == extID }
+    }
 
-    public static func descriptor(_ extID: String) -> PHPExtension? { descriptors.first { $0.id == extID } }
-
-   
     public func release(_ extID: String, phpVersion: String) -> PHPExtensionRelease? {
         Self.manifest.first { $0.extID == extID && $0.phpVersion == phpVersion && $0.supportsCurrentArch }
     }
 
-    // MARK: Installed-state resolution
-
     public func installedExtensions(_ phpVersion: String) -> Set<String> {
-        Set(PHPModules.loadedModules(version: phpVersion,
-                                     scanDir: paths.phpExtConfDir(version: phpVersion), paths: paths))
+        Set(PHPModules.loadedModules(
+            version: phpVersion,
+            scanDir: paths.phpExtConfDir(version: phpVersion),
+            paths: paths
+        ))
     }
 
     public func status(_ ext: PHPExtension, phpVersion: String) -> PHPExtensionStatus {
-        status(ext, phpVersion: phpVersion,
-               installed: installedExtensions(phpVersion),
-               soOnDisk: sharedObjectExists(ext.id, phpVersion: phpVersion))
+        status(
+            ext,
+            phpVersion: phpVersion,
+            installed: installedExtensions(phpVersion),
+            soOnDisk: sharedObjectExists(ext.id, phpVersion: phpVersion)
+        )
     }
 
-    public func status(_ ext: PHPExtension, phpVersion: String,
-                       installed: Set<String>, soOnDisk: Bool) -> PHPExtensionStatus {
+    public func status(
+        _ ext: PHPExtension,
+        phpVersion: String,
+        installed: Set<String>,
+        soOnDisk: Bool
+    ) -> PHPExtensionStatus {
         if ext.isBuiltIn { return .builtIn }
         if installed.contains(ext.id) { return .installed }
         if soOnDisk { return .installedButFailedToLoad }
         return release(ext.id, phpVersion: phpVersion) != nil ? .available : .unavailable
     }
 
-   
     public func sharedObjectExists(_ extID: String, phpVersion: String) -> Bool {
         let so = paths.runtimeDir("php", phpVersion)
             .appendingPathComponent("modules/\(extID).so")

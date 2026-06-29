@@ -10,12 +10,12 @@ public enum Cell: Sendable, Equatable {
 
     public var displayText: String? {
         switch self {
-        case .text(let s):   return s
-        case .int(let n):    return String(n)
-        case .double(let d): return String(d)
-        case .bool(let b):   return b ? "1" : "0"
-        case .null:          return nil
-        case .blob(let d):   return "[\(d.count) bytes]"
+        case let .text(s): s
+        case let .int(n): String(n)
+        case let .double(d): String(d)
+        case let .bool(b): b ? "1" : "0"
+        case .null: nil
+        case let .blob(d): "[\(d.count) bytes]"
         }
     }
 }
@@ -36,22 +36,30 @@ public struct QueryResult: Sendable, Equatable {
     public let truncated: Bool
     public let estimatedTotal: Int?
 
-    public init(columns: [ColumnMeta], rows: [[Cell]],
-                truncated: Bool = false, estimatedTotal: Int? = nil) {
+    public init(
+        columns: [ColumnMeta],
+        rows: [[Cell]],
+        truncated: Bool = false,
+        estimatedTotal: Int? = nil
+    ) {
         self.columns = columns
         self.rows = rows
         self.truncated = truncated
         self.estimatedTotal = estimatedTotal
     }
 
-    public var rowCount: Int { rows.count }
-    public var columnNames: [String] { columns.map(\.name) }
+    public var rowCount: Int {
+        rows.count
+    }
+
+    public var columnNames: [String] {
+        columns.map(\.name)
+    }
 
     public static func == (lhs: QueryResult, rhs: QueryResult) -> Bool {
         lhs.columns == rhs.columns && lhs.rows == rhs.rows
     }
 }
-
 
 public struct ColumnValue: Sendable, Equatable {
     public let column: String
