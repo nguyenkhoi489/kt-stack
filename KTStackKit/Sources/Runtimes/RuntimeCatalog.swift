@@ -108,6 +108,8 @@ public struct RuntimeCatalog: Sendable {
 
     static let phpRuntimeVersions = ["7.4", "8.0", "8.1", "8.2", "8.3", "8.4", "8.5"]
 
+    static let nodeRuntimeVersions = ["24.18.0", "22.22.3"]
+
     static let releaseBaseURL =
         URL(string: "https://github.com/KTStackAPP/KTStack/releases/download/binaries-v1")!
 
@@ -126,19 +128,23 @@ public struct RuntimeCatalog: Sendable {
         )
     }
 
-    public static let manifest: [RuntimeRelease] = phpRuntimeVersions.map(phpRelease) + [
-        RuntimeRelease(
-            language: .node, version: "22.22.3",
+    private static func nodeRelease(_ version: String) -> RuntimeRelease {
+        let base = URL(string: "https://nodejs.org/dist/v\(version)")!
+        return RuntimeRelease(
+            language: .node, version: version,
             urlByArch: [
-                "arm64": URL(string: "https://nodejs.org/dist/v22.22.3/node-v22.22.3-darwin-arm64.tar.gz")!,
-                "x86_64": URL(string: "https://nodejs.org/dist/v22.22.3/node-v22.22.3-darwin-x64.tar.gz")!,
+                "arm64": base.appendingPathComponent("node-v\(version)-darwin-arm64.tar.gz"),
+                "x86_64": base.appendingPathComponent("node-v\(version)-darwin-x64.tar.gz"),
             ],
             sha256ByArch: [
-                "arm64": "0da7ff74ef8611328c8212f17943368713a2ad953fb7d89a8c8a0eae87c23207",
-                "x86_64": "45830ba752fa0d892c6dcd640946669801293cac820a33591ded40ac075198ec",
+                "arm64": nodeArtifactChecksums[version]?.arm64 ?? "",
+                "x86_64": nodeArtifactChecksums[version]?.x86_64 ?? "",
             ]
-        ),
-    ]
+        )
+    }
+
+    public static let manifest: [RuntimeRelease] =
+        phpRuntimeVersions.map(phpRelease) + nodeRuntimeVersions.map(nodeRelease)
 
     static let phpArtifactChecksums: [String: String] = [
         "7.4": "303e7a893dd5a8e96a863b9cda74a2834121c98903a0f5136e8d59228c3ba2b4",
@@ -158,5 +164,16 @@ public struct RuntimeCatalog: Sendable {
         "8.3": "cc697e9be26ccea7d821d41daec21d0e6f54c9ebdcaf41ce5a9a2721863b85bf",
         "8.4": "81a36b2cc6d7ab3ddac4966863363680653144cf566744dfb40381ee0b30327a",
         "8.5": "7928b49138fb32a8135561dc757593473dac61416b1a2e156a600ab302477ad8",
+    ]
+
+    static let nodeArtifactChecksums: [String: (arm64: String, x86_64: String)] = [
+        "24.18.0": (
+            "e1a97e14c99c803e96c7339403282ea05a499c32f8d83defe9ef5ec66f979ed1",
+            "dfd0dbd3e721503434df7b7205e719f61b3a3a31b2bcf9729b8b91fea240f080"
+        ),
+        "22.22.3": (
+            "0da7ff74ef8611328c8212f17943368713a2ad953fb7d89a8c8a0eae87c23207",
+            "45830ba752fa0d892c6dcd640946669801293cac820a33591ded40ac075198ec"
+        ),
     ]
 }

@@ -111,7 +111,7 @@ struct KTRuntimeRow: View {
 
     private var note: String {
         switch state {
-        case .active: "Default for new sites and terminals."
+        case .active: language == .php ? "Default for new sites and terminals." : "Installed and ready."
         case .installed: "Installed and ready."
         case .available: "Not installed — download to use."
         }
