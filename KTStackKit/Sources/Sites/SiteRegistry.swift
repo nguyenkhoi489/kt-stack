@@ -113,7 +113,7 @@ public final class SiteRegistry: ObservableObject {
         remove(site)
     }
 
-    public func validateCanRemoveDeletingFolder(_ site: Site) throws {
+    public func validateCanRemoveFolder(_ site: Site) throws {
         let folder = URL(fileURLWithPath: site.path, isDirectory: true).standardizedFileURL
         try validateDeletableSiteFolder(folder)
         var isDirectory: ObjCBool = false
@@ -123,7 +123,7 @@ public final class SiteRegistry: ObservableObject {
 
     public func deleteFolderForRemoval(_ site: Site) throws {
         let folder = URL(fileURLWithPath: site.path, isDirectory: true).standardizedFileURL
-        try validateCanRemoveDeletingFolder(site)
+        try validateCanRemoveFolder(site)
         guard FileManager.default.fileExists(atPath: folder.path) else { return }
         try FileManager.default.removeItem(at: folder)
     }

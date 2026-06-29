@@ -67,7 +67,7 @@ final class XdebugControllerTests: XCTestCase {
             try await controller.enable(version: "8.4")
             XCTFail("expected checksum failure")
         } catch let error as XdebugController.XdebugError {
-            guard case .sharedObjectVerificationFailed = error else {
+            guard case .verificationFailed = error else {
                 XCTFail("unexpected error \(error)")
                 return
             }

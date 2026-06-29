@@ -9,21 +9,21 @@ public struct PHPExtensionInstaller: Sendable {
 
     public enum InstallError: LocalizedError {
         case noReleaseAvailable(ext: String, phpVersion: String)
-        case sharedObjectChecksumMissing(ext: String, phpVersion: String)
-        case sharedObjectChecksumMismatch(ext: String, expected: String, actual: String)
+        case checksumMissing(ext: String, phpVersion: String)
+        case checksumMismatch(ext: String, expected: String, actual: String)
         public var errorDescription: String? {
             switch self {
             case let .noReleaseAvailable(ext, v):
                 "No \(ext) build is available for PHP \(v)."
-            case let .sharedObjectChecksumMissing(ext, v):
+            case let .checksumMissing(ext, v):
                 "\(ext).so for PHP \(v) has no verification record."
-            case let .sharedObjectChecksumMismatch(ext, expected, actual):
+            case let .checksumMismatch(ext, expected, actual):
                 "\(ext).so checksum mismatch. Expected \(expected.prefix(12))…, got \(actual.prefix(12))…"
             }
         }
     }
 
-    public enum SharedObjectVerificationStatus: Equatable, Sendable {
+    public enum VerificationStatus: Equatable, Sendable {
         case missingObject
         case missingChecksum
         case verified
@@ -60,7 +60,7 @@ public struct PHPExtensionInstaller: Sendable {
         soURL(extID, phpVersion).appendingPathExtension("sha256")
     }
 
-    public func sharedObjectVerificationStatus(extID: String, phpVersion: String) throws -> SharedObjectVerificationStatus {
+    public func verificationStatus(extID: String, phpVersion: String) throws -> VerificationStatus {
         let so = soURL(extID, phpVersion)
         guard FileManager.default.fileExists(atPath: so.path) else { return .missingObject }
         let checksum = sharedObjectChecksumURL(extID: extID, phpVersion: phpVersion)
@@ -76,15 +76,15 @@ public struct PHPExtensionInstaller: Sendable {
     }
 
     public func verifySharedObjectChecksum(extID: String, phpVersion: String) throws {
-        switch try sharedObjectVerificationStatus(extID: extID, phpVersion: phpVersion) {
+        switch try verificationStatus(extID: extID, phpVersion: phpVersion) {
         case .verified:
             return
         case .missingObject:
             throw InstallError.noReleaseAvailable(ext: extID, phpVersion: phpVersion)
         case .missingChecksum:
-            throw InstallError.sharedObjectChecksumMissing(ext: extID, phpVersion: phpVersion)
+            throw InstallError.checksumMissing(ext: extID, phpVersion: phpVersion)
         case let .mismatch(expected, actual):
-            throw InstallError.sharedObjectChecksumMismatch(ext: extID, expected: expected, actual: actual)
+            throw InstallError.checksumMismatch(ext: extID, expected: expected, actual: actual)
         }
     }
 

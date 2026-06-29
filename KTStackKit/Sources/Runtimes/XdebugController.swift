@@ -5,12 +5,12 @@ public final class XdebugController: @unchecked Sendable {
 
     public enum XdebugError: LocalizedError, Equatable {
         case notSupported(String)
-        case sharedObjectVerificationFailed(String)
+        case verificationFailed(String)
         case rollbackFailed(String, String)
         public var errorDescription: String? {
             switch self {
             case let .notSupported(v): "Xdebug isn't available for PHP \(v) on this platform."
-            case let .sharedObjectVerificationFailed(w): "Xdebug failed to load: \(w)"
+            case let .verificationFailed(w): "Xdebug failed to load: \(w)"
             case let .rollbackFailed(reload, rollback):
                 "Xdebug reload failed (\(reload)) and rollback failed (\(rollback))."
             }
@@ -68,22 +68,22 @@ public final class XdebugController: @unchecked Sendable {
 
         let conf = confURL(version: version)
         let previous = try? Data(contentsOf: conf)
-        switch try installer.sharedObjectVerificationStatus(extID: "xdebug", phpVersion: version) {
+        switch try installer.verificationStatus(extID: "xdebug", phpVersion: version) {
         case .verified:
             break
         case .missingObject, .missingChecksum:
             do { try await installer.installSharedObjectOnly("xdebug", phpVersion: version) }
-            catch { throw XdebugError.sharedObjectVerificationFailed(error.localizedDescription) }
+            catch { throw XdebugError.verificationFailed(error.localizedDescription) }
         case .mismatch:
             do { try installer.verifySharedObjectChecksum(extID: "xdebug", phpVersion: version) }
             catch {
-                throw XdebugError.sharedObjectVerificationFailed(error.localizedDescription)
+                throw XdebugError.verificationFailed(error.localizedDescription)
             }
         }
 
         let load = loadVerifier(version)
         guard load.loaded else {
-            throw XdebugError.sharedObjectVerificationFailed(load.warning ?? "shared object did not load")
+            throw XdebugError.verificationFailed(load.warning ?? "shared object did not load")
         }
 
         try FileManager.default.createDirectory(

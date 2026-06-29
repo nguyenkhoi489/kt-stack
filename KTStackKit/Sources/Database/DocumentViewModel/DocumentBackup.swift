@@ -26,7 +26,7 @@ public extension DocumentViewModel {
         selectedProfile?.kind == .mongodb && !isReadOnlyConnection
     }
 
-    var manualImportUnavailableReason: String? {
+    var importUnavailableReason: String? {
         guard selectedProfile?.kind == .mongodb else { return "Pick a MongoDB connection first." }
         if isReadOnlyConnection { return "This connection is read-only; importing is disabled." }
         return backupUnavailableReason

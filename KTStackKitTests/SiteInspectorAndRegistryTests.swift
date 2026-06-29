@@ -163,7 +163,7 @@ final class SiteRegistryTests: XCTestCase {
         try fm.removeItem(at: folder)
         try "not a directory".write(to: folder, atomically: true, encoding: .utf8)
 
-        XCTAssertThrowsError(try reg.validateCanRemoveDeletingFolder(site))
+        XCTAssertThrowsError(try reg.validateCanRemoveFolder(site))
         XCTAssertThrowsError(try reg.removeDeletingFolder(site))
         XCTAssertEqual(reg.sites.count, 1)
     }

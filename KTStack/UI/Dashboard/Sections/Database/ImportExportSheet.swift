@@ -310,7 +310,7 @@ struct ImportExportSheet: View {
     }
 
     private var importUnavailableReason: String {
-        (isDocumentTrack ? documentVM.manualImportUnavailableReason : vm.manualImportUnavailableReason)
+        (isDocumentTrack ? documentVM.importUnavailableReason : vm.importUnavailableReason)
             ?? "The required database tools aren't available."
     }
 

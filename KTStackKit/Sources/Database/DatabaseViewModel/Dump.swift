@@ -34,7 +34,7 @@ public extension DatabaseViewModel {
         }
     }
 
-    var manualImportUnavailableReason: String? {
+    var importUnavailableReason: String? {
         guard let kind = selectedProfile?.kind else { return "Pick a connection first." }
         switch kind {
         case .mysql:
