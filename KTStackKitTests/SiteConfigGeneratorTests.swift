@@ -48,6 +48,22 @@ final class SiteConfigGeneratorTests: XCTestCase {
         XCTAssertFalse(node.contains("fastcgi_pass")) // node not served through PHP-FPM
     }
 
+    func testFrontVhostAdvertisesEffectiveEngineHeader() throws {
+        let (paths, root) = makePaths(); defer { try? fm.removeItem(at: root) }
+        let gen = SiteConfigGenerator(paths: paths)
+        var s = site("demo.test", type: .php)
+        s.serverEngine = .apache
+
+        // No apache binary installed → request falls back to nginx, so the header says nginx.
+        XCTAssertTrue(gen.frontVhostText(for: s).contains("add_header X-KTStack-Engine nginx always;"))
+
+        // Install a fake httpd → the header now reflects apache.
+        let httpd = paths.apacheBinary
+        try fm.createDirectory(at: httpd.deletingLastPathComponent(), withIntermediateDirectories: true)
+        fm.createFile(atPath: httpd.path, contents: Data(), attributes: [.posixPermissions: 0o755])
+        XCTAssertTrue(gen.frontVhostText(for: s).contains("add_header X-KTStack-Engine apache always;"))
+    }
+
     func testPHPSiteWithoutBackendPortIsNotServed() throws {
         let (paths, root) = makePaths(); defer { try? fm.removeItem(at: root) }
         let gen = SiteConfigGenerator(paths: paths)

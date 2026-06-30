@@ -23,7 +23,8 @@ public struct SiteConfigGenerator {
                 backendPort: site.backendPort ?? 0,
                 secure: secure,
                 certFile: secure ? paths.siteCert(site.domain) : nil,
-                keyFile: secure ? paths.siteKey(site.domain) : nil
+                keyFile: secure ? paths.siteKey(site.domain) : nil,
+                engine: WebServerBackendFactory.effectiveEngine(site.serverEngine, paths: paths).rawValue
             )
         }
 

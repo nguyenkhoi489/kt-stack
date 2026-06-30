@@ -12,16 +12,20 @@ public struct NginxFrontProxyWriter {
         secure: Bool,
         certFile: URL?,
         keyFile: URL?,
+        engine: String = "nginx",
         accessLog: URL? = nil,
         errorLog: URL? = nil
     ) -> String {
         let q = NginxConfigWriter.q
         let logs = NginxConfigWriter.logDirectives(access: accessLog, error: errorLog)
+        // Surface which backend actually serves this site; the front's own Server header is always
+        // nginx, so this is the honest signal for `curl -I`.
+        let engineHeader = "\n    add_header X-KTStack-Engine \(engine) always;"
         guard secure, let certFile, let keyFile else {
             return """
             server {
                 listen \(NginxConfigWriter.listenAddress):80;
-                server_name \(domain);\(logs)
+                server_name \(domain);\(logs)\(engineHeader)
 
             \(routing(backendPort: backendPort, scheme: "http"))
             }
@@ -37,7 +41,7 @@ public struct NginxFrontProxyWriter {
         server {
             listen \(NginxConfigWriter.listenAddress):443 ssl;
             http2 on;
-            server_name \(domain);\(logs)
+            server_name \(domain);\(logs)\(engineHeader)
 
             ssl_certificate \(q(certFile.path));
             ssl_certificate_key \(q(keyFile.path));
