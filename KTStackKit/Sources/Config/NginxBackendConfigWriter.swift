@@ -4,7 +4,7 @@ import Foundation
 // proxies here over plain HTTP, so SERVER_PORT/SERVER_ADDR/HTTPS are pinned from the
 // front-terminated state, not derived from $server_port (which would be the loopback port and
 // break framework-generated redirect URLs).
-public struct NginxBackendConfigWriter {
+public struct NginxBackendConfigWriter: Sendable {
     public init() {}
 
     public func config(

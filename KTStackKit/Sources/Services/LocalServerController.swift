@@ -17,6 +17,7 @@ public final class LocalServerController: ObservableObject {
     private nonisolated let paths: AppSupportPaths
     private nonisolated let agents: LaunchAgentManager
     private nonisolated let nginx: NginxController
+    private nonisolated let backends: SiteBackendSupervisor
     private nonisolated let pools: PHPFPMPoolManager
     private nonisolated let nodeSites: NodeSiteController
     private nonisolated let generator: SiteConfigGenerator
@@ -43,6 +44,7 @@ public final class LocalServerController: ObservableObject {
             installedPHP: { BundledPHP.availableVersions(php: paths.phpRuntimesRoot) }
         )
         nginx = NginxController(paths: paths, agents: agents)
+        backends = SiteBackendSupervisor(paths: paths, agents: agents)
         pools = PHPFPMPoolManager(paths: paths, agents: agents)
         nodeSites = NodeSiteController()
         generator = SiteConfigGenerator(paths: paths)
@@ -61,6 +63,9 @@ public final class LocalServerController: ObservableObject {
             Task { @MainActor in self?.handleFolderChange(folder) }
         }
 
+        // Pre-upgrade PHP sites decode with no backendPort; assign one before the front renders.
+        registry.assignBackendPortsIfNeeded()
+
         if nginx.isRunning { reattachOnLaunch() } else { recomputeStatus() }
     }
 
@@ -72,6 +77,11 @@ public final class LocalServerController: ObservableObject {
     private func reattachOnLaunch() {
         let required = generator.poolVersions(for: registry.sites)
         _ = try? pools.reconcile(required: required)
+        // Front is already up; make sure each site's backend is running and listening too.
+        let sites = registry.sites
+        Task.detached(priority: .userInitiated) { [backends] in
+            do { try await backends.reconcile(sites: sites) } catch {}
+        }
         recomputeStatus()
         refreshWatches()
     }
@@ -84,13 +94,13 @@ public final class LocalServerController: ObservableObject {
         let sites = registry.sites
         let port = httpPort
         Task.detached(priority: .userInitiated) { [self] in
-            nginx.stop(); pools.stopAll()
+            nginx.stop(); backends.stopAll(); pools.stopAll()
             do {
                 try stager.stageIfNeeded()
                 let missing = try await applyConfiguration(sites: sites, port: port, startNginx: true, runPreflight: false)
                 await finish(missing: missing, error: nil)
             } catch {
-                pools.stopAll(); nginx.stop()
+                pools.stopAll(); backends.stopAll(); nginx.stop()
                 await finish(missing: [], error: error.localizedDescription)
             }
         }
@@ -167,7 +177,7 @@ public final class LocalServerController: ObservableObject {
                 let missing = try await applyConfiguration(sites: sites, port: port, startNginx: true)
                 await finish(missing: missing, error: nil)
             } catch {
-                pools.stopAll(); nginx.stop()
+                pools.stopAll(); backends.stopAll(); nginx.stop()
                 await finish(missing: [], error: error.localizedDescription)
             }
         }
@@ -176,8 +186,9 @@ public final class LocalServerController: ObservableObject {
     public func stop() {
         guard !isBusy else { return }
         isBusy = true; nginxStatus = .stopping; phpStatus = .stopping
-        Task.detached(priority: .userInitiated) { [nginx, pools, self] in
+        Task.detached(priority: .userInitiated) { [nginx, backends, pools, self] in
             nginx.stop()
+            backends.stopAll()
             pools.stopAll()
             await MainActor.run {
                 self.nginxStatus = .stopped; self.phpStatus = .stopped; self.isBusy = false
@@ -223,7 +234,8 @@ public final class LocalServerController: ObservableObject {
             do {
                 try stager.stageIfNeeded()
                 _ = try generator.generate(sites: sites, port: port)
-                switch preflight.check(port: port) {
+                try await backends.reconcile(sites: sites)
+                switch preflight.firstConflict(in: frontPorts(for: sites, httpPort: port)) {
                 case .available: break
                 case let .inUse(_, message), let .blocked(message):
                     throw NSError(domain: "KTStack", code: 2, userInfo: [NSLocalizedDescriptionKey: message])
@@ -240,8 +252,9 @@ public final class LocalServerController: ObservableObject {
     public func stopNginx() {
         guard !isBusy else { return }
         isBusy = true; nginxStatus = .stopping
-        Task.detached(priority: .userInitiated) { [nginx, self] in
+        Task.detached(priority: .userInitiated) { [nginx, backends, self] in
             nginx.stop()
+            backends.stopAll()
             await MainActor.run { self.isBusy = false; self.recomputeStatus() }
         }
     }
@@ -289,6 +302,7 @@ public final class LocalServerController: ObservableObject {
             do {
                 try stager.stageIfNeeded()
                 _ = try generator.generate(sites: sites, port: port)
+                try await backends.reconcile(sites: sites)
                 try nginx.start()
                 await finish(missing: [], error: nil)
             } catch {
@@ -359,12 +373,15 @@ public final class LocalServerController: ObservableObject {
                 try await Self.waitForSocket(pools.socket(for: version))
             }
         }
+        // Per-site backends must be listening before the front routes to them, else the front
+        // reloads into a dead loopback port and 502s the host.
+        try await backends.reconcile(sites: sites)
         let installedPHP = Set(BundledPHP.availableVersions(php: paths.phpRuntimesRoot))
         let missing = SiteConfigGenerator.requiredVersions(for: sites)
             .subtracting(installedPHP).sorted()
         if startNginx {
             if runPreflight {
-                switch preflight.check(port: port) {
+                switch preflight.firstConflict(in: frontPorts(for: sites, httpPort: port)) {
                 case .available: break
                 case let .inUse(_, m), let .blocked(m): throw NSError(
                         domain: "KTStack",
@@ -427,6 +444,11 @@ public final class LocalServerController: ObservableObject {
         let demo = AppSupportPaths.defaultSitesRoot.appendingPathComponent("demo", isDirectory: true)
         try? Self.provisionSampleSite(at: demo.appendingPathComponent("public", isDirectory: true), domain: "demo.\(tld)")
         try? registry.add(folder: demo)
+    }
+
+    // Front owns :80 always and :443 once any site is secure (TLS terminates at the front).
+    private nonisolated func frontPorts(for sites: [Site], httpPort: Int) -> [Int] {
+        sites.contains { $0.secure } ? [httpPort, 443] : [httpPort]
     }
 
     private nonisolated static func waitForSocket(_ url: URL, timeout: TimeInterval = 5) async throws {
