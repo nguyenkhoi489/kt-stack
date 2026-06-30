@@ -32,10 +32,13 @@ struct KTRuntimesScreen: View {
                 .padding(.horizontal, KTSpacing.screenGutter).padding(.top, 6)
 
             ScrollView {
-                KTListContainer { rows }
-                    .padding(.horizontal, KTSpacing.screenGutter)
-                    .padding(.top, 16)
-                    .padding(.bottom, 24)
+                VStack(alignment: .leading, spacing: 22) {
+                    KTListContainer { rows }
+                    webServerSection
+                }
+                .padding(.horizontal, KTSpacing.screenGutter)
+                .padding(.top, 16)
+                .padding(.bottom, 24)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -77,6 +80,56 @@ struct KTRuntimesScreen: View {
                     Rectangle().fill(KTColor.sepFaint).frame(height: 0.5).padding(.leading, 18)
                 }
             }
+        }
+    }
+
+    // Per-site web engine. Nginx is the bundled front + default backend; Apache is on-demand.
+    private var webServerSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("WEB SERVER")
+                .font(KTType.sectionLabel).tracking(KTType.sectionLabelTracking).foregroundStyle(KTColor.faint)
+                .padding(.leading, 4)
+            KTListContainer {
+                VStack(spacing: 0) {
+                    engineRow(name: "Nginx", subtitle: "Front terminator + default per-site engine", trailing: bundledBadge)
+                    Rectangle().fill(KTColor.sepFaint).frame(height: 0.5).padding(.leading, 18)
+                    engineRow(
+                        name: "Apache \(WebEngineCatalog.apacheVersion)",
+                        subtitle: server.apacheInstallError ?? "Per-site engine · mod_proxy_fcgi to PHP-FPM · .htaccess",
+                        trailing: apacheControl
+                    )
+                }
+            }
+        }
+    }
+
+    private func engineRow(name: String, subtitle: String, trailing: some View) -> some View {
+        HStack(spacing: 14) {
+            KTIconTile(tint: KTServiceVisuals.tint(.nginx), size: 40, radius: 11) {
+                Image(systemName: "server.rack").font(.system(size: 18, weight: .medium))
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(name).font(KTType.rowName).foregroundStyle(KTColor.ink)
+                Text(subtitle).font(KTType.sub).foregroundStyle(KTColor.muted).lineLimit(1).truncationMode(.tail)
+            }
+            Spacer(minLength: 8)
+            trailing
+        }
+        .padding(.vertical, 15).padding(.horizontal, 18)
+    }
+
+    private var bundledBadge: some View {
+        KTBadge(text: "Bundled", tint: KTServiceVisuals.tint(.nginx), radius: 8)
+    }
+
+    @ViewBuilder
+    private var apacheControl: some View {
+        if server.apacheInstalling {
+            ProgressView().controlSize(.small).frame(width: 40)
+        } else if server.apacheInstalled {
+            KTBadge(text: "Installed", tint: KTServiceVisuals.tint(.nginx), radius: 8)
+        } else {
+            KTButton(title: "Install", systemImage: "arrow.down.circle", kind: .primary) { server.installApache() }
         }
     }
 
