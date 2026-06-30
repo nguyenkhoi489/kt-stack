@@ -2,7 +2,7 @@ import AppKit
 import KTStackKit
 import SwiftUI
 
-struct KTSiteListRow: View {
+struct KTSiteListRow: View, Equatable {
     let site: Site
     let availableVersions: [String]
     let canOpen: Bool
@@ -10,6 +10,8 @@ struct KTSiteListRow: View {
     var shareStarting: Bool = false
     var shareURL: URL?
     var shareExpiresAt: Date?
+    let apacheInstalled: Bool
+    let apacheInstalling: Bool
     let onOpen: () -> Void
     let onSetVersion: (String) -> Void
     let onSetSecure: (Bool) -> Void
@@ -20,7 +22,10 @@ struct KTSiteListRow: View {
     var onError: (String) -> Void = { _ in }
     var onRestore: () -> Void = {}
 
-    @EnvironmentObject private var server: LocalServerController
+    // Held as a plain reference, NOT @EnvironmentObject: the row must not re-render on every
+    // server change (isBusy flips on every toggle). Observed values it needs (canOpen,
+    // apacheInstalled/Installing) come in as value params so Equatable can skip unchanged rows.
+    let server: LocalServerController
     @State private var domainDraft: String
     @State private var domainError = false
     @State private var hovering = false
@@ -36,6 +41,9 @@ struct KTSiteListRow: View {
         shareStarting: Bool = false,
         shareURL: URL? = nil,
         shareExpiresAt: Date? = nil,
+        apacheInstalled: Bool,
+        apacheInstalling: Bool,
+        server: LocalServerController,
         onOpen: @escaping () -> Void,
         onSetVersion: @escaping (String) -> Void,
         onSetSecure: @escaping (Bool) -> Void,
@@ -53,6 +61,9 @@ struct KTSiteListRow: View {
         self.shareStarting = shareStarting
         self.shareURL = shareURL
         self.shareExpiresAt = shareExpiresAt
+        self.apacheInstalled = apacheInstalled
+        self.apacheInstalling = apacheInstalling
+        self.server = server
         self.onOpen = onOpen
         self.onSetVersion = onSetVersion
         self.onSetSecure = onSetSecure
@@ -64,6 +75,21 @@ struct KTSiteListRow: View {
         self.onRestore = onRestore
         _domainDraft = State(initialValue: site.domain)
         _nodePortDraft = State(initialValue: site.nodePort.map(String.init) ?? "")
+    }
+
+    // Skip re-rendering rows whose visible inputs are unchanged (used via `.equatable()`), so one
+    // site's toggle doesn't re-lay-out the whole list. Closures and the server ref are ignored;
+    // server is unobserved and every value the row shows is compared here.
+    static func == (a: KTSiteListRow, b: KTSiteListRow) -> Bool {
+        a.site == b.site
+            && a.availableVersions == b.availableVersions
+            && a.canOpen == b.canOpen
+            && a.isSharing == b.isSharing
+            && a.shareStarting == b.shareStarting
+            && a.shareURL == b.shareURL
+            && a.shareExpiresAt == b.shareExpiresAt
+            && a.apacheInstalled == b.apacheInstalled
+            && a.apacheInstalling == b.apacheInstalling
     }
 
     var body: some View {
@@ -108,8 +134,8 @@ struct KTSiteListRow: View {
                 KTEngineMenu(
                     current: site.serverEngine,
                     port: site.backendPort,
-                    apacheInstalled: server.apacheInstalled,
-                    apacheInstalling: server.apacheInstalling,
+                    apacheInstalled: apacheInstalled,
+                    apacheInstalling: apacheInstalling,
                     onSelect: { server.setSiteEngine(site, $0) },
                     onInstallApache: { server.installApache() }
                 )

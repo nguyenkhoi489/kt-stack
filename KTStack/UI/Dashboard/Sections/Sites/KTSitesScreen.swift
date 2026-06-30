@@ -160,6 +160,9 @@ private struct KTSitesContent: View {
                     shareStarting: isStartingShare(site),
                     shareURL: shareURL(site),
                     shareExpiresAt: shareExpiresAt(site),
+                    apacheInstalled: server.apacheInstalled,
+                    apacheInstalling: server.apacheInstalling,
+                    server: server,
                     onOpen: { KTSiteActions.openInBrowser(site) },
                     onSetVersion: { registry.setPHPVersion(site, to: $0) },
                     onSetSecure: { server.setSiteSecure(site, $0) },
@@ -170,6 +173,7 @@ private struct KTSitesContent: View {
                     onError: { actionError = $0 },
                     onRestore: { restoreSite = site }
                 )
+                .equatable()
                 if index < filteredSites.count - 1 {
                     Rectangle().fill(KTColor.sepFaint).frame(height: 0.5).padding(.leading, 16)
                 }
