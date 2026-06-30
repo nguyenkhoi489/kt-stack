@@ -23,7 +23,6 @@ public final class TunnelManager: ObservableObject {
 
     private let paths: AppSupportPaths
     private let provisioner: CloudflaredBinaryProvisioner
-    private let generator: SiteConfigGenerator
     private let tunnelWriter = NginxTunnelVhostWriter()
     private let preflight = PortPreflight()
     private let nginx: NginxController
@@ -34,7 +33,6 @@ public final class TunnelManager: ObservableObject {
     public init(paths: AppSupportPaths = AppSupportPaths()) {
         self.paths = paths
         provisioner = CloudflaredBinaryProvisioner(paths: paths)
-        generator = SiteConfigGenerator(paths: paths)
         nginx = NginxController(paths: paths, agents: LaunchAgentManager(paths: paths))
     }
 
@@ -184,22 +182,16 @@ public final class TunnelManager: ObservableObject {
     }
 
     private func writeTunnelVhost(site: Site, port: Int, publicHost: String?) throws {
-        let socket = site.type == .php ? paths.phpFpmSocket(generator.effectivePHPVersion(site.phpVersion)) : nil
-        if publicHost != nil {
-            try? TunnelHostPrepend.write(
-                to: paths.tunnelHostPrependFile,
-                chainingPrepend: paths.dumpsPrependFile
-            )
-        }
+        // Route PHP through the site's backend (engine-agnostic); static/node have no backend.
+        let backendPort = site.type == .php ? site.backendPort : nil
         let config = tunnelWriter.vhost(
             site: site,
             port: port,
-            phpFpmSocket: socket,
+            backendPort: backendPort,
             accessLog: paths.siteAccessLog(site.domain),
             errorLog: paths.siteErrorLog(site.domain),
             publicHost: publicHost,
-            supportsBodyRewrite: nginx.supportsResponseBodyRewrite(),
-            hostPrependFile: paths.tunnelHostPrependFile
+            supportsBodyRewrite: nginx.supportsResponseBodyRewrite()
         )
         try config.write(to: tunnelVhostURL(site.id), atomically: true, encoding: .utf8)
     }
