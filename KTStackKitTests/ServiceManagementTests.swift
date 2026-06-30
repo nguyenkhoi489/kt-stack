@@ -727,4 +727,49 @@ final class ServiceManagementTests: XCTestCase {
         XCTAssertEqual(release.id, "redis-7.4.2", "release id must be kind-version")
         XCTAssertNil(nil as Double?, "installProgress returns nil when no download task is registered")
     }
+
+    // MARK: - A4.1 NginxController gate tests
+
+    private func makeNginxRoot() throws -> (AppSupportPaths, URL) {
+        let root = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("ktstack-nginx-gate-\(UUID().uuidString)", isDirectory: true)
+        let p = AppSupportPaths(root: root)
+        try p.ensureDirectoryTree()
+        return (p, root)
+    }
+
+    private func stageFakeNginx(at paths: AppSupportPaths, script: String) throws {
+        let script = script
+        try script.write(to: paths.nginxBinary, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: paths.nginxBinary.path)
+    }
+
+    func testNginxGateBlocksReloadWhenTestFails() throws {
+        let (p, root) = try makeNginxRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        try stageFakeNginx(at: p, script: "#!/bin/sh\necho 'nginx: [emerg] unknown directive' >&2\nexit 1\n")
+        let nginx = NginxController(paths: p, agents: LaunchAgentManager(paths: p))
+        XCTAssertThrowsError(try nginx.reload()) { error in
+            XCTAssertTrue(
+                error.localizedDescription.contains("[emerg]"),
+                "Gate failure must surface nginx -t stderr: \(error.localizedDescription)"
+            )
+        }
+    }
+
+    func testNginxGateAllowsReloadWhenTestSucceeds() throws {
+        let (p, root) = try makeNginxRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        try stageFakeNginx(at: p, script: "#!/bin/sh\nexit 0\n")
+        let nginx = NginxController(paths: p, agents: LaunchAgentManager(paths: p))
+        XCTAssertNoThrow(try nginx.reload())
+    }
+
+    func testNginxStartPreflightBlocksOnBrokenConfig() throws {
+        let (p, root) = try makeNginxRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        try stageFakeNginx(at: p, script: "#!/bin/sh\nexit 1\n")
+        let nginx = NginxController(paths: p, agents: LaunchAgentManager(paths: p))
+        XCTAssertThrowsError(try nginx.start())
+    }
 }

@@ -193,6 +193,27 @@ public final class LocalServerController: ObservableObject {
         }.value
     }
 
+    public func validateNginxConfig() async -> String? {
+        let nginx = self.nginx
+        return await Task.detached(priority: .userInitiated) {
+            do {
+                try nginx.test()
+                return nil
+            } catch let NginxController.ControlError.commandFailed(_, _, out) {
+                return out.isEmpty ? "nginx -t failed" : out
+            } catch {
+                return nil
+            }
+        }.value
+    }
+
+    public func reloadNginxConfig() async throws {
+        let nginx = self.nginx
+        try await Task.detached(priority: .userInitiated) {
+            try nginx.reload()
+        }.value
+    }
+
     public func restartPHPPool(version: String) async throws {
         let pools = pools
         try await Task.detached(priority: .userInitiated) {

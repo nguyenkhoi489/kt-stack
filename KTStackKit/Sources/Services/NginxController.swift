@@ -57,11 +57,17 @@ public final class NginxController: @unchecked Sendable {
         agents.isLoaded(instance.label)
     }
 
+    public func test() throws {
+        try runControlCommand(["-t"])
+    }
+
     public func start() throws {
+        try test()
         try agents.bootstrap(spec())
     }
 
     public func reload() throws {
+        try test()
         try runControlCommand(["-s", "reload"])
     }
 
