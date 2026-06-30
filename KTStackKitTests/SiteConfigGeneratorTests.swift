@@ -48,6 +48,18 @@ final class SiteConfigGeneratorTests: XCTestCase {
         XCTAssertFalse(node.contains("fastcgi_pass")) // node not served through PHP-FPM
     }
 
+    func testPHPSiteWithoutBackendPortIsNotServed() throws {
+        let (paths, root) = makePaths(); defer { try? fm.removeItem(at: root) }
+        let gen = SiteConfigGenerator(paths: paths)
+        var portless = site("noport.test", type: .php)
+        portless.backendPort = nil // simulate allocator exhaustion / un-backfilled
+
+        _ = try gen.generate(sites: [portless])
+        // No broken proxy_pass-to-:0 vhost is emitted; the site is simply skipped this pass.
+        XCTAssertFalse(fm.fileExists(atPath: paths.vhost("noport.test").path))
+        XCTAssertFalse(fm.fileExists(atPath: paths.siteBackendConf(portless.id.uuidString).path))
+    }
+
     func testRequiredVersionsOnlyCountsPHPSites() {
         let sites = [
             site("a.test", type: .php, version: "8.4"),

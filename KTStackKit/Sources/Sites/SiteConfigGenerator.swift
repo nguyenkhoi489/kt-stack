@@ -83,9 +83,12 @@ public struct SiteConfigGenerator {
         // unsafe path must keep its prior config, not be swept as an orphan.
         var desiredVhosts = Set<String>()
         var desiredBackends = Set<String>()
+        // A PHP site with no backendPort would proxy_pass to port 0 and break the whole front,
+        // so it is neither desired nor written until it has one (backfilled at controller init).
         for site in sites where NginxConfigWriter.isValidDomain(site.domain) {
+            if site.type == .php, site.backendPort == nil { continue }
             desiredVhosts.insert(paths.vhost(site.domain).lastPathComponent)
-            if site.type == .php, site.backendPort != nil {
+            if site.type == .php {
                 desiredBackends.insert(paths.siteBackendConf(site.id.uuidString).lastPathComponent)
             }
         }
@@ -97,13 +100,13 @@ public struct SiteConfigGenerator {
                 NSLog("KTStack: skipping site with invalid domain/path: \(site.domain)")
                 continue
             }
+            if site.type == .php, site.backendPort == nil {
+                NSLog("KTStack: PHP site \(site.domain) has no backendPort; not served this pass")
+                continue
+            }
             changed = try writeIfChanged(frontVhostText(for: site), to: paths.vhost(site.domain)) || changed
 
-            if site.type == .php {
-                guard let backendPort = site.backendPort else {
-                    NSLog("KTStack: PHP site \(site.domain) has no backendPort; backend not written")
-                    continue
-                }
+            if site.type == .php, let backendPort = site.backendPort {
                 changed = try writeIfChanged(
                     backendConfigText(for: site, backendPort: backendPort),
                     to: paths.siteBackendConf(site.id.uuidString)
