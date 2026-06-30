@@ -197,6 +197,7 @@ struct KTServicesScreen: View {
                     onCancelInstall: { services.cancelInstall(snapshot.kind) },
                     onResetData: { services.resetData(snapshot.kind) }
                 )
+                .equatable()
                 if index < rows.count - 1 {
                     Rectangle().fill(KTColor.sepFaint).frame(height: 0.5).padding(.leading, 18)
                 }

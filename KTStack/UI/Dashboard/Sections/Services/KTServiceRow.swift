@@ -1,7 +1,7 @@
 import KTStackKit
 import SwiftUI
 
-struct KTServiceRow: View {
+struct KTServiceRow: View, Equatable {
     let snapshot: ServiceSnapshot
     let canToggle: Bool
     let onToggle: () -> Void
@@ -14,6 +14,21 @@ struct KTServiceRow: View {
     @State private var hovering = false
     @State private var showResetConfirm = false
 
+    // Skip re-rendering on cpu/mem-only changes (sampled every ~0.9s): otherwise the periodic
+    // metric tick re-lays-out the row mid-toggle and the knob stutters. Live metrics still update
+    // via the isolated KTServiceMetricsText subview below.
+    static func == (a: KTServiceRow, b: KTServiceRow) -> Bool {
+        a.canToggle == b.canToggle
+            && a.snapshot.kind == b.snapshot.kind
+            && a.snapshot.status == b.snapshot.status
+            && a.snapshot.detail == b.snapshot.detail
+            && a.snapshot.isInstalled == b.snapshot.isInstalled
+            && a.snapshot.isBusy == b.snapshot.isBusy
+            && a.snapshot.errorMessage == b.snapshot.errorMessage
+            && a.snapshot.installable == b.snapshot.installable
+            && a.snapshot.downloadFraction == b.snapshot.downloadFraction
+    }
+
     var body: some View {
         HStack(spacing: 14) {
             KTIconTile(tint: tint, size: 40, radius: 11) {
@@ -24,9 +39,7 @@ struct KTServiceRow: View {
                 Text(secondaryText).font(KTType.sub).foregroundStyle(KTColor.muted).lineLimit(1).truncationMode(.tail)
             }
             Spacer(minLength: 8)
-            if let metrics = snapshot.metricsText {
-                Text(metrics).font(.jbMono(12)).monospacedDigit().foregroundStyle(KTColor.muted)
-            }
+            KTServiceMetricsText(kind: snapshot.kind)
             statusLabel.frame(width: 104, alignment: .leading)
             restartButton
             trailingControl
@@ -141,5 +154,18 @@ struct KTServiceRow: View {
 
     private var tint: KTTint {
         KTServiceVisuals.tint(snapshot.kind)
+    }
+}
+
+// Observes ServiceManager on its own so the ~0.9s cpu/mem refresh re-renders just this text, not
+// the parent row (which is Equatable and skips metric-only changes — keeping toggles smooth).
+private struct KTServiceMetricsText: View {
+    @EnvironmentObject private var services: ServiceManager
+    let kind: ServiceKind
+
+    var body: some View {
+        if let metrics = services.snapshots.first(where: { $0.kind == kind })?.metricsText {
+            Text(metrics).font(.jbMono(12)).monospacedDigit().foregroundStyle(KTColor.muted)
+        }
     }
 }
