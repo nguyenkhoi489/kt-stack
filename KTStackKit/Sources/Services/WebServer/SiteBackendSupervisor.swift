@@ -66,19 +66,24 @@ public struct SiteBackendSupervisor: Sendable {
     // not-yet-listening backend.
     public func reconcile(sites: [Site]) async {
         let managed = Self.managed(sites)
+        // One launchctl read for the whole pass; per-site isLoadedNow would be N launchctl calls
+        // and makes every reconcile (e.g. a site toggle) stutter once there are many sites.
+        let loaded = Set(agents.loadedLabels(withPrefix: Self.labelPrefix))
         let desiredLabels = Set(managed.map { label(for: $0) })
-        reapExcept(keeping: desiredLabels)
+        for label in loaded where !desiredLabels.contains(label) {
+            tearDown(label: label)
+        }
 
         for site in managed {
             guard let port = site.backendPort else { continue }
             do {
                 let ctrl = controller(for: site)
-                if agents.isLoadedNow(label(for: site)) {
-                    try ctrl.reload()
+                if loaded.contains(label(for: site)) {
+                    try ctrl.reload() // already listening; graceful reload needs no readiness wait
                 } else {
                     try ctrl.start()
+                    try await Self.waitForListen(port: port)
                 }
-                try await Self.waitForListen(port: port)
             } catch {
                 NSLog("KTStack: backend for \(site.domain) did not come up: \(error.localizedDescription)")
             }
@@ -86,15 +91,8 @@ public struct SiteBackendSupervisor: Sendable {
     }
 
     public func stopAll() {
-        for label in agents.loadedLabels(withPrefix: Self.labelPrefix) {
-            tearDown(label: label)
-        }
-    }
-
-    private func reapExcept(keeping desiredLabels: Set<String>) {
-        for label in agents.loadedLabels(withPrefix: Self.labelPrefix) where !desiredLabels.contains(label) {
-            tearDown(label: label)
-        }
+        // One pass, no per-label launchctl probe (bootout(label) would print-then-bootout each).
+        agents.bootout(matchingPrefix: Self.labelPrefix)
     }
 
     private func tearDown(label: String) {
