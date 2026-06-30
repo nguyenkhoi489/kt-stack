@@ -772,4 +772,49 @@ final class ServiceManagementTests: XCTestCase {
         let nginx = NginxController(paths: p, agents: LaunchAgentManager(paths: p))
         XCTAssertThrowsError(try nginx.start())
     }
+
+    // MARK: - A5.1 LocalServerController passthrough tests
+
+    @MainActor
+    func testValidateNginxConfigReturnsRawStderrOnGateFailure() async throws {
+        let root = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("ktstack-lsc-val-\(UUID().uuidString)", isDirectory: true)
+        let p = AppSupportPaths(root: root)
+        try p.ensureDirectoryTree()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let script = "#!/bin/sh\necho 'nginx: [emerg] unknown directive' >&2\nexit 1\n"
+        try script.write(to: p.nginxBinary, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: p.nginxBinary.path)
+        let server = LocalServerController(bundleBinDir: URL(fileURLWithPath: "/dev/null"), paths: p)
+        let result = await server.validateNginxConfig()
+        XCTAssertNotNil(result)
+        XCTAssertTrue(result?.contains("emerg") == true, "Expected 'emerg' in: \(result ?? "nil")")
+    }
+
+    @MainActor
+    func testValidateNginxConfigReturnsNilWhenBinaryAbsent() async throws {
+        let root = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("ktstack-lsc-absent-\(UUID().uuidString)", isDirectory: true)
+        let p = AppSupportPaths(root: root)
+        try p.ensureDirectoryTree()
+        defer { try? FileManager.default.removeItem(at: root) }
+        // No binary staged under temp root
+        let server = LocalServerController(bundleBinDir: URL(fileURLWithPath: "/dev/null"), paths: p)
+        let result = await server.validateNginxConfig()
+        XCTAssertNil(result)
+    }
+
+    @MainActor
+    func testReloadNginxConfigSucceedsWhenGatePasses() async throws {
+        let root = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("ktstack-lsc-reload-\(UUID().uuidString)", isDirectory: true)
+        let p = AppSupportPaths(root: root)
+        try p.ensureDirectoryTree()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let script = "#!/bin/sh\nexit 0\n"
+        try script.write(to: p.nginxBinary, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: p.nginxBinary.path)
+        let server = LocalServerController(bundleBinDir: URL(fileURLWithPath: "/dev/null"), paths: p)
+        try await server.reloadNginxConfig()
+    }
 }
