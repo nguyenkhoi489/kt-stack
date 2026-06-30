@@ -3,61 +3,27 @@ import Foundation
 public struct SiteConfigGenerator {
     private let paths: AppSupportPaths
     private let writer = NginxConfigWriter()
-    private let tls = NginxTLSVhostWriter()
+    private let backend: WebServerBackend = NginxBackend()
 
     public init(paths: AppSupportPaths) {
         self.paths = paths
     }
 
     public func vhostText(for site: Site, port: Int) -> String {
-        let root = URL(fileURLWithPath: site.docroot)
-
+        let hasCert = certPresent(for: site)
         let socket = site.type == .php ? paths.phpFpmSocket(effectivePHPVersion(site.phpVersion)) : nil
-        let access = paths.siteAccessLog(site.domain)
-        let error = paths.siteErrorLog(site.domain)
-
-        let nodeProxyPort = nodeProxyPort(for: site)
-
-        if site.secure, certPresent(for: site) {
-            return tls.redirectVhost(domain: site.domain) + "\n\n"
-                + tls.secureVhost(
-                    domain: site.domain,
-                    root: root,
-                    certFile: paths.siteCert(site.domain),
-                    keyFile: paths.siteKey(site.domain),
-                    phpFpmSocket: socket,
-                    nodeProxyPort: nodeProxyPort,
-                    accessLog: access,
-                    errorLog: error
-                )
-        }
-        switch site.type {
-        case .php:
-            return writer.vhost(
-                domain: site.domain,
-                root: root,
-                phpFpmSocket: socket!,
-                port: port,
-                accessLog: access,
-                errorLog: error
-            )
-        case .node where nodeProxyPort != nil:
-            return writer.vhostNodeProxy(
-                domain: site.domain,
-                nodePort: nodeProxyPort!,
-                port: port,
-                accessLog: access,
-                errorLog: error
-            )
-        case .staticSite, .node:
-            return writer.vhostStatic(
-                domain: site.domain,
-                root: root,
-                port: port,
-                accessLog: access,
-                errorLog: error
-            )
-        }
+        let context = BackendRenderContext(
+            site: site,
+            root: URL(fileURLWithPath: site.docroot),
+            phpFpmSocket: socket,
+            nodeProxyPort: nodeProxyPort(for: site),
+            certFile: hasCert ? paths.siteCert(site.domain) : nil,
+            keyFile: hasCert ? paths.siteKey(site.domain) : nil,
+            accessLog: paths.siteAccessLog(site.domain),
+            errorLog: paths.siteErrorLog(site.domain),
+            port: port
+        )
+        return backend.siteConfig(context: context)
     }
 
     private func nodeProxyPort(for site: Site) -> Int? {
