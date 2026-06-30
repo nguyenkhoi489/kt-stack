@@ -79,6 +79,7 @@ public struct SiteConfigGenerator {
 
     @discardableResult
     public func generate(sites: [Site], port _: Int = 80) throws -> Bool {
+        try NginxUserIncludeStore(paths: paths).ensureSeeded()
         var changed = false
         let secureCatchAll = sites.contains { $0.secure && certPresent(for: $0) }
         if secureCatchAll { try NginxCatchAllCert(paths: paths).ensure() }

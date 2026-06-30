@@ -186,6 +186,21 @@ final class SiteConfigGeneratorTests: XCTestCase {
         XCTAssertTrue(fm.fileExists(atPath: tunnel.path))
     }
 
+    // MARK: - C1 fix: generate() must seed nginx-extra.conf before writing nginx.conf
+
+    func testGenerateSeedsNginxUserConfWhenAbsent() throws {
+        let (paths, root) = makePaths(); defer { try? fm.removeItem(at: root) }
+        // Precondition: ensureDirectoryTree creates the containing dir but NOT the file
+        XCTAssertFalse(fm.fileExists(atPath: paths.nginxUserConf.path),
+                       "Precondition: nginx-extra.conf must NOT exist before generate()")
+        let gen = SiteConfigGenerator(paths: paths)
+        _ = try gen.generate(sites: [])
+        XCTAssertTrue(fm.fileExists(atPath: paths.nginxUserConf.path),
+                      "generate() must create nginx-extra.conf when absent so nginx -t does not fail on the include directive")
+        let content = try String(contentsOf: paths.nginxUserConf, encoding: .utf8)
+        XCTAssertFalse(content.isEmpty, "seeded nginx-extra.conf must not be empty")
+    }
+
     // MARK: - A3.2 Regeneration guard (regression lock)
 
     func testSiteConfigGeneratorDoesNotTouchNginxUserConf() throws {
