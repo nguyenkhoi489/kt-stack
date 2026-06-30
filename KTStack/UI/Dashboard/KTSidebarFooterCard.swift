@@ -5,6 +5,9 @@ struct KTSidebarFooterCard: View {
     let status: ServiceStatus
     let version: String
 
+    // Observed only for the rare "update found" event (set by Sparkle's existing checks); no polling.
+    @EnvironmentObject private var updater: UpdaterController
+
     var body: some View {
         HStack(spacing: 10) {
             KTDot(color: dotColor)
@@ -12,9 +15,19 @@ struct KTSidebarFooterCard: View {
                 Text("Server \(status.label)")
                     .font(.jbMono(13, .regular))
                     .foregroundStyle(KTColor.ink)
-                Text("v\(version)")
-                    .font(.jbMono(11.5))
-                    .foregroundStyle(KTColor.muted)
+                if let newVersion = updater.availableVersion {
+                    Button { updater.checkForUpdates() } label: {
+                        Text("Update to v\(newVersion) →")
+                            .font(.jbMono(11.5, .medium))
+                            .foregroundStyle(KTColor.accent)
+                    }
+                    .buttonStyle(.plain)
+                    .help("A new version is available. Click to update.")
+                } else {
+                    Text("v\(version)")
+                        .font(.jbMono(11.5))
+                        .foregroundStyle(KTColor.muted)
+                }
             }
             Spacer(minLength: 0)
         }

@@ -7,6 +7,9 @@ final class UpdaterController: NSObject, ObservableObject, SPUUpdaterDelegate {
     private var channel: String = ""
 
     @Published var canCheckForUpdates = false
+    // Set from Sparkle's own check results (scheduled or manual), so the UI can show an
+    // "update available" badge. No extra polling: this only reflects checks Sparkle already runs.
+    @Published var availableVersion: String?
 
     override init() {
         super.init()
@@ -31,6 +34,14 @@ final class UpdaterController: NSObject, ObservableObject, SPUUpdaterDelegate {
 
     func allowedChannels(for _: SPUUpdater) -> Set<String> {
         channel.isEmpty ? [] : [channel]
+    }
+
+    func updater(_: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
+        availableVersion = item.displayVersionString
+    }
+
+    func updaterDidNotFindUpdate(_: SPUUpdater) {
+        availableVersion = nil
     }
 
     func updater(_: SPUUpdater, didAbortWithError error: Error) {
