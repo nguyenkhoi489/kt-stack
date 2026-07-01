@@ -10,6 +10,7 @@ struct KTServiceRow: View, Equatable {
     var onInstall: () -> Void = {}
     var onCancelInstall: () -> Void = {}
     var onResetData: () -> Void = {}
+    var onEditConfig: (() -> Void)? = nil
 
     @State private var hovering = false
     @State private var showResetConfirm = false
@@ -103,6 +104,9 @@ struct KTServiceRow: View, Equatable {
         Menu {
             Button("Open Logs", systemImage: "text.alignleft", action: onOpenLogs)
                 .disabled(snapshot.kind == .dnsmasq)
+            if snapshot.kind == .nginx, let editConfig = onEditConfig {
+                Button("Edit nginx config…", systemImage: "doc.text", action: editConfig)
+            }
             if snapshot.kind == .mongodb, snapshot.status == .error {
                 Divider()
                 Button("Reset Data…", systemImage: "trash", role: .destructive) { showResetConfirm = true }

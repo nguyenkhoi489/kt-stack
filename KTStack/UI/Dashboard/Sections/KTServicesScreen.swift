@@ -6,9 +6,14 @@ struct KTServicesScreen: View {
     var onOpenLogs: (String?) -> Void = { _ in }
 
     @EnvironmentObject private var services: ServiceManager
+    @EnvironmentObject private var server: LocalServerController
     @EnvironmentObject private var dns: DNSAutomationService
     @EnvironmentObject private var overlay: KTOverlayCenter
     @EnvironmentObject private var caTrust: CATrustService
+
+    @State private var editingNginxConf: NginxConfEditToken?
+
+    private struct NginxConfEditToken: Identifiable { let id = UUID() }
 
     private var caExists: Bool {
         caTrust.status != .notInstalled
@@ -72,6 +77,10 @@ struct KTServicesScreen: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(KTColor.contentBg)
+        .sheet(item: $editingNginxConf) { _ in
+            NginxIncludeEditorSheet()
+                .environmentObject(server)
+        }
         .task { await caTrust.refreshAsync() }
     }
 
@@ -195,7 +204,8 @@ struct KTServicesScreen: View {
                     onOpenLogs: { onOpenLogs(Self.logSourceID(for: snapshot.kind)) },
                     onInstall: { services.install(snapshot.kind) },
                     onCancelInstall: { services.cancelInstall(snapshot.kind) },
-                    onResetData: { services.resetData(snapshot.kind) }
+                    onResetData: { services.resetData(snapshot.kind) },
+                    onEditConfig: snapshot.kind == .nginx ? { editingNginxConf = NginxConfEditToken() } : nil
                 )
                 .equatable()
                 if index < rows.count - 1 {
