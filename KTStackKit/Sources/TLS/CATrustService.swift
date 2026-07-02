@@ -70,6 +70,8 @@ public final class CATrustService: ObservableObject {
     public nonisolated static func isTrustedInSystemKeychain(caCert: URL) -> Bool {
         guard let pem = try? Data(contentsOf: caCert),
               let der = CertMinter.pemToDER(pem) else { return false }
+        // SHA-1 to match "security find-certificate -Z", which prints SHA-1 fingerprints. This is a
+        // string match against the tool's output, not a security decision.
         let sha1 = Insecure.SHA1.hash(data: der).map { String(format: "%02X", $0) }.joined()
         let proc = Process()
         proc.executableURL = URL(fileURLWithPath: "/usr/bin/security")

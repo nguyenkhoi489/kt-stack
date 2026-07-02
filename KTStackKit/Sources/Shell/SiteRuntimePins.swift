@@ -13,6 +13,8 @@ public struct SiteRuntimePins: Sendable {
 
     public func phpVersion(forProjectAt cwd: URL) -> String? {
         let target = cwd.standardizedFileURL.path
+        // Trailing slash stops /foo matching /foobar; longest matching path wins so a nested
+        // site's pin overrides an ancestor's.
         return load()
             .filter { pin in
                 guard let version = pin.phpVersion, !version.isEmpty else { return false }

@@ -29,6 +29,8 @@ public struct ShellRuntimeBinResolver: Sendable {
         let bin = paths.runtimeBin(lang.rawValue, version)
             .appendingPathComponent(binName).standardizedFileURL
         let prefix = paths.runtimes.standardizedFileURL.path + "/"
+        // The shell shim execs whatever path this returns, so confine it under the runtimes root.
+        // Without the prefix check a crafted version string could resolve to an arbitrary binary.
         guard bin.path.hasPrefix(prefix), FileManager.default.isExecutableFile(atPath: bin.path) else {
             throw ResolveError.missingBinary
         }

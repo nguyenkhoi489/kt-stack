@@ -20,6 +20,8 @@ enum RootCAConstraintError: Error, Equatable {
 }
 
 enum RootCAConstraint {
+    // mkcert bakes this org name into every CA it generates, so this is the match value for our own
+    // CA, not a placeholder. Changing it rejects the real cert.
     static let expectedOrganization = "mkcert development CA"
 
     static func validateKTStackRootCA(pemData: Data) -> RootCAConstraintError? {

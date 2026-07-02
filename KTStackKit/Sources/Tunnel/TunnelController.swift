@@ -24,6 +24,8 @@ public actor TunnelController {
 
     private static let parseTimeout: TimeInterval = 30
     private static let probeTimeout: TimeInterval = 60
+    // Cloudflare's edge returns these while the tunnel is still warming up, so treat them as "keep
+    // polling" rather than a failure; a real origin error surfaces a different code.
     private static let edgeErrorCodes: Set<Int> = [502, 503, 504, 521, 522, 523, 524, 530]
 
     public init(paths: AppSupportPaths, siteID: UUID) {
@@ -169,6 +171,8 @@ public actor TunnelController {
         return nil
     }
 
+    // launchd refuses to bootstrap a label that is still loaded, so boot out the old job and wait
+    // for it to actually disappear before starting a new one.
     private func ensureLabelFree() async {
         guard launch.isLoadedNow(label) else { return }
         try? launch.bootout(label)

@@ -3,6 +3,8 @@ import Foundation
 final class HelperCAManager {
     private static let systemKeychain = "/Library/Keychains/System.keychain"
 
+    // Runs as root into the System Keychain, so reject any PEM that is not KTStack's own
+    // self-signed CA. Accepting an arbitrary cert would plant a trusted MITM root.
     func installRootCA(pemData: Data) -> (Bool, String?) {
         if let rejection = RootCAConstraint.validateKTStackRootCA(pemData: pemData) {
             return (false, rejection.message)

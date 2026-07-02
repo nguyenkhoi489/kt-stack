@@ -198,6 +198,8 @@ public struct PHPExtensionInstaller: Sendable {
         try writeExtensionDirIni(phpVersion: phpVersion)
         PHPModules.invalidate(version: phpVersion)
 
+        // Verify the .so actually loads before persisting its load directive. A directive for an
+        // extension that fails to load makes php-fpm refuse to boot, so on failure drop it.
         let (loaded, warning) = verifyLoad(extID: extID, phpVersion: phpVersion)
         guard loaded else {
             removeExtensionLoadIni(extID: extID, phpVersion: phpVersion)

@@ -2,6 +2,8 @@ import Foundation
 import Security
 
 public struct KeychainStore: Sendable {
+    // ThisDeviceOnly and non-synchronizable keep DB passwords out of iCloud Keychain and off other
+    // devices; flipping either would sync local dev credentials to the cloud.
     public static let accessibleAttr = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
 
     public static let synchronizable = false

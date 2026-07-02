@@ -25,6 +25,8 @@ public enum LegacyKDWarmMigration {
         let hasLegacyData = fileManager.fileExists(atPath: legacyRoot.path)
 
         if hasLegacyData {
+            // Stop the legacy launchd jobs before moving their data dir, or the still-running
+            // daemons keep writing into the old path mid-move and corrupt the relocation.
             LaunchAgentManager(paths: paths).bootout(matchingPrefix: legacyLaunchPrefix)
             _ = relocateDataDirectory(from: legacyRoot, to: newRoot)
         }

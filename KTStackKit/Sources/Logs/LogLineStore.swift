@@ -55,6 +55,8 @@ public final class LogLineStore: @unchecked Sendable {
         {
             return .error
         }
+        // && binds tighter than ||, so a [notice] line counts as a warning only when it also says
+        // "fail"; plain notices stay info instead of flooding the viewer with warnings.
         if l.contains("[warn]") || l.contains("warning") || l.contains("[notice]") && l.contains("fail") {
             return .warning
         }

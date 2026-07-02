@@ -33,6 +33,8 @@ enum AppActivationPolicy {
         )
     }
 
+    // A closing window is still in NSApp.windows during windowWillClose, so exclude it; with no
+    // ordinary window left, drop back to accessory so the app leaves the Dock for the menu bar.
     static func restoreAccessoryIfNoWindows(excluding closingWindow: NSWindow? = nil) {
         let hasOrdinaryWindow = NSApp.windows.contains { window in
             window !== closingWindow

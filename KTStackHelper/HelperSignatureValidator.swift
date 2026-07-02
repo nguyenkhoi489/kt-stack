@@ -11,6 +11,8 @@ enum HelperSignatureValidator {
         guard HelperIdentity.hasSigningIdentity else { return false } // dev build: trust nobody
         guard let requirement = makeRequirement(HelperIdentity.clientRequirement) else { return false }
 
+        // Identify the peer by audit token, never PID: a PID can be reused between check and
+        // connect, letting an unsigned process impersonate the app.
         var token = unsafeBitCast(connection, to: AuditTokenProvider.self).auditToken
         let tokenData = Data(bytes: &token, count: MemoryLayout<audit_token_t>.size) as CFData
 

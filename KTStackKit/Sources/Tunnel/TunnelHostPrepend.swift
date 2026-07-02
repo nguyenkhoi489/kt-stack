@@ -1,6 +1,8 @@
 import Foundation
 
 public enum TunnelHostPrepend {
+    // Derive WP_HOME/WP_SITEURL from HTTP_HOST so WordPress emits the public tunnel URL, not the
+    // local .test host; the __FILE__ check stops an infinite require if the chained prepend is this file.
     public static func content(chainingPrepend dumpPrepend: URL) -> String {
         """
         <?php

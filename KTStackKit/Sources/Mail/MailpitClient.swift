@@ -38,6 +38,8 @@ public struct MailpitClient: Sendable {
         _ = try await send(req)
     }
 
+    // Mailpit deletes every message when IDs is empty, so this posts an empty array on purpose;
+    // an "empty guard" in delete() would turn Clear All into a no-op.
     public func deleteAll() async throws {
         try await delete(ids: [])
     }

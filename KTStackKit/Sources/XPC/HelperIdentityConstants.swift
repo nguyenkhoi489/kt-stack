@@ -42,6 +42,8 @@ public enum HelperIdentity {
 
     static func requirement(for identifier: String, team: String?) -> String {
         if let strong = strongRequirement(for: identifier, team: team) { return strong }
+        // Release with no resolved Team ID falls back to an unsatisfiable requirement, so the helper
+        // trusts no client rather than every client; DEBUG relaxes to identifier-only for local builds.
         #if DEBUG
             return "identifier \"\(identifier)\""
         #else

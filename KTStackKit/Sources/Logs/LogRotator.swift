@@ -31,6 +31,8 @@ public struct LogRotator: Sendable {
             guard fm.fileExists(atPath: from.path) else { continue }
             try? fm.moveItem(at: from, to: url.appendingPathExtension("\(n + 1)"))
         }
+        // Copy then truncate in place instead of renaming the live file: the daemon holds this fd
+        // open, so a rename would leave it writing into the rotated copy while the live path sits empty.
         try? fm.copyItem(at: url, to: url.appendingPathExtension("1"))
 
         try? Data().write(to: url)

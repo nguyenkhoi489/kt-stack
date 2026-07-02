@@ -39,6 +39,8 @@ public final class UninstallService: ObservableObject {
 
         let agents = agents, mkcert = mkcert, root = paths.root, resolverTLD = dns.tld
         Task.detached(priority: .userInitiated) { [weak self] in
+            // Boot out every launchd job before deleting the data root below, or launchd keeps the
+            // removed binaries running (and can respawn them) while the delete races live writers.
             agents.bootoutAll()
             await self?.record("Stopped all launchd services.")
 

@@ -64,6 +64,8 @@ public final class LogTailReader: @unchecked Sendable {
         }
         guard let fh = handle else { return }
         let size = (try? fh.seekToEnd()) ?? 0
+        // File shrank under us (rotated or truncated), so restart from the top instead of seeking
+        // past EOF and stalling with no new lines.
         if size < offset { offset = 0 }
         try? fh.seek(toOffset: offset)
         let data = (try? fh.readToEnd()) ?? Data()

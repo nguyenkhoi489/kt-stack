@@ -52,6 +52,8 @@ public actor CloudflaredBinaryProvisioner {
         onProgress: @escaping @Sendable (RuntimeDownloader.Progress) -> Void
     ) async throws -> URL {
         if let installed = installedBinary() { return installed }
+        // Reuse an in-flight install for concurrent share requests: two downloads writing the same
+        // dest would race and one could clobber the other mid-extract.
         if let inFlight { return try await inFlight.value }
 
         let task = Task { try await self.performInstall(onProgress: onProgress) }

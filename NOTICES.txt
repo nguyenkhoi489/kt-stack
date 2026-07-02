@@ -1,5 +1,5 @@
 KTStack — Third-Party Notices
-Generated: 2026-06-28T15:14:37Z
+Generated: 2026-06-30T09:04:01Z
 KTStack is distributed free of charge as open-source software.
 
 == Redistributed components ==

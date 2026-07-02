@@ -14,6 +14,8 @@ public struct PHPFPMPoolWriter {
         let sendmail = "'\(paths.binary("mailpit").path)' sendmail -S 127.0.0.1:1025"
 
         let mysqlSocket = paths.serviceSocket("mysql").path
+        // error_log and sendmail_path use php_admin_value so a user-edited php.ini cannot redirect
+        // logs or outbound mail; the mysqli socket lines stay php_value so users can override them.
         let base = """
         [global]
         error_log = \(log)

@@ -25,6 +25,8 @@ struct ShellShimWriter {
     fi
     """
 
+    // Strip the shim dir from PATH before resolving: the picked runtime and the "command -v"
+    // fallback must find the real binary, or the shim would re-exec itself in a loop.
     func directBinaryShim(lang: String) -> String {
         let isolation = lang == "php" ? "\n" + phpConfigIsolation : ""
         return """

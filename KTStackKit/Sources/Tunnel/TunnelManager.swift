@@ -126,6 +126,8 @@ public final class TunnelManager: ObservableObject {
     private func runStart(site: Site) async {
         let siteID = site.id
         if Task.isCancelled { clearStart(siteID); return }
+        // Inverted check: port 80 being free means nothing is serving, so the local stack is down
+        // and a tunnel would point at a dead origin.
         if case .available = preflight.check(port: 80) {
             finishStart(siteID, status: .error("Local server isn't running — start KTStack's services first."))
             return
@@ -275,6 +277,8 @@ public final class TunnelManager: ObservableObject {
         if removed { Task { await reloadNginxTolerant() } }
     }
 
+    // Derive a stable base port from the site UUID so a restart reuses the same port; scan forward
+    // (wrapping inside 41000-50999) to skip one already taken by another tunnel.
     private func selectTunnelPort(_ siteID: UUID) -> Int {
         let base = 41000 + stablePortOffset(siteID)
         for offset in 0..<1000 {
