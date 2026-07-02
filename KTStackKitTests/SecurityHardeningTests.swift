@@ -7,8 +7,16 @@ import XCTest
 /// execution chokepoints that render attacker-influenced values into root-run scripts.
 final class SecurityHardeningTests: XCTestCase {
     func testValidTLDAcceptsNormalTLDs() {
-        for t in ["test", "localhost", "internal", "dev.local", "a", "x1"] {
+        for t in ["test", "internal", "home.arpa", "a", "x1"] {
             XCTAssertTrue(DNSConstants.isValidTLD(t), "\(t) should be valid")
+        }
+    }
+
+    /// macOS mDNS owns `.local` and loopback owns `localhost`; a resolver for either is silently
+    /// ignored, so the validator must reject them (and any `*.local`) up front.
+    func testValidTLDRejectsReservedDomains() {
+        for t in ["local", "localhost", "dev.local", "sub.localhost"] {
+            XCTAssertFalse(DNSConstants.isValidTLD(t), "\(t) is reserved by macOS and must be rejected")
         }
     }
 

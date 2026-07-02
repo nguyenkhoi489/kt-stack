@@ -5,7 +5,7 @@ import Foundation
 public final class AppPreferences: ObservableObject {
     public static let defaultTLD = "test"
 
-    public static let safeTLDs = ["test", "localhost", "home.arpa", "internal"]
+    public static let safeTLDs = ["test", "home.arpa", "internal"]
 
     public static var defaultSitesRootPath: String {
         AppSupportPaths.defaultSitesRoot.path
