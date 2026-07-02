@@ -110,6 +110,13 @@ targets:
       - path: KTStack/Resources/fonts
         type: folder
         buildPhase: resources
+      # SMAppService reads the daemon plist from Contents/Library/LaunchDaemons. Without this copy
+      # register() throws "unable to read plist" and DNS enable silently fails on signed builds.
+      - path: KTStackHelper/com.ktstack.helper.plist
+        buildPhase:
+          copyFiles:
+            destination: wrapper
+            subpath: Contents/Library/LaunchDaemons
     dependencies:
       - target: KTStackKit
         embed: true
