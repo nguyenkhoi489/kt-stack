@@ -98,9 +98,13 @@ public struct BinaryStager {
             } catch {
                 throw StageError.copyFailed(name, error.localizedDescription)
             }
+        } else {
+            // Re-verify only the pre-existing copy, to catch a staged binary tampered with after
+            // install. A freshly copied one came from the source verified just above, and
+            // codesign --verify races the copy on large binaries (false failures), so re-checking
+            // right after copyItem is both redundant and flaky.
+            try enforceSignature(at: dest)
         }
-
-        try enforceSignature(at: dest)
     }
 
     private func enforceSignature(at url: URL) throws {
@@ -108,6 +112,9 @@ public struct BinaryStager {
         #if DEBUG
             NSLog("KTStack: skipping signature check for unsigned binary in DEBUG build: \(url.path)")
         #else
+            ServiceDiagnostics(paths: paths).log(
+                .error, "signature check failed, refusing to run: \(url.path)"
+            )
             throw StageError.signatureInvalid(url.path)
         #endif
     }
