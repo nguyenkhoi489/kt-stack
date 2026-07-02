@@ -20,6 +20,7 @@ struct DashboardWindow: View {
 
     @StateObject private var nav = DashboardNavigation()
     @StateObject private var overlay = KTOverlayCenter()
+    @State private var showDNSOnboarding = false
 
     private var dashboardEnv: DashboardEnv {
         DashboardEnv(
@@ -47,6 +48,13 @@ struct DashboardWindow: View {
             .ktOverlayHost(overlay)
             .ignoresSafeArea(.container, edges: .top)
             .background(KTWindowChrome())
+            .sheet(isPresented: $showDNSOnboarding) { HelperApprovalView(dns: dns) }
+            .task {
+                // Prompt DNS setup once on first launch; without it the resolver never gets set up
+                // because nothing else surfaces the step at boot.
+                if !preferences.hasSeenDNSSetup, dns.status == .disabled { showDNSOnboarding = true }
+                preferences.hasSeenDNSSetup = true
+            }
     }
 }
 

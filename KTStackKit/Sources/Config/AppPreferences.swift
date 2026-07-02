@@ -49,6 +49,11 @@ public final class AppPreferences: ObservableObject {
         didSet { defaults.set(releaseChannel.rawValue, forKey: Key.releaseChannel) }
     }
 
+    // One-shot: gates the first-launch DNS setup prompt so it shows once, not every open.
+    @Published public var hasSeenDNSSetup: Bool {
+        didSet { defaults.set(hasSeenDNSSetup, forKey: Key.hasSeenDNSSetup) }
+    }
+
     private let defaults: UserDefaults
     private enum Key {
         static let sitesRoot = "KTStack.sitesRootPath"
@@ -59,6 +64,7 @@ public final class AppPreferences: ObservableObject {
         static let serveHTTPS = "KTStack.serveHTTPSByDefault"
         static let automaticUpdates = "KTStack.automaticUpdates"
         static let releaseChannel = "KTStack.releaseChannel"
+        static let hasSeenDNSSetup = "KTStack.hasSeenDNSSetup"
     }
 
     public init(defaults: UserDefaults = .standard) {
@@ -73,6 +79,7 @@ public final class AppPreferences: ObservableObject {
         serveHTTPSByDefault = defaults.object(forKey: Key.serveHTTPS) as? Bool ?? true
         automaticUpdates = defaults.object(forKey: Key.automaticUpdates) as? Bool ?? true
         releaseChannel = ReleaseChannel(rawValue: defaults.string(forKey: Key.releaseChannel) ?? "") ?? .stable
+        hasSeenDNSSetup = defaults.bool(forKey: Key.hasSeenDNSSetup)
     }
 
     public func setLaunchAtLogin(_ on: Bool) {
