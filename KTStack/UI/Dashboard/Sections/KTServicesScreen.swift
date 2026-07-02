@@ -12,6 +12,10 @@ struct KTServicesScreen: View {
     @EnvironmentObject private var caTrust: CATrustService
 
     @State private var editingNginxConf: NginxConfEditToken?
+    // Cached so the metric-driven body (re-runs ~0.9s while a service is live) doesn't re-list the
+    // runtime dirs each tick. Installed set / active version only change on install/uninstall
+    // (Runtimes screen) or a switch here, so refresh on appear and after setActive.
+    @State private var dbVersions: [ServiceKind: (installed: [String], active: String?)] = [:]
 
     private struct NginxConfEditToken: Identifiable { let id = UUID() }
 
@@ -28,6 +32,8 @@ struct KTServicesScreen: View {
         ("Runtimes", [.phpFpm]),
         ("Mail", [.mailpit]),
     ]
+
+    private static let dbKinds: [ServiceKind] = [.mysql, .postgres, .redis, .mongodb]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -53,14 +59,9 @@ struct KTServicesScreen: View {
                         .padding(.bottom, 8)
                     }
                     ForEach(Self.groups, id: \.title) { group in
-                        let rows = services.snapshots.filter { group.kinds.contains($0.kind) }
-                        if !rows.isEmpty {
-                            Text(group.title.uppercased())
-                                .font(KTType.sectionLabel).tracking(KTType.sectionLabelTracking)
-                                .foregroundStyle(KTColor.muted)
-                                .padding(.horizontal, 2).padding(.top, 18).padding(.bottom, 8)
-                            KTListContainer { groupRows(rows) }
-                        }
+                        standardGroup(group)
+                        // DB/cache engines: run + swap-installed here; install/uninstall on Runtimes.
+                        if group.title == "Runtimes" { dbGroup }
                     }
                 }
                 .padding(.horizontal, KTSpacing.screenGutter)
@@ -75,6 +76,7 @@ struct KTServicesScreen: View {
                 .environmentObject(server)
         }
         .task { await caTrust.refreshAsync() }
+        .onAppear { refreshDBVersions() }
     }
 
     private var header: some View {
@@ -88,6 +90,84 @@ struct KTServicesScreen: View {
                 services.startAll(); overlay.toast("Starting all services")
             }
         }
+    }
+
+    @ViewBuilder
+    private func standardGroup(_ group: (title: String, kinds: [ServiceKind])) -> some View {
+        let rows = services.snapshots.filter { group.kinds.contains($0.kind) }
+        if !rows.isEmpty {
+            Text(group.title.uppercased())
+                .font(KTType.sectionLabel).tracking(KTType.sectionLabelTracking)
+                .foregroundStyle(KTColor.muted)
+                .padding(.horizontal, 2).padding(.top, 18).padding(.bottom, 8)
+            KTListContainer { groupRows(rows) }
+        }
+    }
+
+    private struct DBEntry: Identifiable {
+        let snapshot: ServiceSnapshot
+        let installedVersions: [String]
+        let activeVersion: String?
+        var id: ServiceKind { snapshot.kind }
+    }
+
+    // Computed once per render: installedVersions() lists a directory, so gather it here and hand
+    // plain values to the Equatable rows instead of re-reading disk inside each row body.
+    private var dbEntries: [DBEntry] {
+        Self.dbKinds.compactMap { kind in
+            guard let snap = services.snapshots.first(where: { $0.kind == kind }) else { return nil }
+            let cached = dbVersions[kind]
+            return DBEntry(
+                snapshot: snap,
+                installedVersions: cached?.installed ?? services.installedVersions(kind),
+                activeVersion: cached?.active ?? services.activeVersion(kind)
+            )
+        }
+    }
+
+    private func refreshDBVersions() {
+        dbVersions = Dictionary(uniqueKeysWithValues: Self.dbKinds.map { kind in
+            (kind, (services.installedVersions(kind), services.activeVersion(kind)))
+        })
+    }
+
+    @ViewBuilder
+    private var dbGroup: some View {
+        let entries = dbEntries
+        if !entries.isEmpty {
+            Text("DATABASES & CACHE")
+                .font(KTType.sectionLabel).tracking(KTType.sectionLabelTracking)
+                .foregroundStyle(KTColor.muted)
+                .padding(.horizontal, 2).padding(.top, 18).padding(.bottom, 8)
+            KTListContainer {
+                VStack(spacing: 0) {
+                    ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
+                        let kind = entry.snapshot.kind
+                        KTDatabaseServiceRow(
+                            snapshot: entry.snapshot,
+                            installedVersions: entry.installedVersions,
+                            activeVersion: entry.activeVersion,
+                            onToggle: { services.toggle(kind) },
+                            onRestart: { services.restart(kind) },
+                            onOpenLogs: { onOpenLogs(Self.logSourceID(for: kind)) },
+                            onSetActive: { handleSetActive(kind: kind, version: $0) },
+                            onManageInRuntimes: { onNavigate(.runtimes) }
+                        )
+                        .equatable()
+                        if index < entries.count - 1 {
+                            Rectangle().fill(KTColor.sepFaint).frame(height: 0.5).padding(.leading, 18)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func handleSetActive(kind: ServiceKind, version: String) {
+        do {
+            try services.setActiveVersion(kind, version: version)
+            refreshDBVersions()
+        } catch { overlay.toast(error.localizedDescription) }
     }
 
     private func groupRows(_ rows: [ServiceSnapshot]) -> some View {
