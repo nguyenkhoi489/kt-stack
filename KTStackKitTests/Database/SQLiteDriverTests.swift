@@ -54,6 +54,21 @@ final class SQLiteDriverTests: XCTestCase {
         catch { XCTAssertTrue(error is DatabaseError) }
     }
 
+    func testUnopenablePathMapsToFileAccessMessage() {
+        // A directory can't be opened as a database file (SQLITE_CANTOPEN); the error must guide the
+        // user to the pickers, not leak a raw SQLite message (mirrors a TCC-blocked path).
+        let profile = ConnectionProfile(
+            name: "x", kind: .sqlite, host: "", port: 0, user: "",
+            database: SQLiteDriver.mainDatabase, filePath: tempDir.path, readOnly: false
+        )
+        XCTAssertThrowsError(try SQLiteDriver.makeQueue(profile: profile)) { error in
+            guard case let DatabaseError.connection(message) = error else {
+                return XCTFail("expected .connection, got \(error)")
+            }
+            XCTAssertTrue(message.contains("macOS blocked access"), "got: \(message)")
+        }
+    }
+
     func testCreateInsertBrowseRoundTripsTypedCells() async throws {
         let driver = makeDriver()
         try await seedSchema(driver)

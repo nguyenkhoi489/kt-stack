@@ -119,14 +119,24 @@ public struct SQLiteDriver: RelationalDriver {
         }
     }
 
+    static let fileAccessMessage = "Couldn't open the SQLite file. It may not exist, or macOS blocked access "
+        + "(files in Documents/Desktop/Downloads). Create or pick it with New…/Browse…, or allow KTStack in "
+        + "System Settings → Privacy & Security → Files and Folders."
+
     static func mapError(_ error: any Error) -> DatabaseError {
         if let dbError = error as? DatabaseError { return dbError }
         if let grdb = error as? GRDB.DatabaseError {
-            let message = grdb.message ?? String(describing: grdb.resultCode)
-            // A read-only write attempt and malformed SQL are both surfaced as the user's mistake.
-            return grdb.resultCode == .SQLITE_READONLY
-                ? .connection("This SQLite database is read-only.")
-                : .syntax(message)
+            // ~= in the switch matches extended result codes (e.g. SQLITE_CANTOPEN_ISDIR) too.
+            switch grdb.resultCode {
+            case .SQLITE_READONLY:
+                return .connection("This SQLite database is read-only.")
+            // A typed path in a TCC-protected folder (Documents/Desktop/Downloads) can't be opened;
+            // point the user at the pickers that grant access instead of leaking a raw SQLite error.
+            case .SQLITE_CANTOPEN, .SQLITE_PERM, .SQLITE_AUTH:
+                return .connection(fileAccessMessage)
+            default:
+                return .syntax(grdb.message ?? String(describing: grdb.resultCode))
+            }
         }
         return .connection(String(describing: error))
     }

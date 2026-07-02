@@ -1,3 +1,4 @@
+import AppKit
 import KTStackKit
 import SwiftUI
 import UniformTypeIdentifiers
@@ -48,6 +49,20 @@ struct KTConnectModal: View {
         }
     }
 
+    // NSSavePanel (powerbox) grants access to the chosen path even in TCC-protected folders, so a
+    // new DB can be created where a typed raw path would be blocked. GRDB creates the file on open.
+    private func createNewSQLiteFile() {
+        let panel = NSSavePanel()
+        panel.title = "New SQLite Database"
+        panel.nameFieldStringValue = "database.sqlite"
+        panel.allowedContentTypes = [UTType(filenameExtension: "sqlite") ?? .data]
+        panel.canCreateDirectories = true
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        filePath = url.path
+        if name.isEmpty { name = url.deletingPathExtension().lastPathComponent }
+        resetTest()
+    }
+
     private var formBody: some View {
         VStack(alignment: .leading, spacing: 14) {
             engineGrid
@@ -59,8 +74,11 @@ struct KTConnectModal: View {
                     HStack(spacing: 8) {
                         KTModalField(placeholder: "/path/to/database.sqlite", text: $filePath, mono: true)
                         Button("Browse…") { importingFile = true }.buttonStyle(KTSecondaryButtonStyle())
+                        Button("New…") { createNewSQLiteFile() }.buttonStyle(KTSecondaryButtonStyle())
                     }
                 }
+                Text("Pick or create the .sqlite file with Browse…/New… so macOS grants access; a typed path in Documents/Desktop/Downloads may be blocked.")
+                    .font(.jbMono(11.5)).foregroundStyle(KTColor.muted)
             } else {
                 serverFields
             }
@@ -189,7 +207,10 @@ struct KTConnectModal: View {
                 port: 0,
                 user: "",
                 database: SQLiteDriver.mainDatabase,
-                filePath: path
+                filePath: path,
+                // SQLite has no host, so the host-based defaultReadOnly (=true here) would open the
+                // file read-only and block creating/writing a DB. This modal is an editor: open r/w.
+                readOnly: false
             )
         }
         let trimmedHost = host.trimmingCharacters(in: .whitespaces)

@@ -1,3 +1,4 @@
+import AppKit
 import KTStackKit
 import SwiftUI
 import UniformTypeIdentifiers
@@ -60,13 +61,31 @@ struct AddConnectionSheet: View {
         .formStyle(.grouped)
     }
 
+    // NSSavePanel (powerbox) grants access to the chosen path even in TCC-protected folders, so a
+    // new DB can be created where a typed raw path would be blocked. GRDB creates the file on open.
+    private func createNewSQLiteFile() {
+        let panel = NSSavePanel()
+        panel.title = "New SQLite Database"
+        panel.nameFieldStringValue = "database.sqlite"
+        panel.allowedContentTypes = [UTType(filenameExtension: "sqlite") ?? .data]
+        panel.canCreateDirectories = true
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        filePath = url.path
+        if name.isEmpty { name = url.deletingPathExtension().lastPathComponent }
+        readOnly = false
+        test = .idle
+    }
+
     @ViewBuilder
     private var sqliteFields: some View {
         TextField("Name", text: $name, prompt: Text("optional"))
         HStack {
             TextField("File", text: $filePath, prompt: Text("path to .db / .sqlite"))
             Button("Choose…") { importingFile = true }
+            Button("New…") { createNewSQLiteFile() }
         }
+        Text("Pick or create the file with Choose…/New… so macOS grants access; a typed path in Documents/Desktop/Downloads may be blocked.")
+            .font(.caption).foregroundStyle(.secondary)
         Toggle("Read-only (open the file read-only)", isOn: $readOnly)
             .fileImporter(isPresented: $importingFile, allowedContentTypes: [.data]) { result in
                 if case let .success(url) = result {
