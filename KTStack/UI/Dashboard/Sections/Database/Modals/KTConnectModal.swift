@@ -104,6 +104,10 @@ struct KTConnectModal: View {
                     KTModalField(placeholder: "••••••", text: $password, isSecure: true)
                 }
             }
+            if kind == .mysql || kind == .postgres {
+                Text("Bundled \(engineDisplay(kind)) ships without a password: use “\(Self.defaultUser(kind))” and leave Password blank.")
+                    .font(.jbMono(11.5)).foregroundStyle(KTColor.muted)
+            }
         }
     }
 
