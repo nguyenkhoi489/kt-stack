@@ -29,6 +29,11 @@ cat > "$ENT" <<'EOF'
 EOF
 codesign --force --sign - "$APP/Contents/Frameworks/KTStackKit.framework"
 codesign --force --sign - --deep "$APP/Contents/Frameworks/Sparkle.framework"
+# Re-sign bundled bin/ binaries. The repo copies are ad-hoc "not signed at all" per codesign on
+# macOS 26, so BinaryStager.enforceSignature (codesign --verify --strict) rejects them and the web
+# server never starts. A fresh ad-hoc sign produces a signature verify accepts. Release uses
+# scripts/release/sign-all-binaries.sh with a real Developer ID; this is local-only.
+find "$APP/Contents/Resources/bin" -type f -perm +111 -exec codesign --force --sign - {} \;
 codesign --force --sign - --options runtime --entitlements "$ENT" "$APP"
 rm -f "$ENT"
 
