@@ -20,6 +20,7 @@ public enum DNSConstants {
     // /etc/resolver entries whose terminal label is one of these, so the resolver never resolves.
     public static let reservedTLDs: Set<String> = ["local", "localhost"]
 
+
     public static func isValidTLD(_ s: String) -> Bool {
         guard !s.isEmpty, s.count <= 253, s == s.lowercased(),
               !s.hasPrefix("."), !s.hasSuffix(".") else { return false }
@@ -61,6 +62,25 @@ public enum DNSConstants {
     public static let daemonLabel = "com.ktstack.dnsmasq"
     public static var daemonPlistPath: String {
         "/Library/LaunchDaemons/\(daemonLabel).plist"
+    }
+
+    // Renamed-from-KDWarm leftover: a root dnsmasq daemon that keeps holding :53 and shadows the
+    // managed one. Cleaned up when KTStack takes over :53.
+    public static let legacyDaemonLabel = "com.kdwarm.dnsmasq"
+    public static var legacyDaemonPlistPath: String {
+        "/Library/LaunchDaemons/\(legacyDaemonLabel).plist"
+    }
+
+    public static let legacyDnsmasqBinaryPath = "/Library/Application Support/KDWarm/bin/dnsmasq"
+
+    // Owns :53 = our managed daemon, matched by binary path (not the bare "dnsmasq" name, which a
+    // foreign dnsmasq — KDWarm, Herd, Valet — also reports).
+    public static func isOwnDnsmasq(path: String?) -> Bool {
+        path == dnsmasqBinaryPath
+    }
+
+    public static func isLegacyDnsmasq(path: String?) -> Bool {
+        path == legacyDnsmasqBinaryPath
     }
 
     public static let dnsPort = 53

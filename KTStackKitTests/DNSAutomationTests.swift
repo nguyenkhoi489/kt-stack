@@ -45,10 +45,22 @@ final class HelperIdentityTests: XCTestCase {
 }
 
 final class Port53ConflictTests: XCTestCase {
-    func testForeignProcessIsNamedConflictOwnDnsmasqIsNot() {
-        XCTAssertFalse(Port53ConflictDetector.isOwn("mDNSResponder"))
-        XCTAssertTrue(Port53ConflictDetector.isOwn("dnsmasq"))
-        XCTAssertTrue(Port53ConflictDetector.isOwn("com.ktstack.dnsmasq"))
+    func testManagedByPathForeignByPath() {
+        typealias Owner = Port53ConflictDetector.Owner
+        // Our managed daemon by binary path → not a conflict.
+        XCTAssertTrue(Port53ConflictDetector.isManaged(Owner(command: "dnsmasq", path: DNSConstants.dnsmasqBinaryPath)))
+        // Renamed-KDWarm leftover → not a conflict (helper reaps it on enable).
+        XCTAssertTrue(Port53ConflictDetector.isManaged(Owner(command: "dnsmasq", path: DNSConstants.legacyDnsmasqBinaryPath)))
+        // A foreign dnsmasq (Herd/other) at a different path IS a conflict.
+        XCTAssertFalse(Port53ConflictDetector.isManaged(Owner(command: "dnsmasq", path: "/opt/homebrew/bin/dnsmasq")))
+        // Non-dnsmasq holder is always a conflict.
+        XCTAssertFalse(Port53ConflictDetector.isManaged(Owner(command: "mDNSResponder", path: "/usr/sbin/mDNSResponder")))
+        // Path unreadable: fall back to the bare name so own/legacy isn't misreported.
+        XCTAssertTrue(Port53ConflictDetector.isManaged(Owner(command: "dnsmasq", path: nil)))
+        XCTAssertFalse(Port53ConflictDetector.isManaged(Owner(command: "mDNSResponder", path: nil)))
+    }
+
+    func testConflictMessages() {
         XCTAssertTrue(Port53ConflictDetector.message(for: "Herd Helper").contains("Herd"))
         XCTAssertTrue(Port53ConflictDetector.message(for: "named").contains("53"))
     }

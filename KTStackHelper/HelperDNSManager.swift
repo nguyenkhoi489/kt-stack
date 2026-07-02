@@ -5,8 +5,8 @@ final class HelperDNSManager {
         guard let resolverPath = try? DNSConstants.resolverPathChecked(for: tld) else {
             return (false, "Invalid TLD.")
         }
-        if let conflict = port53Owner(), conflict != DNSConstants.daemonLabel, conflict != "dnsmasq" {
-            return (false, "Port 53 is already held by “\(conflict)”. Stop it (another DNS tool?) and retry.")
+        if let owner = port53Owner(), !ownerIsTakeable(owner) {
+            return (false, "Port 53 is already held by “\(owner.command)”. Stop it (another DNS tool?) and retry.")
         }
         do {
             try writeRootFile(DNSConstants.dnsmasqConf(for: tld), to: DNSConstants.dnsmasqConfPath, mode: 0o644)
@@ -53,13 +53,24 @@ final class HelperDNSManager {
         let resolver = FileManager.default.fileExists(atPath: DNSConstants.resolverPath(for: tld))
         let running = launchctl(["print", "system/\(DNSConstants.daemonLabel)"]).status == 0
         let owner = port53Owner()
-
-        let conflict = (owner == nil || owner == "dnsmasq" || owner == DNSConstants.daemonLabel) ? nil : owner
+        let conflict = (owner == nil || ownerIsTakeable(owner!)) ? nil : owner!.command
         return (resolver, running, conflict)
     }
 
+    // We may take over :53 from our own stale daemon or a renamed-KDWarm leftover (cleaned in
+    // bootstrapDaemon). A foreign dnsmasq/other tool with a readable non-matching path is refused.
+    private func ownerIsTakeable(_ owner: PortOwner) -> Bool {
+        if DNSConstants.isOwnDnsmasq(path: owner.path) || DNSConstants.isLegacyDnsmasq(path: owner.path) {
+            return true
+        }
+        // Path unreadable but it is a dnsmasq: assume it is one of ours (bootstrapDaemon reaps both
+        // labels before binding). A named non-dnsmasq process is a real conflict.
+        return owner.path == nil && owner.command == "dnsmasq"
+    }
+
     private func bootstrapDaemon() throws {
-        // Replace any prior instance so the config is always fresh.
+        // Free :53 from a renamed-KDWarm leftover, then replace any prior own instance.
+        bootoutLegacyDaemon()
         bootoutDaemon()
         let r = launchctl(["bootstrap", "system", DNSConstants.daemonPlistPath])
         guard r.status == 0 else {
@@ -73,6 +84,11 @@ final class HelperDNSManager {
 
     private func bootoutDaemon() {
         _ = launchctl(["bootout", "system/\(DNSConstants.daemonLabel)"])
+    }
+
+    private func bootoutLegacyDaemon() {
+        _ = launchctl(["bootout", "system/\(DNSConstants.legacyDaemonLabel)"])
+        try? FileManager.default.removeItem(atPath: DNSConstants.legacyDaemonPlistPath)
     }
 
     private func writeRootFile(_ contents: String, to path: String, mode: Int) throws {
@@ -90,12 +106,34 @@ final class HelperDNSManager {
         run("/bin/launchctl", args)
     }
 
-    private func port53Owner() -> String? {
-        let r = run("/usr/sbin/lsof", ["-nP", "-iUDP:\(DNSConstants.dnsPort)", "-F", "c"])
-        for line in r.output.split(separator: "\n") where line.hasPrefix("c") {
-            return String(line.dropFirst())
+    private struct PortOwner {
+        let command: String
+        let path: String?
+    }
+
+    private func port53Owner() -> PortOwner? {
+        let r = run("/usr/sbin/lsof", ["-nP", "-iUDP:\(DNSConstants.dnsPort)", "-F", "pc"])
+        var pid: String?
+        var command: String?
+        for line in r.output.split(separator: "\n") {
+            guard let tag = line.first else { continue }
+            let value = String(line.dropFirst())
+            switch tag {
+            case "p" where pid == nil: pid = value
+            case "c" where command == nil: command = value
+            default: break
+            }
         }
-        return nil
+        guard let command else { return nil }
+        return PortOwner(command: command, path: pid.flatMap(execPath))
+    }
+
+    // Full executable path of a pid (ps -o comm= prints the path on macOS), to tell our managed
+    // dnsmasq apart from a foreign one that shares the "dnsmasq" name.
+    private func execPath(pid: String) -> String? {
+        let out = run("/bin/ps", ["-p", pid, "-o", "comm="]).output
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return out.isEmpty ? nil : out
     }
 
     private func run(_ tool: String, _ args: [String]) -> (status: Int32, output: String) {
