@@ -35,6 +35,7 @@ struct KTRuntimesScreen: View {
                 VStack(alignment: .leading, spacing: 22) {
                     KTListContainer { rows }
                     webServerSection
+                    KTDatabaseEnginesSection()
                 }
                 .padding(.horizontal, KTSpacing.screenGutter)
                 .padding(.top, 16)
