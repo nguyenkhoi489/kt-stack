@@ -158,6 +158,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         _ = services
         refreshShellShim()
+        // A crash can leave tunnel launchd jobs and tunnel vhosts behind; clear them before serving,
+        // or a stale tunnel vhost fails nginx -t and takes the whole front down.
         tunnels.reapStaleJobs()
         server.onSitesChanged = { [tunnels] sites in tunnels.reconcile(sites: sites) }
         applyStartupPreferences()
@@ -183,9 +185,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSLog("KTStack: SMAppService helper registration deferred (no signing identity).")
             return
         }
-        if #available(macOS 13.0, *) {
-            do { try SMAppService.daemon(plistName: "com.ktstack.helper.plist").register() }
-            catch { NSLog("KTStack: helper registration failed: \(error.localizedDescription)") }
+        guard #available(macOS 13.0, *) else { return }
+        let service = SMAppService.daemon(plistName: "com.ktstack.helper.plist")
+        do {
+            try service.register()
+            // requiresApproval is the expected first-launch state: the user must enable the helper
+            // in System Settings before DNS XPC calls can reach it. Log it apart from a real failure.
+            if service.status == .requiresApproval {
+                NSLog("KTStack: helper registered, awaiting approval in System Settings > Login Items.")
+            }
+        } catch {
+            NSLog("KTStack: helper registration failed: \(error.localizedDescription)")
         }
     }
 
@@ -194,6 +204,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_: Notification) {
+        // Block quit until the SwiftNIO event loop is fully down: terminating with it still running
+        // crashes on exit. Tear down the DB loop first, then tunnels, then the local server.
         let dbShutdown = DispatchSemaphore(value: 0)
         Task.detached {
             try? await EventLoopProvider.shared.shutdown()
