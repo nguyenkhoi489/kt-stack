@@ -51,6 +51,7 @@ struct SettingsView: View {
                     sitesGroup
                     updatesGroup
                     maintenanceGroup
+                    developerGroup
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, KTSpacing.screenGutter).padding(.top, 18).padding(.bottom, 24)
@@ -197,6 +198,30 @@ struct SettingsView: View {
                     .disabled(uninstaller.state == .running)
             }
         }
+    }
+
+    private var developerGroup: some View {
+        KTSettingsGroup(title: "Developer") {
+            KTSettingsRow(
+                title: "Developer diagnostics",
+                subtitle: "Log verbose service startup details to diagnostics.log. Turn on when a service won’t start, then reproduce."
+            ) {
+                KTToggle(isOn: preferences.devMode) { preferences.devMode.toggle() }
+            }
+            KTSettingsRow(
+                title: "Diagnostics log",
+                subtitle: "Reveal logs/diagnostics.log in Finder.",
+                showDivider: false
+            ) {
+                KTSettingsTextButton(title: "Reveal…", action: revealDiagnosticsLog)
+            }
+        }
+    }
+
+    private func revealDiagnosticsLog() {
+        let url = AppSupportPaths().serviceLog("diagnostics")
+        let target = FileManager.default.fileExists(atPath: url.path) ? url : url.deletingLastPathComponent()
+        NSWorkspace.shared.activateFileViewerSelecting([target])
     }
 
     private var versionString: String {

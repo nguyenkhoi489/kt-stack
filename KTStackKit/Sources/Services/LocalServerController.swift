@@ -250,6 +250,7 @@ public final class LocalServerController: ObservableObject {
                 let missing = try await applyConfiguration(sites: sites, port: port, startNginx: true)
                 await finish(missing: missing, error: nil)
             } catch {
+                ServiceDiagnostics(paths: paths).log(.error, "server start failed: \(error.localizedDescription)")
                 pools.stopAll(); backends.stopAll(); nginx.stop()
                 await finish(missing: [], error: error.localizedDescription)
             }
@@ -316,6 +317,7 @@ public final class LocalServerController: ObservableObject {
                 try nginx.start()
                 await finish(missing: [], error: nil)
             } catch {
+                ServiceDiagnostics(paths: paths).log(.error, "nginx start failed: \(error.localizedDescription)")
                 backends.stopAll(); nginx.stop()
                 await finish(missing: [], error: error.localizedDescription)
             }
@@ -349,6 +351,7 @@ public final class LocalServerController: ObservableObject {
                     .subtracting(installedPHP).sorted()
                 await finish(missing: missing, error: nil)
             } catch {
+                ServiceDiagnostics(paths: paths).log(.error, "PHP-FPM start failed: \(error.localizedDescription)")
                 pools.stopAll()
                 await finish(missing: [], error: error.localizedDescription)
             }
@@ -379,6 +382,7 @@ public final class LocalServerController: ObservableObject {
                 try nginx.start()
                 await finish(missing: [], error: nil)
             } catch {
+                ServiceDiagnostics(paths: paths).log(.error, "nginx start failed: \(error.localizedDescription)")
                 backends.stopAll(); nginx.stop()
                 await finish(missing: [], error: error.localizedDescription)
             }
@@ -400,6 +404,7 @@ public final class LocalServerController: ObservableObject {
                 }
                 await finish(missing: [], error: nil)
             } catch {
+                ServiceDiagnostics(paths: paths).log(.error, "PHP-FPM start failed: \(error.localizedDescription)")
                 pools.stopAll()
                 await finish(missing: [], error: error.localizedDescription)
             }

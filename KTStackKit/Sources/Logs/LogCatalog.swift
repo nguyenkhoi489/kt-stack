@@ -29,6 +29,10 @@ public struct LogCatalog: Sendable {
                 out.append(LogSource(id: svc, displayName: svc.capitalized, kind: .service, url: url))
             }
         }
+        let diagURL = paths.serviceLog("diagnostics")
+        if fm.fileExists(atPath: diagURL.path) {
+            out.append(LogSource(id: "diagnostics", displayName: "Diagnostics", kind: .service, url: diagURL))
+        }
         for domain in siteDomains.sorted() {
             for (suffix, label, url) in [
                 ("access", "access", paths.siteAccessLog(domain)),

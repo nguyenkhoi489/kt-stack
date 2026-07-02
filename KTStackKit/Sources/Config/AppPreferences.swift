@@ -54,6 +54,12 @@ public final class AppPreferences: ObservableObject {
         didSet { defaults.set(hasSeenDNSSetup, forKey: Key.hasSeenDNSSetup) }
     }
 
+    // Writes verbose service-startup diagnostics to logs/diagnostics.log. Read live by
+    // ServiceDiagnostics.isEnabled off UserDefaults.standard, so the key value is frozen.
+    @Published public var devMode: Bool {
+        didSet { defaults.set(devMode, forKey: Key.devMode) }
+    }
+
     private let defaults: UserDefaults
     private enum Key {
         static let sitesRoot = "KTStack.sitesRootPath"
@@ -65,6 +71,7 @@ public final class AppPreferences: ObservableObject {
         static let automaticUpdates = "KTStack.automaticUpdates"
         static let releaseChannel = "KTStack.releaseChannel"
         static let hasSeenDNSSetup = "KTStack.hasSeenDNSSetup"
+        static let devMode = "KTStack.devMode"
     }
 
     public init(defaults: UserDefaults = .standard) {
@@ -80,6 +87,7 @@ public final class AppPreferences: ObservableObject {
         automaticUpdates = defaults.object(forKey: Key.automaticUpdates) as? Bool ?? true
         releaseChannel = ReleaseChannel(rawValue: defaults.string(forKey: Key.releaseChannel) ?? "") ?? .stable
         hasSeenDNSSetup = defaults.bool(forKey: Key.hasSeenDNSSetup)
+        devMode = defaults.bool(forKey: Key.devMode)
     }
 
     public func setLaunchAtLogin(_ on: Bool) {

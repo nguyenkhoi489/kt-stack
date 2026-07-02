@@ -130,10 +130,25 @@ public struct LaunchAgentManager: Sendable {
         Self.loadedCache.invalidate()
     }
 
+    public func diagnostics() -> ServiceDiagnostics {
+        ServiceDiagnostics(paths: paths)
+    }
+
     private func run(_ op: String, _ args: [String]) throws {
         let res = Self.launchctl([op] + args)
+        let diag = ServiceDiagnostics(paths: paths)
+        let cmd = "launchctl \(op) \(args.joined(separator: " "))"
+        let out = res.out.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        guard res.code == 0 || res.code == 5 else {
+        switch res.code {
+        case 0:
+            diag.log(.info, "\(cmd) → ok")
+        // 5 is launchctl's "already loaded / no such process" for bootstrap/bootout; we treat it as
+        // success but record it, since a spurious 5 on bootstrap means the job never actually loaded.
+        case 5:
+            diag.log(.warn, "\(cmd) → rc=5 (treated as already-loaded): \(out)")
+        default:
+            diag.log(.error, "\(cmd) → rc=\(res.code): \(out)")
             throw LaunchError.commandFailed(op, res.code, res.out)
         }
     }
