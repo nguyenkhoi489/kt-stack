@@ -31,6 +31,17 @@ enum ServicesBannerBuilder {
                 message: "“\(proc)” is holding port 53, so `.test` resolution is blocked. Reset DNS to take it over.",
                 ctaTitle: "Reset DNS", action: onResetDNS
             ))
+        } else if let error = dns.lastError, dns.status == .disabled {
+            // Enable failed. On signed builds the cause is usually an unapproved helper, which
+            // otherwise looks like the button doing nothing, so name the System Settings step.
+            result.append(ServiceBanner(
+                id: "dns-error", status: .error,
+                title: "Couldn't enable `.test` DNS",
+                message: dns.usesHelper
+                    ? "\(error) Approve KTStack's helper in System Settings > General > Login Items & Extensions, then enable DNS again."
+                    : error,
+                ctaTitle: "Try again", action: onEnableDNS
+            ))
         } else if dns.status == .disabled {
             result.append(ServiceBanner(
                 id: "dns-off", status: .warning,
