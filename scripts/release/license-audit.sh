@@ -88,7 +88,7 @@ SOURCE_OFFER=(
   echo "scripts/build-php-versions.sh; request a copy at the project repository or the contact below."
   for c in "${SOURCE_OFFER[@]}"; do echo "  - $c"; done
   echo
-  echo "Contact: <set release contact / repository URL here>"
+  echo "Contact: https://github.com/KTStackAPP/KTStack"
   echo
   echo "Full license texts for each component are available at the Source URLs above and are included"
   echo "with the corresponding upstream distributions."
