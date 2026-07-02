@@ -1,4 +1,6 @@
+import AppKit
 import KTStackKit
+import ServiceManagement
 import SwiftUI
 
 struct KTServicesScreen: View {
@@ -77,6 +79,11 @@ struct KTServicesScreen: View {
         }
         .task { await caTrust.refreshAsync() }
         .onAppear { refreshDBVersions() }
+        // Returning from System Settings after approving the helper: re-check so the approval banner
+        // clears and the Enable DNS banner takes its place.
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            dns.refresh()
+        }
     }
 
     private var header: some View {
@@ -196,8 +203,14 @@ struct KTServicesScreen: View {
         ServicesBannerBuilder.banners(
             snapshots: services.snapshots, dns: dns, caTrusted: caTrusted, caExists: caExists,
             onEnableDNS: { dns.enable() }, onResetDNS: { dns.reset() },
-            onOpenTLSSettings: { onNavigate(.settings) }, onRestart: { services.restart($0) }
+            onOpenTLSSettings: { onNavigate(.settings) },
+            onOpenLoginItems: { Self.openLoginItems() },
+            onRestart: { services.restart($0) }
         )
+    }
+
+    private static func openLoginItems() {
+        if #available(macOS 13, *) { SMAppService.openSystemSettingsLoginItems() }
     }
 
     private static func logSourceID(for kind: ServiceKind) -> String? {

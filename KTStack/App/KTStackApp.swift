@@ -186,7 +186,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         guard #available(macOS 13.0, *) else { return }
-        let service = SMAppService.daemon(plistName: "com.ktstack.helper.plist")
+        let service = SMAppService.daemon(plistName: HelperIdentity.daemonPlistName)
         do {
             try service.register()
             // requiresApproval is the expected first-launch state: the user must enable the helper

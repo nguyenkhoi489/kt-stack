@@ -6,6 +6,9 @@ public enum HelperIdentity {
     public static let helperBundleID = "com.ktstack.helper"
     public static let appBundleID = "com.ktstack.app"
 
+    // SMAppService daemon plist bundled in the app; registered at launch and approved in Login Items.
+    public static let daemonPlistName = "com.ktstack.helper.plist"
+
     public static var hasSigningIdentity: Bool {
         resolvedTeamID() != nil
     }

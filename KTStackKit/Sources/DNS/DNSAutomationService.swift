@@ -1,5 +1,8 @@
 import Combine
 import Foundation
+#if canImport(ServiceManagement)
+    import ServiceManagement
+#endif
 
 @MainActor
 public final class DNSAutomationService: ObservableObject {
@@ -37,6 +40,18 @@ public final class DNSAutomationService: ObservableObject {
 
     public var isEnabled: Bool {
         status == .enabled
+    }
+
+    // True when the signed build registered the privileged helper but the user hasn't allowed it in
+    // System Settings > Login Items yet, so DNS can't reach the helper. Drives the approval banner.
+    public var helperNeedsApproval: Bool {
+        guard usesHelper else { return false }
+        #if canImport(ServiceManagement)
+            if #available(macOS 13, *) {
+                return SMAppService.daemon(plistName: HelperIdentity.daemonPlistName).status == .requiresApproval
+            }
+        #endif
+        return false
     }
 
     public func enable() {

@@ -20,6 +20,7 @@ enum ServicesBannerBuilder {
         onEnableDNS: @escaping () -> Void,
         onResetDNS: @escaping () -> Void,
         onOpenTLSSettings: @escaping () -> Void,
+        onOpenLoginItems: @escaping () -> Void,
         onRestart: @escaping (ServiceKind) -> Void
     ) -> [ServiceBanner] {
         var result: [ServiceBanner] = []
@@ -33,14 +34,27 @@ enum ServicesBannerBuilder {
             ))
         } else if let error = dns.lastError, dns.status == .disabled {
             // Enable failed. On signed builds the cause is usually an unapproved helper, which
-            // otherwise looks like the button doing nothing, so name the System Settings step.
+            // otherwise looks like the button doing nothing, so name the System Settings step and,
+            // when that is the cause, make the CTA open Login Items instead of retrying in vain.
+            let needsApproval = dns.helperNeedsApproval
             result.append(ServiceBanner(
                 id: "dns-error", status: .error,
                 title: "Couldn't enable `.test` DNS",
                 message: dns.usesHelper
                     ? "\(error) Approve KTStack's helper in System Settings > General > Login Items & Extensions, then enable DNS again."
                     : error,
-                ctaTitle: "Try again", action: onEnableDNS
+                ctaTitle: needsApproval ? "Open Login Items" : "Try again",
+                action: needsApproval ? onOpenLoginItems : onEnableDNS
+            ))
+        } else if dns.status == .disabled, dns.helperNeedsApproval {
+            // The helper registered but isn't allowed yet, so Enable DNS would silently do nothing.
+            // Point straight at the Login Items toggle (not a terminal "root command").
+            result.append(ServiceBanner(
+                id: "dns-approve", status: .warning,
+                title: "Approve KTStack's DNS helper",
+                message: "macOS needs you to allow KTStack's background helper before `.test` DNS can start. "
+                    + "Open Login Items, turn on KTStack under “Allow in the Background”, then enable DNS.",
+                ctaTitle: "Open Login Items", action: onOpenLoginItems
             ))
         } else if dns.status == .disabled {
             result.append(ServiceBanner(
